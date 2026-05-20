@@ -7,6 +7,8 @@ metadata:
     app: seonology-clock-page
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: seonology-clock-page
@@ -17,7 +19,12 @@ spec:
     spec:
       serviceAccountName: seonology-clock-page
       nodeSelector:
-        node-type: lightsail
+        node-type: lima
+      tolerations:
+        - key: node-type
+          operator: Equal
+          value: home
+          effect: NoSchedule
       containers:
       - name: seonology-clock-page
         image: ghcr.io/seonnoh/seonology-clock-page:v1.43.0
