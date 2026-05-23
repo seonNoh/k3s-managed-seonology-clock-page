@@ -30,7 +30,7 @@ spec:
           effect: NoSchedule
       containers:
       - name: seonology-clock-page
-        image: ghcr.io/seonnoh/seonology-clock-page:v1.43.0
+        image: ghcr.io/seonnoh/seonology-clock-page:v1.44.0
         ports:
         - containerPort: 80
           name: http
