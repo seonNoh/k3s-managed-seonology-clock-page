@@ -1,3 +1,10 @@
+# [1.44.0](https://github.com/seonNoh/seonology-clock-page/compare/v1.43.0...v1.44.0) (2026-05-23)
+
+
+### Features
+
+* **observability:** enable OTel auto-instrumentation ([3f83dfc](https://github.com/seonNoh/seonology-clock-page/commit/3f83dfc1aaf63974d3b30a47ce112b323ecff780))
+
 # [1.43.0](https://github.com/seonNoh/seonology-clock-page/compare/v1.42.2...v1.43.0) (2026-04-28)
 
 
