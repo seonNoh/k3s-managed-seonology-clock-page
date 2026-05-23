@@ -16,6 +16,9 @@ spec:
     metadata:
       labels:
         app: seonology-clock-page
+      annotations:
+        # OTel Operator: Node.js SDK 자동 주입.
+        instrumentation.opentelemetry.io/inject-nodejs: "seonology-tracing/seonology-tracing"
     spec:
       serviceAccountName: seonology-clock-page
       nodeSelector:
