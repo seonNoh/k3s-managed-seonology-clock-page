@@ -68,17 +68,3 @@ jobs:
             ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Update k8s deployment image tag
-        if: steps.version.outputs.version != '0.0.0'
-        run: |
-          sed -i "s|image: ghcr.io/.*/seonology-clock-page:.*|image: ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:v${{ steps.version.outputs.version }}|g" k8s/deployment.yaml
-
-      - name: Commit and push k8s manifest changes
-        if: steps.version.outputs.version != '0.0.0'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add k8s/deployment.yaml
-          git diff --staged --quiet || git commit -m "chore: update image tag to v${{ steps.version.outputs.version }} [skip ci]"
-          git push
