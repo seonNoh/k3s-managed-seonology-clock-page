@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3001;
 
 // Cloud Drives
 const { setupGoogleRoutes, setupMicrosoftRoutes } = require('./cloud-drives');
+const { setupGithubCatalogRoutes } = require('./github-catalog');
 
 // AI Chat configuration
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
@@ -2253,6 +2254,7 @@ app.post('/api/nas/upload', async (req, res) => {
 // Cloud Drive routes
 setupGoogleRoutes(app);
 setupMicrosoftRoutes(app);
+setupGithubCatalogRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`API server running on port ${PORT}`);

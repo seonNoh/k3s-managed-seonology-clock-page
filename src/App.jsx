@@ -32,6 +32,7 @@ import TextCounter from './components/TextCounter';
 import DnsLookup from './components/DnsLookup';
 import MermaidEditor from './components/MermaidEditor';
 import InfraDashboard from './components/InfraDashboard';
+import RepoCatalog from './components/RepoCatalog';
 import NasBrowser from './components/NasBrowser';
 import CloudBrowser from './components/CloudBrowser';
 import './App.css';
@@ -1097,6 +1098,7 @@ function App() {
   const [showDns, setShowDns] = useState(false);
   const [showMermaid, setShowMermaid] = useState(false);
   const [showInfra, setShowInfra] = useState(false);
+  const [showRepoCatalog, setShowRepoCatalog] = useState(false);
   const [showNasBrowser, setShowNasBrowser] = useState(false);
   const [showGdrive, setShowGdrive] = useState(false);
   const [showOnedrive, setShowOnedrive] = useState(false);
@@ -1150,6 +1152,7 @@ function App() {
         else if (showDns) setShowDns(false);
         else if (showMermaid) setShowMermaid(false);
         else if (showInfra) setShowInfra(false);
+        else if (showRepoCatalog) setShowRepoCatalog(false);
         else if (showNasBrowser) setShowNasBrowser(false);
         else if (showGdrive) setShowGdrive(false);
         else if (showOnedrive) setShowOnedrive(false);
@@ -1160,7 +1163,7 @@ function App() {
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [showNotes, showChat, showMarkdown, showUnitConverter, showBase64, showJsonFormatter, showIpLookup, showPasswordGen, showColorPicker, showCronEditor, showSubnetViz, showSloCalc, showCiCd, showExcelMd, showRbac, showTfState, showGl2Gh, showArchIcon]);
+  }, [showNotes, showChat, showMarkdown, showUnitConverter, showBase64, showJsonFormatter, showIpLookup, showPasswordGen, showColorPicker, showCronEditor, showSubnetViz, showSloCalc, showCiCd, showExcelMd, showRbac, showTfState, showGl2Gh, showArchIcon, showRepoCatalog]);
 
   useEffect(() => { localStorage.setItem('clock-cursor-effect', cursorEffect); }, [cursorEffect]);
   useEffect(() => { localStorage.setItem('clock-cursor-anim', cursorAnim); }, [cursorAnim]);
@@ -1334,6 +1337,16 @@ function App() {
           </svg>
         </span>
         <span className="tools-toggle-label">Infra</span>
+      </button>
+
+      {/* Repository Catalog Button */}
+      <button className={`tools-toggle-btn${showRepoCatalog ? ' expanded' : ''}`} onClick={() => openPanel(setShowRepoCatalog)}>
+        <span className="tools-toggle-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3h7v7H3z" /><path d="M14 3h7v7h-7z" /><path d="M14 14h7v7h-7z" /><path d="M3 14h7v7H3z" />
+          </svg>
+        </span>
+        <span className="tools-toggle-label">Repos</span>
       </button>
 
       {/* NAS File Browser Button */}
@@ -1901,6 +1914,9 @@ function App() {
 
       {/* Infrastructure Dashboard */}
       <InfraDashboard isOpen={showInfra} onClose={() => setShowInfra(false)} />
+
+      {/* Repository Catalog */}
+      <RepoCatalog isOpen={showRepoCatalog} onClose={() => setShowRepoCatalog(false)} />
 
       {/* NAS File Browser */}
       <NasBrowser isOpen={showNasBrowser} onClose={() => setShowNasBrowser(false)} />
