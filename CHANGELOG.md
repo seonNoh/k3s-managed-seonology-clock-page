@@ -1,3 +1,10 @@
+# [1.45.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.44.0...v1.45.0) (2026-06-13)
+
+
+### Features
+
+* add GitHub topic-based repository catalog with SSE auto-refresh ([f3a56f3](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/f3a56f36dc64090972526dfbba7e050a5a30919c))
+
 # [1.44.0](https://github.com/seonNoh/seonology-clock-page/compare/v1.43.0...v1.44.0) (2026-05-23)
 
 
