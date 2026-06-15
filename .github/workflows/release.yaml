@@ -67,4 +67,7 @@ jobs:
             ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:v${{ steps.version.outputs.version }}
             ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:latest
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # 캐시 export는 best-effort. gha 캐시 백엔드의 일시적 오류
+          # (error writing layer blob: not_found)로 이미지 푸시 성공 후에도
+          # 빌드 스텝이 실패 처리되던 문제를 막는다.
+          cache-to: type=gha,mode=max,ignore-error=true
