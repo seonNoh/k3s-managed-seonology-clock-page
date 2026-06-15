@@ -1,3 +1,10 @@
+## [1.49.1](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.49.0...v1.49.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* harden tailscale request with IPv4, timeout and error-code logging ([23ff411](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/23ff411d01f4d8a0acabd212456d70d473460dfd))
+
 # [1.49.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.48.0...v1.49.0) (2026-06-15)
 
 
