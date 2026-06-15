@@ -1911,16 +1911,23 @@ app.get('/api/infra/tailscale', async (req, res) => {
   try {
     const auth = Buffer.from(`${TAILSCALE_API_KEY}:`).toString('base64');
     const data = await new Promise((resolve, reject) => {
-      https.request({
+      const r = https.request({
         hostname: 'api.tailscale.com',
+        port: 443,
         path: '/api/v2/tailnet/-/devices',
         method: 'GET',
+        family: 4, // 일부 환경에서 IPv6 우선 연결이 실패하므로 IPv4 강제
+        timeout: 10000,
         headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' },
       }, (resp) => {
         let body = '';
         resp.on('data', c => body += c);
-        resp.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(new Error(`Parse error: ${body.slice(0,200)}`)); } });
-      }).on('error', e => reject(new Error(`Request error: ${e.message}`))).end();
+        resp.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(new Error(`Parse error (HTTP ${resp.statusCode}): ${body.slice(0, 200)}`)); } });
+      });
+      r.on('timeout', () => r.destroy(new Error('timeout after 10s')));
+      // e.message 가 비어 원인 파악이 안 되던 문제 → code/errno 를 함께 노출
+      r.on('error', e => reject(new Error(`Request error [${e.code || e.errno || 'unknown'}]: ${e.message || ''}`)));
+      r.end();
     });
     if (data.message) throw new Error(data.message);
     const now = Date.now();
