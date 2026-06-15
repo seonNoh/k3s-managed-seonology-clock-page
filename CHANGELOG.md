@@ -1,3 +1,10 @@
+# [1.48.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.47.0...v1.48.0) (2026-06-15)
+
+
+### Features
+
+* studio icon library, separate cursor effects, larger tool fonts ([7f41873](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/7f41873846db85e790297abac4221606bcd0f6b8))
+
 # [1.47.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.46.0...v1.47.0) (2026-06-15)
 
 
