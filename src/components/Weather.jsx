@@ -119,7 +119,7 @@ function Weather() {
         const aq = aqR.status === 'fulfilled' ? await aqR.value.json() : null;
         const geo = geoR.status === 'fulfilled' ? await geoR.value.json() : null;
         const addr = geo?.address || {};
-        const office = resolveJmaOffice(addr);
+        const office = resolveJmaOffice(addr, lat, lon);
         const locName = addr.city || addr.town || addr.village || addr.county || fallbackName || '현재 위치';
 
         const cur = om?.current ? {
