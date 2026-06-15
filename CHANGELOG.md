@@ -1,3 +1,10 @@
+## [1.50.1](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.50.0...v1.50.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* resolve JMA office by nearest coordinates for split prefectures ([ea677c1](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/ea677c1843a7135d4c87575645b37efdf093467e))
+
 # [1.50.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.49.1...v1.50.0) (2026-06-15)
 
 
