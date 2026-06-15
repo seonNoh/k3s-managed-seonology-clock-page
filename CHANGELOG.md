@@ -1,3 +1,10 @@
+# [1.47.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.46.0...v1.47.0) (2026-06-15)
+
+
+### Features
+
+* make Tools panels open near-full-screen ([65cce05](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/65cce05a43be1459425cbdd3e82a9138b799297d))
+
 # [1.46.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.45.1...v1.46.0) (2026-06-15)
 
 
