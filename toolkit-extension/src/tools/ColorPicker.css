@@ -1,0 +1,586 @@
+/* ── Color Picker Overlay ── */
+.cpick-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: cpickFadeIn 0.2s ease;
+}
+
+@keyframes cpickFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Modal ── */
+.cpick-modal {
+  width: 92vw;
+  max-width: 820px;
+  height: 82vh;
+  max-height: 640px;
+  background: rgba(20, 20, 30, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  animation: cpickSlideUp 0.25s ease;
+}
+
+@keyframes cpickSlideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Header ── */
+.cpick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.cpick-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cpick-header-icon {
+  color: rgba(255, 120, 200, 0.9);
+}
+
+.cpick-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cpick-close-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s;
+}
+
+.cpick-close-btn:hover {
+  background: rgba(255, 80, 80, 0.15);
+  color: rgba(255, 120, 120, 0.9);
+  border-color: rgba(255, 80, 80, 0.2);
+}
+
+/* ── Body ── */
+.cpick-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Left: Picker Column ── */
+.cpick-picker-col {
+  width: 320px;
+  flex-shrink: 0;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-y: auto;
+}
+
+.cpick-picker-col::-webkit-scrollbar { width: 4px; }
+.cpick-picker-col::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+}
+
+/* ── SV Canvas ── */
+.cpick-canvas-wrap {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cpick-canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+  cursor: crosshair;
+}
+
+.cpick-sv-cursor {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Hue Bar ── */
+.cpick-hue-wrap {
+  padding: 0 2px;
+}
+
+.cpick-hue-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  background: linear-gradient(to right,
+    hsl(0, 100%, 50%),
+    hsl(60, 100%, 50%),
+    hsl(120, 100%, 50%),
+    hsl(180, 100%, 50%),
+    hsl(240, 100%, 50%),
+    hsl(300, 100%, 50%),
+    hsl(360, 100%, 50%)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cpick-hue-cursor {
+  position: absolute;
+  top: -2px;
+  width: 8px;
+  height: 18px;
+  background: #fff;
+  border-radius: 3px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+/* ── Alpha ── */
+.cpick-alpha-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cpick-alpha-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.cpick-alpha-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cpick-alpha-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.cpick-alpha-val {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  width: 32px;
+  text-align: right;
+}
+
+/* ── Tools Row ── */
+.cpick-tools-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.cpick-tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid;
+}
+
+.cpick-tool-btn.eyedropper {
+  background: rgba(255, 120, 200, 0.1);
+  border-color: rgba(255, 120, 200, 0.2);
+  color: rgba(255, 120, 200, 0.9);
+}
+
+.cpick-tool-btn.eyedropper:hover {
+  background: rgba(255, 120, 200, 0.18);
+}
+
+.cpick-tool-btn.save {
+  background: rgba(80, 200, 120, 0.1);
+  border-color: rgba(80, 200, 120, 0.2);
+  color: rgba(80, 200, 120, 0.9);
+}
+
+.cpick-tool-btn.save:hover {
+  background: rgba(80, 200, 120, 0.18);
+}
+
+.cpick-tool-btn.random {
+  background: rgba(120, 180, 255, 0.1);
+  border-color: rgba(120, 180, 255, 0.2);
+  color: rgba(120, 180, 255, 0.9);
+}
+
+.cpick-tool-btn.random:hover {
+  background: rgba(120, 180, 255, 0.18);
+}
+
+/* ── CSS Input ── */
+.cpick-css-input-row {
+  display: flex;
+  gap: 5px;
+}
+
+.cpick-css-input {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  outline: none;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+
+.cpick-css-input::placeholder {
+  color: rgba(255, 255, 255, 0.15);
+  font-family: -apple-system, sans-serif;
+}
+
+.cpick-css-input:focus {
+  border-color: rgba(255, 120, 200, 0.3);
+}
+
+.cpick-css-go {
+  padding: 0 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cpick-css-go:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Right: Values Column ── */
+.cpick-values-col {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cpick-values-col::-webkit-scrollbar { width: 5px; }
+.cpick-values-col::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+}
+
+/* ── Preview ── */
+.cpick-preview {
+  height: 52px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.1s;
+}
+
+.cpick-preview-text {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Format Rows ── */
+.cpick-formats {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cpick-fmt-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.cpick-fmt-row:last-child { border-bottom: none; }
+
+.cpick-fmt-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cpick-fmt-label {
+  width: 48px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.cpick-fmt-value {
+  flex: 1;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+
+.cpick-fmt-copied {
+  font-size: 9px;
+  color: rgba(80, 200, 120, 0.8);
+  margin-left: 6px;
+}
+
+/* ── RGB Inputs ── */
+.cpick-rgb-inputs {
+  display: flex;
+  gap: 6px;
+}
+
+.cpick-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.cpick-input-group:first-child {
+  flex: 1.8;
+}
+
+.cpick-input-group label {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.25);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cpick-hex-input,
+.cpick-num-input {
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  text-align: center;
+  outline: none;
+  width: 100%;
+}
+
+.cpick-hex-input:focus,
+.cpick-num-input:focus {
+  border-color: rgba(255, 120, 200, 0.4);
+}
+
+.cpick-num-input {
+  -moz-appearance: textfield;
+}
+.cpick-num-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+/* ── Contrast ── */
+.cpick-contrast {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cpick-contrast-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cpick-contrast-chips {
+  display: flex;
+  gap: 5px;
+}
+
+.cpick-contrast-chip {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Harmony ── */
+.cpick-harmony {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cpick-harmony-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cpick-harmony-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cpick-harmony-select {
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  outline: none;
+  cursor: pointer;
+}
+
+.cpick-harmony-select option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.cpick-harmony-swatches {
+  display: flex;
+  gap: 4px;
+}
+
+.cpick-harmony-swatch {
+  flex: 1;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.15s;
+}
+
+.cpick-harmony-swatch:hover {
+  transform: scale(1.06);
+}
+
+/* ── Saved Palette ── */
+.cpick-palette-section,
+.cpick-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cpick-palette-label,
+.cpick-history-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cpick-palette-grid,
+.cpick-history-grid {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cpick-palette-swatch,
+.cpick-history-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.12s;
+}
+
+.cpick-palette-swatch:hover,
+.cpick-history-swatch:hover {
+  transform: scale(1.15);
+}
+
+/* ── Mobile ── */
+@media (max-width: 700px) {
+  .cpick-modal {
+    width: 98vw;
+    height: 94vh;
+    max-width: none;
+    max-height: none;
+    border-radius: 12px;
+  }
+
+  .cpick-body {
+    flex-direction: column;
+  }
+
+  .cpick-picker-col {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    max-height: 320px;
+  }
+
+  .cpick-canvas {
+    height: 140px;
+  }
+}

@@ -1,0 +1,388 @@
+/* ── Speed Test Mini (below clock) ── */
+.speed-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.speed-mini:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.speed-mini-icon {
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+}
+
+.speed-mini-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+/* ── Speed Test Overlay ── */
+.speed-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: speedFadeIn 0.2s ease;
+}
+
+@keyframes speedFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Modal ── */
+.speed-modal {
+  width: 90vw;
+  max-width: 560px;
+  max-height: 90vh;
+  background: rgba(20, 20, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  animation: speedSlideUp 0.25s ease;
+}
+
+@keyframes speedSlideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Header ── */
+.speed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.speed-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.speed-header-icon { color: var(--accent-primary); }
+
+.speed-header-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.speed-header-server {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.speed-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.speed-close-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Body ── */
+.speed-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+/* ── Gauge ── */
+.speed-gauge {
+  position: relative;
+  width: 220px;
+  height: 130px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.speed-gauge svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.speed-gauge-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.speed-gauge-fill {
+  fill: none;
+  stroke: var(--accent-primary);
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease, stroke 0.3s ease;
+  filter: drop-shadow(0 0 8px var(--accent-primary));
+}
+
+.speed-gauge-value {
+  position: relative;
+  text-align: center;
+  padding-bottom: 4px;
+}
+
+.speed-gauge-number {
+  font-family: 'Inter', monospace;
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.speed-gauge-unit {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.speed-gauge-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Stats Grid ── */
+.speed-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.speed-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.speed-stat-card:hover { background: rgba(255, 255, 255, 0.05); }
+
+.speed-stat-icon { color: var(--text-muted); }
+
+.speed-stat-value {
+  font-family: 'Inter', monospace;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.speed-stat-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.speed-stat-unit {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+/* ── Speed Graphs ── */
+.speed-graphs {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.speed-graph-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.speed-graph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.speed-graph-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.speed-graph-range {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: 'Inter', monospace;
+}
+
+.speed-graph-svg {
+  width: 100%;
+  height: 40px;
+  display: block;
+}
+
+/* ── Detail Rows ── */
+.speed-details {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.speed-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.speed-detail-row:last-child {
+  border-bottom: none;
+}
+
+.speed-detail-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.speed-detail-value {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: 'Inter', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Badges ── */
+.speed-badge {
+  font-size: 0.6rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.speed-badge.good {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.speed-badge.ok {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+}
+
+.speed-badge.warn {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* ── Start Button ── */
+.speed-start-btn {
+  padding: 10px 32px;
+  border: 1px solid var(--accent-primary);
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--accent-secondary);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.04em;
+}
+
+.speed-start-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.speed-start-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Progress ── */
+.speed-progress-bar {
+  width: 100%;
+  max-width: 320px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.speed-progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ── Data Warning ── */
+.speed-data-note {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .speed-modal { max-width: 95vw; }
+  .speed-stats { gap: 8px; }
+  .speed-gauge-number { font-size: 2.2rem; }
+  .speed-stat-value { font-size: 1rem; }
+}

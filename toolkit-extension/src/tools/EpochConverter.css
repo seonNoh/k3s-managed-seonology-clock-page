@@ -1,0 +1,104 @@
+.ep-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+  animation: ep-fade 0.2s ease;
+}
+@keyframes ep-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.ep-modal {
+  width: 90vw; max-width: 700px; max-height: 82vh;
+  background: rgba(15, 15, 25, 0.97); border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px; display: flex; flex-direction: column; overflow: hidden;
+  animation: ep-slide 0.25s ease;
+}
+@keyframes ep-slide { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.ep-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); flex-shrink: 0;
+}
+.ep-header-left { display: flex; align-items: center; gap: 8px; }
+.ep-header-icon { color: var(--text-secondary); }
+.ep-header-title { font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+.ep-close-btn {
+  width: 32px; height: 32px; border: none; background: transparent; border-radius: 6px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary); transition: all 0.15s ease;
+}
+.ep-close-btn:hover { background: rgba(255, 80, 80, 0.15); color: #ff6b6b; }
+
+.ep-now-bar {
+  display: flex; align-items: center; gap: 8px; padding: 8px 20px;
+  background: rgba(99, 102, 241, 0.04); border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+}
+.ep-now-label { font-family: 'Inter', sans-serif; font-size: 0.7rem; color: var(--text-muted); }
+.ep-now-value {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #6366f1;
+  cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: background 0.15s ease;
+}
+.ep-now-value:hover { background: rgba(99, 102, 241, 0.1); }
+.ep-refresh-btn {
+  margin-left: auto; padding: 4px 10px; border: 1px solid rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.1); border-radius: 5px; color: #818cf8;
+  font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 500;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.ep-refresh-btn:hover { background: rgba(99, 102, 241, 0.2); }
+
+.ep-body { flex: 1; overflow-y: auto; padding: 0; }
+
+.ep-section { padding: 16px 20px; }
+.ep-section-header { margin-bottom: 8px; }
+.ep-section-label {
+  font-family: 'Inter', sans-serif; font-size: 0.6rem; font-weight: 600;
+  letter-spacing: 0.15em; color: var(--text-muted);
+}
+
+.ep-input-row { margin-bottom: 8px; }
+.ep-input {
+  width: 100%; padding: 8px 12px; background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; outline: none;
+  color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+  transition: border-color 0.15s ease; box-sizing: border-box;
+}
+.ep-input:focus { border-color: rgba(99, 102, 241, 0.5); }
+.ep-input::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+.ep-error {
+  padding: 4px 0; font-family: 'Inter', sans-serif; font-size: 0.7rem; color: #ff6b6b;
+}
+
+.ep-result-grid { display: flex; flex-direction: column; gap: 2px; }
+.ep-result-row {
+  display: flex; align-items: center; gap: 12px; padding: 6px 10px;
+  border-radius: 6px; cursor: pointer; transition: background 0.15s ease; position: relative;
+}
+.ep-result-row:hover { background: rgba(255, 255, 255, 0.04); }
+.ep-result-label {
+  font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 500;
+  color: var(--text-muted); min-width: 80px; flex-shrink: 0;
+}
+.ep-result-value {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-primary);
+}
+
+.ep-copied {
+  font-family: 'Inter', sans-serif; font-size: 0.55rem; color: #4ade80;
+  background: rgba(34, 197, 94, 0.1); padding: 2px 6px; border-radius: 3px;
+  margin-left: auto;
+}
+
+.ep-divider {
+  height: 1px; background: rgba(255, 255, 255, 0.06); margin: 0 20px;
+}
+
+.ep-stats {
+  display: flex; align-items: center; gap: 16px; padding: 8px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06); font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem; color: var(--text-muted); flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .ep-modal { width: 100vw; height: 100vh; max-width: none; max-height: none; border-radius: 0; }
+}

@@ -28,3 +28,7 @@ data/
 
 # mTLS certificates (DO NOT commit)
 certs/
+
+# toolkit-extension build artifacts
+toolkit-extension/*.zip
+seonology-toolkit.zip

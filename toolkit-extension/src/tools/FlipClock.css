@@ -1,0 +1,345 @@
+.flip-clock {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 2rem;
+}
+
+.flip-clock-inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.flip-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.flip-unit-cards {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.flip-unit-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+}
+
+/* Individual flip card */
+.flip-card {
+  position: relative;
+  width: 120px;
+  height: 180px;
+  perspective: 400px;
+  font-family: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Center line highlight */
+.flip-card-inner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.6) 20%,
+    rgba(0, 0, 0, 0.8) 50%,
+    rgba(0, 0, 0, 0.6) 80%,
+    transparent 100%
+  );
+  transform: translateY(-50%);
+  z-index: 5;
+}
+
+.card-face {
+  position: absolute;
+  width: 100%;
+  height: 50%;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-face span {
+  font-size: 7.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.card-top {
+  top: 0;
+  align-items: flex-end;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(180deg, #3d3d45 0%, #2d2d35 100%);
+}
+
+.card-top span {
+  transform: translateY(50%);
+}
+
+.card-bottom {
+  bottom: 0;
+  align-items: flex-start;
+  border-radius: 0 0 16px 16px;
+  background: linear-gradient(180deg, #28282f 0%, #1a1a20 100%);
+}
+
+.card-bottom span {
+  transform: translateY(-50%);
+}
+
+/* Flip animation overlay */
+.flip-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+}
+
+.flip-top,
+.flip-bottom {
+  position: absolute;
+  width: 100%;
+  height: 50%;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+
+.flip-top span,
+.flip-bottom span {
+  font-size: 7.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.flip-top {
+  top: 0;
+  align-items: flex-end;
+  transform-origin: bottom center;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(180deg, #3d3d45 0%, #2d2d35 100%);
+  animation: flipTop 0.4s cubic-bezier(0.33, 0, 0.67, 1) forwards;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  z-index: 3;
+}
+
+.flip-top span {
+  transform: translateY(50%);
+}
+
+.flip-bottom {
+  bottom: 0;
+  align-items: flex-start;
+  transform-origin: top center;
+  border-radius: 0 0 16px 16px;
+  background: linear-gradient(180deg, #28282f 0%, #1a1a20 100%);
+  animation: flipBottom 0.4s cubic-bezier(0.33, 1, 0.67, 1) 0.2s forwards;
+  transform: rotateX(90deg);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.flip-bottom span {
+  transform: translateY(-50%);
+}
+
+/* Cover for bottom half during flip - shows old digit */
+.flip-bottom-cover {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden;
+  background: linear-gradient(180deg, #28282f 0%, #1a1a20 100%);
+  border-radius: 0 0 16px 16px;
+  z-index: 1;
+}
+
+.flip-bottom-cover span {
+  font-size: 7.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: translateY(-50%);
+}
+
+/* Embedded mode (no padding when inside Clock component) */
+.flip-clock-embedded {
+  padding: 0;
+}
+
+@keyframes flipTop {
+  0% {
+    transform: rotateX(0deg);
+  }
+  100% {
+    transform: rotateX(-90deg);
+  }
+}
+
+@keyframes flipBottom {
+  0% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+/* Separator dots */
+.flip-clock-separator {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0 0.75rem;
+  padding-bottom: 2.5rem;
+}
+
+.separator-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a4a55 0%, #3a3a42 100%);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .flip-card {
+    width: 100px;
+    height: 150px;
+  }
+
+  .card-face span,
+  .flip-top span,
+  .flip-bottom span,
+  .flip-bottom-cover span {
+    font-size: 6rem;
+  }
+
+  .flip-clock-inner {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .flip-card {
+    width: 70px;
+    height: 105px;
+  }
+
+  .card-face span,
+  .flip-top span,
+  .flip-bottom span,
+  .flip-bottom-cover span {
+    font-size: 4rem;
+  }
+
+  .flip-clock-inner {
+    gap: 0.75rem;
+  }
+
+  .flip-unit-cards {
+    gap: 0.4rem;
+  }
+
+  .separator-dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .flip-unit-label {
+    font-size: 0.65rem;
+  }
+
+  .flip-card-inner {
+    border-radius: 10px;
+  }
+
+  .card-top,
+  .flip-top {
+    border-radius: 10px 10px 0 0;
+  }
+
+  .card-bottom,
+  .flip-bottom,
+  .flip-bottom-cover {
+    border-radius: 0 0 10px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .flip-card {
+    width: 50px;
+    height: 75px;
+  }
+
+  .card-face span,
+  .flip-top span,
+  .flip-bottom span,
+  .flip-bottom-cover span {
+    font-size: 2.8rem;
+  }
+
+  .flip-unit-cards {
+    gap: 0.25rem;
+  }
+
+  .separator-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .flip-clock-separator {
+    gap: 0.75rem;
+    padding-bottom: 1.75rem;
+  }
+
+  .flip-unit-label {
+    font-size: 0.55rem;
+  }
+}

@@ -1,0 +1,1341 @@
+/* ===== BASE ===== */
+.clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  position: relative;
+  /* Extra padding so the theme-toggle button stays inside the hover-detectable box */
+  padding: 60px 70px 20px;
+  margin: -60px -70px -20px;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.clock:hover .theme-toggle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+/* ===== THEME PICKER ===== */
+.theme-picker-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 900;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.theme-picker {
+  background: rgba(20, 20, 30, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 24px;
+  min-width: 360px;
+  animation: scaleIn 0.2s ease;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.theme-picker-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.theme-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.theme-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.theme-picker-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
+
+.theme-picker-item.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: var(--text-primary);
+}
+
+.theme-picker-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: currentColor;
+}
+
+.theme-picker-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.theme-picker-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+/* ===== 1. DIGITAL ===== */
+.clock-time {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: clamp(8rem, 25vw, 28rem);
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+}
+
+.clock-digits {
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-separator {
+  opacity: 0.3;
+  margin: 0 0.02em;
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.1; }
+}
+
+.clock-date {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(1rem, 2.5vw, 2rem);
+  font-weight: 300;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ===== 2. ORBIT ===== */
+.orbit-clock {
+  position: relative;
+  width: clamp(360px, 50vw, 620px);
+  height: clamp(360px, 50vw, 620px);
+}
+
+.orbit-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.orbit-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.orbit-time {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.6s ease;
+  text-shadow: 0 0 20px currentColor;
+}
+
+.orbit-seconds {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: clamp(1.3rem, 2.5vw, 2rem);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.orbit-ampm {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  opacity: 0.7;
+  margin-top: 4px;
+  transition: color 0.6s ease;
+  white-space: nowrap;
+}
+
+.orbit-date {
+  margin-top: 0.5rem;
+}
+
+/* Hour pulse effect */
+.orbit-hour-pulse .orbit-time {
+  animation: orbit-text-pulse 2s ease-out;
+}
+
+.orbit-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid;
+  transform: translate(-50%, -50%);
+  animation: orbit-ring-expand 2s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes orbit-ring-expand {
+  0% {
+    width: 60px;
+    height: 60px;
+    opacity: 0.8;
+  }
+  100% {
+    width: 350px;
+    height: 350px;
+    opacity: 0;
+  }
+}
+
+@keyframes orbit-text-pulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  15% { transform: scale(1.15); filter: brightness(1.8); }
+  30% { transform: scale(1); filter: brightness(1.2); }
+  50% { transform: scale(1.05); filter: brightness(1.4); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* ===== 3. FLIP (integrated) ===== */
+.clock-flip .flip-clock-embedded {
+  padding: 0;
+}
+
+/* ===== 4. NEON ===== */
+.neon-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.neon-time {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: clamp(5rem, 18vw, 16rem);
+  font-weight: 300;
+  color: #00f0ff;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  text-shadow:
+    0 0 7px #00f0ff,
+    0 0 10px #00f0ff,
+    0 0 21px #00f0ff,
+    0 0 42px #0fa,
+    0 0 82px #0fa,
+    0 0 92px #0fa;
+}
+
+.neon-digits {
+  font-variant-numeric: tabular-nums;
+}
+
+.neon-sep {
+  opacity: 0.6;
+  margin: 0 0.05em;
+  animation: neonBlink 1.5s ease-in-out infinite;
+}
+
+.neon-seconds {
+  font-size: 0.5em;
+  opacity: 0.7;
+  margin-left: 0.1em;
+}
+
+@keyframes neonBlink {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.2; }
+}
+
+.neon-date {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(0.9rem, 2vw, 1.5rem);
+  font-weight: 300;
+  color: rgba(0, 240, 255, 0.5);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+/* ===== 5. BINARY ===== */
+.binary-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.binary-grid {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.binary-spacer {
+  width: 20px;
+}
+
+.binary-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.binary-dot {
+  width: clamp(20px, 4vw, 40px);
+  height: clamp(20px, 4vw, 40px);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s ease;
+}
+
+.binary-dot.active {
+  background: #6366f1;
+  border-color: #818cf8;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5), 0 0 24px rgba(99, 102, 241, 0.2);
+}
+
+.binary-dot.invisible {
+  visibility: hidden;
+}
+
+.binary-time {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  font-weight: 300;
+  color: var(--text-secondary);
+  letter-spacing: 0.2em;
+}
+
+/* ===== 6. WORD CLOCK ===== */
+.word-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  position: relative;
+}
+
+.word-lang-toggle {
+  position: absolute;
+  top: -0.5rem;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  transition: all 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.word-clock:hover .word-lang-toggle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.word-lang-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+.word-line {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+
+.word-prefix {
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  font-weight: 300;
+  color: var(--text-secondary);
+  letter-spacing: 0.25em;
+}
+
+.word-middle {
+  font-size: clamp(2.2rem, 7vw, 5.5rem);
+  font-weight: 200;
+}
+
+.word-hour {
+  font-size: clamp(3.5rem, 12vw, 9rem);
+  font-weight: 200;
+  background: linear-gradient(180deg, var(--text-primary) 0%, rgba(255,255,255,0.5) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.06em;
+}
+
+/* Korean word clock */
+.word-clock-ko .word-line {
+  font-family: 'Noto Sans KR', -apple-system, sans-serif;
+  text-transform: none;
+  letter-spacing: 0.08em;
+  font-weight: 300;
+}
+
+.word-clock-ko .word-hour {
+  font-weight: 200;
+}
+
+/* Japanese word clock */
+.word-clock-ja .word-line {
+  font-family: 'Noto Sans JP', -apple-system, sans-serif;
+  text-transform: none;
+  letter-spacing: 0.12em;
+  font-weight: 300;
+}
+
+.word-clock-ja .word-hour {
+  font-weight: 200;
+}
+
+/* ===== 7. PROGRESS BAR ===== */
+.progress-clock {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: clamp(300px, 60vw, 700px);
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.progress-label {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.15em;
+  width: 80px;
+  text-align: right;
+}
+
+.progress-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  border-radius: 0 4px 4px 0;
+}
+
+.progress-value {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: var(--text-primary);
+  width: 50px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 8. SWISS RAILWAY ===== */
+.swiss-clock {
+  width: clamp(300px, 40vw, 550px);
+  height: clamp(300px, 40vw, 550px);
+  position: relative;
+}
+
+.swiss-face {
+  width: 100%;
+  height: 100%;
+  border: 4px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  position: relative;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+}
+
+.swiss-tick {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.swiss-tick::after {
+  content: '';
+  position: absolute;
+  top: 3%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.swiss-tick-min::after {
+  width: 2px;
+  height: 2%;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.swiss-tick-hour::after {
+  width: 8px;
+  height: 6%;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 2px;
+}
+
+.swiss-hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform-origin: bottom center;
+}
+
+.swiss-hour {
+  width: 10px;
+  height: 22%;
+  margin-left: -5px;
+  background: var(--text-primary);
+  border-radius: 5px 5px 0 0;
+}
+
+.swiss-minute {
+  width: 6px;
+  height: 34%;
+  margin-left: -3px;
+  background: var(--text-primary);
+  border-radius: 3px 3px 0 0;
+}
+
+.swiss-second-hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  height: 40%;
+  transform-origin: bottom center;
+  width: 0;
+}
+
+.swiss-second-line {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+  margin-left: -1px;
+  background: #e11d48;
+}
+
+.swiss-second-dot {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  margin-top: -4px;
+  background: #e11d48;
+  border-radius: 50%;
+}
+
+.swiss-center {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: var(--text-primary);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+/* ===== 9. MATRIX ===== */
+.matrix-clock {
+  position: relative;
+  width: clamp(300px, 80vw, 900px);
+  min-height: clamp(250px, 50vh, 500px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.matrix-rain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.matrix-column {
+  position: absolute;
+  top: -100%;
+  display: flex;
+  flex-direction: column;
+  animation: matrixFall linear infinite;
+}
+
+@keyframes matrixFall {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(200%); }
+}
+
+.matrix-column span {
+  color: #00ff41;
+  font-family: 'Courier New', 'SF Mono', monospace;
+  line-height: 1.2;
+  text-shadow: 0 0 8px #00ff41;
+}
+
+.matrix-time {
+  position: relative;
+  z-index: 2;
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: clamp(4rem, 14vw, 10rem);
+  font-weight: 700;
+  color: #00ff41;
+  text-shadow:
+    0 0 10px #00ff41,
+    0 0 20px #00ff41,
+    0 0 40px #00ff41,
+    0 0 80px rgba(0, 255, 65, 0.4);
+  letter-spacing: 0.05em;
+}
+
+.matrix-sep {
+  opacity: 0.6;
+  animation: matrixBlink 1s step-end infinite;
+}
+
+@keyframes matrixBlink {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0; }
+}
+
+.matrix-date {
+  position: relative;
+  z-index: 2;
+  font-family: 'Courier New', 'SF Mono', monospace;
+  font-size: clamp(0.8rem, 2vw, 1.2rem);
+  color: rgba(0, 255, 65, 0.5);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 1rem;
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+}
+
+/* ===== 10. DOT MATRIX (LED) ===== */
+.dotmatrix-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  position: relative;
+}
+
+.led-toggles {
+  position: absolute;
+  top: -0.5rem;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.dotmatrix-clock:hover .led-toggles {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.led-style-toggle {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  transition: all 0.3s ease;
+}
+
+.led-style-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+.dotmatrix-display {
+  display: flex;
+  gap: clamp(6px, 1.5vw, 14px);
+  align-items: center;
+}
+
+.dotmatrix-char {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  gap: clamp(4px, 0.8vw, 7px);
+}
+
+.dotmatrix-colon {
+  margin: 0 clamp(2px, 0.5vw, 6px);
+}
+
+.dm-dot {
+  width: clamp(8px, 1.6vw, 14px);
+  height: clamp(8px, 1.6vw, 14px);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+/* LED shape: Square */
+.shape-square .dm-dot {
+  border-radius: 2px;
+}
+
+/* LED shape: Diamond */
+.shape-diamond .dm-dot {
+  border-radius: 1px;
+  transform: rotate(45deg);
+  width: clamp(7px, 1.3vw, 11px);
+  height: clamp(7px, 1.3vw, 11px);
+}
+
+/* LED shape: Bar */
+.shape-bar .dm-dot {
+  border-radius: 1px;
+  width: clamp(12px, 2.4vw, 20px);
+  height: clamp(5px, 1vw, 8px);
+}
+
+.shape-bar .dotmatrix-char {
+  gap: clamp(3px, 0.6vw, 5px);
+}
+
+/* LED shape: 7-Segment */
+.segment-display {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 2vw, 20px);
+}
+
+.seg-digit {
+  width: clamp(55px, 12vw, 110px);
+  height: auto;
+}
+
+.seg-colon {
+  width: clamp(16px, 3.5vw, 30px);
+  height: auto;
+}
+
+/* LED color: Amber (default) */
+.led-amber .dm-dot { background: rgba(255, 140, 0, 0.08); }
+.led-amber .dm-dot.dm-active {
+  background: #ff8c00;
+  box-shadow: 0 0 6px #ff8c00, 0 0 12px rgba(255, 140, 0, 0.4);
+}
+.led-amber .dotmatrix-date { color: rgba(255, 140, 0, 0.5); }
+
+/* LED color: Green */
+.led-green .dm-dot { background: rgba(0, 255, 65, 0.06); }
+.led-green .dm-dot.dm-active {
+  background: #00ff41;
+  box-shadow: 0 0 6px #00ff41, 0 0 12px rgba(0, 255, 65, 0.4);
+}
+.led-green .dotmatrix-date { color: rgba(0, 255, 65, 0.5); }
+
+/* LED color: Red */
+.led-red .dm-dot { background: rgba(255, 50, 50, 0.06); }
+.led-red .dm-dot.dm-active {
+  background: #ff3232;
+  box-shadow: 0 0 6px #ff3232, 0 0 12px rgba(255, 50, 50, 0.4);
+}
+.led-red .dotmatrix-date { color: rgba(255, 50, 50, 0.5); }
+
+/* LED color: Cyan */
+.led-cyan .dm-dot { background: rgba(0, 230, 255, 0.06); }
+.led-cyan .dm-dot.dm-active {
+  background: #00e6ff;
+  box-shadow: 0 0 6px #00e6ff, 0 0 12px rgba(0, 230, 255, 0.4);
+}
+.led-cyan .dotmatrix-date { color: rgba(0, 230, 255, 0.5); }
+
+/* LED color: Blue */
+.led-blue .dm-dot { background: rgba(80, 120, 255, 0.06); }
+.led-blue .dm-dot.dm-active {
+  background: #5078ff;
+  box-shadow: 0 0 6px #5078ff, 0 0 12px rgba(80, 120, 255, 0.4);
+}
+.led-blue .dotmatrix-date { color: rgba(80, 120, 255, 0.5); }
+
+/* LED color: White */
+.led-white .dm-dot { background: rgba(255, 255, 255, 0.06); }
+.led-white .dm-dot.dm-active {
+  background: #ffffff;
+  box-shadow: 0 0 6px #ffffff, 0 0 12px rgba(255, 255, 255, 0.3);
+}
+.led-white .dotmatrix-date { color: rgba(255, 255, 255, 0.5); }
+
+.dotmatrix-date {
+  margin-top: 0;
+}
+
+/* ===== 11. MINIMAL RING ===== */
+.ring-clock {
+  position: relative;
+  width: clamp(280px, 35vw, 420px);
+  height: clamp(280px, 35vw, 420px);
+}
+
+.ring-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ring-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.ring-time {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 200;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ring-seconds {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  font-weight: 300;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ring-date {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+
+/* ===== 12. TYPOGRAPHY ===== */
+.typo-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.typo-time {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.typo-hour,
+.typo-min {
+  font-family: 'Georgia', 'Playfair Display', 'Times New Roman', serif;
+  font-size: clamp(8rem, 22vw, 22rem);
+  font-weight: 100;
+  color: var(--text-primary);
+  line-height: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.typo-sep {
+  width: 6px;
+  height: clamp(40px, 8vw, 80px);
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.3), transparent);
+  border-radius: 3px;
+  align-self: center;
+}
+
+.typo-seconds {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(1.5rem, 4vw, 3rem);
+  font-weight: 300;
+  color: var(--text-secondary);
+  letter-spacing: 0.3em;
+  font-variant-numeric: tabular-nums;
+}
+
+.typo-date {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 1rem;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .clock {
+    overflow: visible;
+  }
+
+  .theme-toggle {
+    top: -10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+    opacity: 0.6;
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .theme-toggle svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .orbit-clock {
+    width: clamp(320px, 92vw, 520px);
+    height: clamp(320px, 92vw, 520px);
+  }
+
+  .swiss-clock {
+    width: clamp(250px, 60vw, 400px);
+    height: clamp(250px, 60vw, 400px);
+  }
+
+  .theme-picker {
+    min-width: 0;
+    width: 90vw;
+    max-width: 360px;
+    padding: 16px;
+  }
+
+  .theme-picker-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .progress-clock {
+    width: clamp(280px, 85vw, 500px);
+  }
+
+  .progress-label {
+    width: 50px;
+    font-size: 0.6rem;
+  }
+
+  .matrix-clock {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-picker-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .theme-picker {
+    min-width: 0;
+    width: 92vw;
+    max-width: 320px;
+  }
+
+  .binary-dot {
+    width: 16px;
+    height: 16px;
+  }
+
+  .binary-spacer {
+    width: 12px;
+  }
+
+  .dm-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .shape-diamond .dm-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .shape-bar .dm-dot {
+    width: 10px;
+    height: 4px;
+  }
+
+  .seg-digit {
+    width: 42px;
+  }
+
+  .seg-colon {
+    width: 12px;
+  }
+}
+
+/* ===== DATE TEXT SHIMMER EFFECT ===== */
+.clock-date,
+.orbit-date,
+.ring-date,
+.typo-date,
+.analog-date {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    var(--text-secondary) 0%,
+    var(--text-secondary) 40%,
+    rgba(255, 255, 255, 0.95) 50%,
+    var(--text-secondary) 60%,
+    var(--text-secondary) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: date-shimmer 8s ease-in-out infinite;
+}
+
+.clock-date::before,
+.orbit-date::before,
+.ring-date::before,
+.typo-date::before,
+.analog-date::before,
+.clock-date::after,
+.orbit-date::after,
+.ring-date::after,
+.typo-date::after,
+.analog-date::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  animation: date-flare 8s ease-in-out infinite;
+}
+
+/* Horizontal ray */
+.clock-date::before,
+.orbit-date::before,
+.ring-date::before,
+.typo-date::before,
+.analog-date::before {
+  right: 0;
+  top: 0;
+  width: 40px;
+  height: 2px;
+  transform: translate(50%, 0);
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%);
+}
+
+/* Vertical ray */
+.clock-date::after,
+.orbit-date::after,
+.ring-date::after,
+.typo-date::after,
+.analog-date::after {
+  right: 0;
+  top: 0;
+  width: 2px;
+  height: 40px;
+  transform: translate(50%, -50%);
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%);
+}
+
+.neon-date {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 240, 255, 0.5) 0%,
+    rgba(0, 240, 255, 0.5) 40%,
+    rgba(0, 240, 255, 1) 50%,
+    rgba(0, 240, 255, 0.5) 60%,
+    rgba(0, 240, 255, 0.5) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: date-shimmer 8s ease-in-out infinite;
+}
+
+.neon-date::before,
+.neon-date::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+  animation: date-flare 8s ease-in-out infinite;
+}
+
+.neon-date::before {
+  width: 40px;
+  height: 2px;
+  transform: translate(50%, 0);
+  background: radial-gradient(ellipse at center, rgba(0,240,255,0.9) 0%, rgba(0,240,255,0) 70%);
+}
+
+.neon-date::after {
+  width: 2px;
+  height: 40px;
+  transform: translate(50%, -50%);
+  background: radial-gradient(ellipse at center, rgba(0,240,255,0.9) 0%, rgba(0,240,255,0) 70%);
+}
+
+.matrix-date,
+.dotmatrix-date {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 255, 65, 0.5) 0%,
+    rgba(0, 255, 65, 0.5) 40%,
+    rgba(0, 255, 65, 1) 50%,
+    rgba(0, 255, 65, 0.5) 60%,
+    rgba(0, 255, 65, 0.5) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: date-shimmer 8s ease-in-out infinite;
+}
+
+.matrix-date::before,
+.dotmatrix-date::before,
+.matrix-date::after,
+.dotmatrix-date::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+  animation: date-flare 8s ease-in-out infinite;
+}
+
+.matrix-date::before,
+.dotmatrix-date::before {
+  width: 40px;
+  height: 2px;
+  transform: translate(50%, 0);
+  background: radial-gradient(ellipse at center, rgba(0,255,65,0.9) 0%, rgba(0,255,65,0) 70%);
+}
+
+.matrix-date::after,
+.dotmatrix-date::after {
+  width: 2px;
+  height: 40px;
+  transform: translate(50%, -50%);
+  background: radial-gradient(ellipse at center, rgba(0,255,65,0.9) 0%, rgba(0,255,65,0) 70%);
+}
+
+@keyframes date-shimmer {
+  0%, 70% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes date-flare {
+  0%, 90% {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  95% {
+    opacity: 1;
+  }
+  98% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Override width/height animation per axis */
+.clock-date::before,
+.orbit-date::before,
+.ring-date::before,
+.typo-date::before,
+.analog-date::before,
+.neon-date::before,
+.matrix-date::before,
+.dotmatrix-date::before {
+  animation: date-flare-h 8s ease-in-out infinite;
+}
+
+.clock-date::after,
+.orbit-date::after,
+.ring-date::after,
+.typo-date::after,
+.analog-date::after,
+.neon-date::after,
+.matrix-date::after,
+.dotmatrix-date::after {
+  animation: date-flare-v 8s ease-in-out infinite;
+}
+
+@keyframes date-flare-h {
+  0%, 90% {
+    opacity: 0;
+    width: 0;
+  }
+  95% {
+    opacity: 1;
+    width: 50px;
+  }
+  98% {
+    opacity: 0.5;
+    width: 30px;
+  }
+  100% {
+    opacity: 0;
+    width: 0;
+  }
+}
+
+@keyframes date-flare-v {
+  0%, 90% {
+    opacity: 0;
+    height: 0;
+  }
+  95% {
+    opacity: 1;
+    height: 50px;
+  }
+  98% {
+    opacity: 0.5;
+    height: 30px;
+  }
+  100% {
+    opacity: 0;
+    height: 0;
+  }
+}

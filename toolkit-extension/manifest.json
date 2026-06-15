@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Seonology Toolkit",
+  "version": "0.1.0",
+  "description": "개발자 유틸 · 인프라 시각화 · 실시간 정보 · 시계 새 탭을 한 곳에",
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+  },
+
+  "chrome_url_overrides": { "newtab": "newtab.html" },
+
+  "background": { "service_worker": "service-worker.js", "type": "module" },
+
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "clipboardWrite",
+    "scripting"
+  ],
+
+  "optional_permissions": ["clipboardRead"],
+
+  "host_permissions": [
+    "https://api.open-meteo.com/*",
+    "https://nominatim.openstreetmap.org/*",
+    "https://api.exchangerate-api.com/*",
+    "https://dns.google/*",
+    "https://ipapi.co/*",
+    "https://api.wikimedia.org/*",
+    "https://speed.cloudflare.com/*",
+    "https://1.1.1.1/*"
+  ],
+
+  "commands": {
+    "open-newtab-toolkit": {
+      "suggested_key": { "default": "Ctrl+Shift+K", "mac": "Command+Shift+K" },
+      "description": "Open Seonology Toolkit dashboard"
+    },
+    "format-json-clipboard": {
+      "suggested_key": { "default": "Ctrl+Shift+J", "mac": "Command+Shift+J" },
+      "description": "Format JSON from clipboard"
+    }
+  },
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

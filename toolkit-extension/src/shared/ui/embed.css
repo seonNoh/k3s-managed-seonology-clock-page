@@ -1,0 +1,19 @@
+/* shared/ui/embed.css — surface 컨테이너에 .toolkit-embed 클래스를 부여 */
+.toolkit-embed [class$="-overlay"] {
+  position: static !important;
+  inset: auto !important;
+  background: none !important;
+  backdrop-filter: none !important;
+  padding: 0 !important;
+  display: block !important;
+}
+
+.toolkit-embed [class$="-modal"],
+.toolkit-embed [class$="-container"] {
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  max-height: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}

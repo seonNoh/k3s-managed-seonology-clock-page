@@ -1,0 +1,436 @@
+/* ═══════════════════════════════════════════════
+   GitLab CI → GitHub Actions Converter
+   glassmorphism dark theme
+   ═══════════════════════════════════════════════ */
+
+.gl2gh-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  animation: gl2ghFadeIn 0.22s ease;
+}
+
+@keyframes gl2ghFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.gl2gh-container {
+  width: 94vw;
+  max-width: 1400px;
+  height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, rgba(15, 15, 35, 0.92), rgba(25, 20, 50, 0.88));
+  border: 1px solid rgba(226, 114, 91, 0.15);
+  border-radius: 20px;
+  box-shadow:
+    0 0 60px rgba(226, 114, 91, 0.06),
+    0 0 60px rgba(88, 166, 255, 0.04),
+    inset 0 0 60px rgba(139, 92, 246, 0.02);
+  overflow: hidden;
+  animation: gl2ghSlideUp 0.28s ease;
+}
+
+@keyframes gl2ghSlideUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Header ── */
+.gl2gh-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+  flex-shrink: 0;
+}
+
+.gl2gh-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gl2gh-title-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gl2gh-title-row h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  background: linear-gradient(135deg, #e2725b, #a78bfa, #58a6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gl2gh-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.gl2gh-close:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+/* ── Body ── */
+.gl2gh-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.gl2gh-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 12px;
+  gap: 8px;
+}
+
+.gl2gh-input-panel {
+  max-width: 48%;
+  border-right: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.gl2gh-output-panel {
+  flex: 1;
+}
+
+/* ── Panel toolbar ── */
+.gl2gh-panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.gl2gh-panel-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.gl2gh-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.gl2gh-dot.gitlab { background: #e2725b; }
+.gl2gh-dot.github { background: #58a6ff; }
+
+.gl2gh-toolbar-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.gl2gh-btn-sm {
+  padding: 3px 10px;
+  font-size: 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.06);
+  color: #a78bfa;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+
+.gl2gh-btn-sm:hover {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.gl2gh-btn-sm.copied {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.gl2gh-btn-danger {
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.gl2gh-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* ── Tabs ── */
+.gl2gh-tabs {
+  display: flex;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.gl2gh-tab {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gl2gh-tab:hover { color: #a78bfa; }
+
+.gl2gh-tab.active {
+  background: rgba(139, 92, 246, 0.15);
+  color: #c4b5fd;
+}
+
+/* ── Textarea ── */
+.gl2gh-textarea {
+  flex: 1;
+  min-height: 120px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(226, 114, 91, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #fbbf24;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+  tab-size: 2;
+}
+
+.gl2gh-textarea:focus {
+  border-color: rgba(226, 114, 91, 0.35);
+}
+
+.gl2gh-textarea::placeholder { color: #475569; }
+
+/* ── Stats ── */
+.gl2gh-stats {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.gl2gh-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.08);
+  border-radius: 8px;
+}
+
+.gl2gh-stat-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: #c4b5fd;
+  font-family: 'SF Mono', monospace;
+}
+
+.gl2gh-stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ── Messages ── */
+.gl2gh-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.gl2gh-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.gl2gh-msg.warn {
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.gl2gh-msg.info {
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.gl2gh-msg-icon {
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+/* ── Output ── */
+.gl2gh-output-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.gl2gh-output-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.gl2gh-output-code {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(88, 166, 255, 0.1);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: #7dd3fc;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  overflow: auto;
+  margin: 0;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.gl2gh-output-code::-webkit-scrollbar { width: 4px; height: 4px; }
+.gl2gh-output-code::-webkit-scrollbar-track { background: transparent; }
+.gl2gh-output-code::-webkit-scrollbar-thumb { background: rgba(88, 166, 255, 0.2); border-radius: 4px; }
+
+/* ── Mapping tables ── */
+.gl2gh-map-scroll {
+  flex: 1;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(139, 92, 246, 0.08);
+}
+
+.gl2gh-map-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.gl2gh-map-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.gl2gh-map-table th {
+  padding: 10px 14px;
+  background: rgba(139, 92, 246, 0.08);
+  color: #8b5cf6;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-align: left;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+}
+
+.gl2gh-map-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.05);
+  vertical-align: top;
+}
+
+.gl2gh-map-table tr:hover {
+  background: rgba(139, 92, 246, 0.04);
+}
+
+.gl2gh-map-gitlab {
+  font-family: 'SF Mono', monospace;
+  color: #fbbf24;
+  font-weight: 500;
+  font-size: 10.5px;
+}
+
+.gl2gh-map-github {
+  font-family: 'SF Mono', monospace;
+  color: #7dd3fc;
+  font-weight: 500;
+  font-size: 10.5px;
+  word-break: break-all;
+}
+
+.gl2gh-map-desc {
+  color: #64748b;
+  font-size: 10.5px;
+}
+
+/* ── Messages scrollbar ── */
+.gl2gh-messages::-webkit-scrollbar { width: 3px; }
+.gl2gh-messages::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.2); border-radius: 3px; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .gl2gh-body {
+    flex-direction: column;
+  }
+  .gl2gh-input-panel {
+    max-width: 100%;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+  }
+}
+
+@media (max-width: 600px) {
+  .gl2gh-container {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+}
