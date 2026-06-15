@@ -1,3 +1,10 @@
+## [1.45.1](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.45.0...v1.45.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* replace OS-dependent emoji and glyphs with vector icons for cross-browser parity ([a7e4e36](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/a7e4e36a92cd74e80787e6b9ef1cf870015563a2))
+
 # [1.45.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.44.0...v1.45.0) (2026-06-13)
 
 
