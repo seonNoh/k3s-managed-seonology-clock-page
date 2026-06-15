@@ -2339,3 +2339,37 @@
   .tools-modal-grid .app-icon-visual { width: 60px; height: 60px; }
   .tools-modal-grid .app-icon-visual svg { width: 32px; height: 32px; }
 }
+
+/* ===== Tools 그리드에서 열리는 도구 창을 전체화면(약간 여백)으로 통일 =====
+   각 도구의 max-width/height 캡을 풀고 96vw x 94vh로 키운다. 오버레이가 flex 중앙정렬이라
+   주변 여백이 균일하게 생기고, 각 도구의 둥근 모서리는 그대로 유지된다.
+   .xxx-overlay .xxx-modal 의 높은 특이도로 base 및 미디어쿼리 규칙을 덮는다.
+   (Tools 모달 자체, Infra/Repos/NAS/Drive/SpeedTest, weather/exchange/calendar 등은 제외) */
+.notes-overlay .notes-panel,
+.md-overlay .md-modal,
+.chat-overlay .chat-panel,
+.uc-overlay .uc-modal,
+.b64-overlay .b64-modal,
+.jf-overlay .jf-modal,
+.ip-overlay .ip-modal,
+.pwgen-overlay .pwgen-modal,
+.cpick-overlay .cpick-modal,
+.cron-overlay .cron-modal,
+.subnet-overlay .subnet-modal,
+.slo-overlay .slo-modal,
+.cicd-overlay .cicd-container,
+.e2m-overlay .e2m-container,
+.rbac-overlay .rbac-container,
+.tfp-overlay .tfp-container,
+.gl2gh-overlay .gl2gh-container,
+.archi-overlay .archi-container,
+.rx-overlay .rx-modal,
+.ep-overlay .ep-modal,
+.tc-overlay .tc-modal,
+.dns-overlay .dns-modal,
+.mm-overlay .mm-modal {
+  width: 96vw;
+  max-width: 96vw;
+  height: 94vh;
+  max-height: 94vh;
+}
