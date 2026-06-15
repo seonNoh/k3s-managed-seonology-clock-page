@@ -18,7 +18,7 @@
   padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
 }
 .infra-header-left { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
-.infra-header-title { font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+.infra-header-title { font-family: 'Inter', sans-serif; font-size: 0.92rem; font-weight: 500; color: var(--text-primary); }
 .infra-header-actions { display: flex; align-items: center; gap: 4px; }
 .infra-refresh-btn, .infra-close-btn {
   width: 32px; height: 32px; border: none; background: transparent; border-radius: 6px;
@@ -34,7 +34,7 @@
 }
 .infra-tab {
   padding: 10px 16px; border: none; background: transparent; color: var(--text-muted);
-  font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 500;
+  font-family: 'Inter', sans-serif; font-size: 0.86rem; font-weight: 500;
   cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;
 }
 .infra-tab:hover { color: var(--text-secondary); }
@@ -42,8 +42,8 @@
 
 .infra-body { flex: 1; overflow-y: auto; }
 .infra-section { padding: 16px 20px; }
-.infra-loading { font-family: 'Inter', sans-serif; font-size: 0.75rem; color: var(--text-muted); padding: 20px 0; text-align: center; }
-.infra-error { font-family: 'Inter', sans-serif; font-size: 0.7rem; color: #ff6b6b; padding: 8px 12px; background: rgba(255,80,80,0.06); border-radius: 6px; margin-bottom: 12px; }
+.infra-loading { font-family: 'Inter', sans-serif; font-size: 0.86rem; color: var(--text-muted); padding: 20px 0; text-align: center; }
+.infra-error { font-family: 'Inter', sans-serif; font-size: 0.84rem; color: #ff6b6b; padding: 8px 12px; background: rgba(255,80,80,0.06); border-radius: 6px; margin-bottom: 12px; }
 
 /* Summary */
 .infra-summary {
@@ -55,7 +55,7 @@
   border-radius: 10px;
 }
 .infra-sum-val { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 600; color: var(--text-primary); }
-.infra-sum-label { font-family: 'Inter', sans-serif; font-size: 0.6rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.05em; }
+.infra-sum-label { font-family: 'Inter', sans-serif; font-size: 0.76rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.05em; }
 .infra-sum-online { color: #4ade80; }
 .infra-sum-offline { color: #f87171; }
 
@@ -67,48 +67,48 @@
 }
 .infra-node-card:hover { border-color: rgba(255,255,255,0.12); }
 .infra-node-name {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; font-weight: 600;
   color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .infra-node-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
 .infra-node-type {
-  font-family: 'Inter', sans-serif; font-size: 0.5rem; font-weight: 600; padding: 1px 6px;
+  font-family: 'Inter', sans-serif; font-size: 0.68rem; font-weight: 600; padding: 1px 6px;
   border-radius: 3px; letter-spacing: 0.05em;
 }
 .infra-nt-lightsail { background: rgba(251,146,60,0.15); color: #fb923c; }
 .infra-nt-home { background: rgba(99,102,241,0.15); color: #818cf8; }
 .infra-node-source {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.45rem; color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--text-muted);
   margin-left: auto;
 }
 .infra-node-card.node-notready { border-color: rgba(239,68,68,0.3); }
 .infra-node-charts { display: flex; justify-content: space-around; margin-bottom: 8px; }
 .infra-chart-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.infra-chart-label { font-family: 'Inter', sans-serif; font-size: 0.5rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.1em; text-align: center; }
-.infra-donut-text { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 600; }
+.infra-chart-label { font-family: 'Inter', sans-serif; font-size: 0.68rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.1em; text-align: center; }
+.infra-donut-text { font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; font-weight: 600; }
 .infra-node-detail {
   display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace;
-  font-size: 0.55rem; color: var(--text-muted); padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.72rem; color: var(--text-muted); padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.04);
 }
 
 /* Namespace Pods */
 .infra-ns-section { margin-top: 8px; }
 .infra-ns-title {
-  font-family: 'Inter', sans-serif; font-size: 0.6rem; font-weight: 600;
+  font-family: 'Inter', sans-serif; font-size: 0.76rem; font-weight: 600;
   letter-spacing: 0.15em; color: var(--text-muted); margin-bottom: 8px;
 }
 .infra-ns-grid { display: flex; flex-direction: column; gap: 3px; }
 .infra-ns-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
-.infra-ns-name { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--text-secondary); min-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.infra-ns-name { font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: var(--text-secondary); min-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .infra-ns-bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,0.04); border-radius: 2px; }
 .infra-ns-bar { height: 100%; background: rgba(99,102,241,0.5); border-radius: 2px; transition: width 0.4s ease; min-width: 2px; }
-.infra-ns-count { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--text-muted); min-width: 20px; text-align: right; }
+.infra-ns-count { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); min-width: 20px; text-align: right; }
 
 /* Tailscale Devices */
 .infra-device-list { display: flex; flex-direction: column; gap: 2px; }
 .infra-device-row {
   display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 6px;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; transition: background 0.15s ease;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; transition: background 0.15s ease;
 }
 .infra-device-row:hover { background: rgba(255,255,255,0.03); }
 .infra-device-row.offline { opacity: 0.5; }
@@ -116,25 +116,25 @@
 .infra-device-dot.on { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.4); }
 .infra-device-name { color: var(--text-primary); min-width: 160px; font-weight: 500; }
 .infra-device-ip { color: #818cf8; min-width: 120px; }
-.infra-device-os { color: var(--text-muted); min-width: 60px; font-size: 0.6rem; }
-.infra-device-seen { color: var(--text-muted); font-size: 0.55rem; margin-left: auto; }
+.infra-device-os { color: var(--text-muted); min-width: 60px; font-size: 0.76rem; }
+.infra-device-seen { color: var(--text-muted); font-size: 0.72rem; margin-left: auto; }
 
 /* NAS */
 .infra-nas-info {
   display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 16px;
   background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.84rem;
 }
 .infra-nas-model { color: var(--text-primary); font-weight: 600; }
-.infra-nas-fw { color: var(--text-muted); font-size: 0.6rem; }
+.infra-nas-fw { color: var(--text-muted); font-size: 0.76rem; }
 .infra-nas-temp { color: #f59e0b; }
-.infra-nas-uptime { color: var(--text-muted); font-size: 0.6rem; margin-left: auto; }
+.infra-nas-uptime { color: var(--text-muted); font-size: 0.76rem; margin-left: auto; }
 
 .infra-nas-charts { display: flex; justify-content: center; gap: 40px; margin-bottom: 20px; }
 
 .infra-vol-section, .infra-disk-section { margin-top: 16px; }
 .infra-vol-item { margin-bottom: 10px; }
-.infra-vol-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; }
+.infra-vol-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
 .infra-vol-name { color: var(--text-primary); font-weight: 600; }
 .infra-vol-size { color: var(--text-muted); }
 .infra-vol-pct { color: var(--text-secondary); margin-left: auto; }
@@ -148,9 +148,9 @@
   padding: 10px 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
   border-radius: 8px;
 }
-.infra-disk-id { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 600; color: var(--text-primary); }
-.infra-disk-model { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--text-muted); margin: 2px 0; }
-.infra-disk-meta { display: flex; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; }
+.infra-disk-id { font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; font-weight: 600; color: var(--text-primary); }
+.infra-disk-model { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); margin: 2px 0; }
+.infra-disk-meta { display: flex; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; }
 .infra-disk-temp { color: #06b6d4; }
 .infra-disk-temp.warn { color: #f59e0b; }
 .infra-disk-status { color: #4ade80; }
@@ -162,7 +162,7 @@
 .infra-net-item {
   display: flex; align-items: center; gap: 10px; padding: 8px 12px;
   background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+  border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem;
 }
 .infra-net-dev { color: var(--text-primary); font-weight: 600; min-width: 40px; }
 .infra-net-rx { color: #4ade80; }
@@ -174,17 +174,17 @@
 .infra-share-item {
   display: flex; align-items: center; gap: 8px; padding: 4px 10px;
   background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+  border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem;
 }
 .infra-share-name { color: var(--text-primary); font-weight: 500; }
-.infra-share-path { color: var(--text-muted); font-size: 0.5rem; }
+.infra-share-path { color: var(--text-muted); font-size: 0.68rem; }
 
 /* NAS Connections */
 .infra-conn-section { margin-top: 16px; }
 .infra-conn-list { display: flex; flex-direction: column; gap: 2px; }
 .infra-conn-item {
   display: flex; align-items: center; gap: 10px; padding: 4px 10px;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; border-radius: 4px;
 }
 .infra-conn-item:hover { background: rgba(255,255,255,0.03); }
 .infra-conn-user { color: var(--text-primary); font-weight: 500; min-width: 60px; }

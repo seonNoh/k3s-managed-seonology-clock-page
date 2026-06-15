@@ -2373,7 +2373,10 @@
 .ep-overlay .ep-modal,
 .tc-overlay .tc-modal,
 .dns-overlay .dns-modal,
-.mm-overlay .mm-modal {
+.mm-overlay .mm-modal,
+.infra-overlay .infra-modal,
+.repocat-overlay .repocat-modal,
+.nb-overlay .nb-modal {
   width: 96vw;
   max-width: 96vw;
   height: 94vh;
