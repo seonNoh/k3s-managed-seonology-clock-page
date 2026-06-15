@@ -1,3 +1,10 @@
+# [1.49.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.48.0...v1.49.0) (2026-06-15)
+
+
+### Features
+
+* full-screen Infra/Repos/NAS/Drive panels with larger fonts ([2375b85](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/2375b85f2114665024d258bc750f5ea249cb7f18))
+
 # [1.48.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.47.0...v1.48.0) (2026-06-15)
 
 
