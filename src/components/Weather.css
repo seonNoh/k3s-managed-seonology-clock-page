@@ -101,3 +101,54 @@
   padding: 3rem;
   color: var(--text-secondary);
 }
+
+/* ===== 날씨 고도화 (특보 / 대기질 / 시간별 / 주간) ===== */
+.weather-pro { max-height: 78vh; overflow-y: auto; padding-right: 4px; }
+
+.wx-alert {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 12px; margin-bottom: 12px;
+  background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px; color: #fca5a5; font-size: 0.8rem; line-height: 1.45;
+}
+.wx-alert svg { flex-shrink: 0; margin-top: 1px; }
+
+.wx-air {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 12px; padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04); border-radius: 10px;
+}
+.wx-air-title { font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; }
+.wx-air-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+.wx-air-badge.good { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.wx-air-badge.moderate { background: rgba(250, 204, 21, 0.2); color: #facc15; }
+.wx-air-badge.sensitive { background: rgba(249, 115, 22, 0.2); color: #fb923c; }
+.wx-air-badge.unhealthy { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.wx-air-badge.hazardous { background: rgba(168, 85, 247, 0.25); color: #c084fc; }
+.wx-air-detail { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
+
+.wx-section { margin-top: 14px; }
+.wx-section-title { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+
+.wx-hourly { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.wx-hour {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 10px; min-width: 54px;
+  background: rgba(255, 255, 255, 0.04); border-radius: 10px; color: var(--text-secondary);
+}
+.wx-hour-t { font-size: 0.7rem; color: var(--text-muted); }
+.wx-hour-pop { font-size: 0.68rem; color: #60a5fa; min-height: 0.9em; }
+.wx-hour-temp { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+
+.wx-weekly { display: flex; flex-direction: column; gap: 2px; }
+.wx-day {
+  display: grid; grid-template-columns: 32px 24px 48px 1fr; align-items: center; gap: 10px;
+  padding: 6px 8px; border-radius: 8px; color: var(--text-secondary);
+}
+.wx-day:hover { background: rgba(255, 255, 255, 0.03); }
+.wx-day-dow { font-size: 0.8rem; color: var(--text-secondary); }
+.wx-day-pop { font-size: 0.72rem; color: #60a5fa; }
+.wx-day-temp { font-size: 0.8rem; text-align: right; color: var(--text-muted); }
+.wx-day-temp b { color: var(--text-primary); font-weight: 600; }
+
+.wx-source { font-size: 0.7rem; color: var(--text-muted); margin-left: 4px; }

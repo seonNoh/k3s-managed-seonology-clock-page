@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3001;
 const { setupGoogleRoutes, setupMicrosoftRoutes } = require('./cloud-drives');
 const { setupGithubCatalogRoutes } = require('./github-catalog');
 const { setupIconRoutes } = require('./icons');
+const { setupJmaRoutes } = require('./jma');
 
 // AI Chat configuration
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
@@ -2264,6 +2265,7 @@ setupGoogleRoutes(app);
 setupMicrosoftRoutes(app);
 setupGithubCatalogRoutes(app);
 setupIconRoutes(app);
+setupJmaRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`API server running on port ${PORT}`);
