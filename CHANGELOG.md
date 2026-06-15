@@ -1,3 +1,10 @@
+# [1.46.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.45.1...v1.46.0) (2026-06-15)
+
+
+### Features
+
+* redesign Tools menu as searchable full-screen modal ([efa8567](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/efa85679e87a8e794a65d49863ce54854201931f))
+
 ## [1.45.1](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.45.0...v1.45.1) (2026-06-15)
 
 
