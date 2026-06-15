@@ -1116,8 +1116,9 @@ function App() {
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const [cursorEffect, setCursorEffect] = useState(() => localStorage.getItem('clock-cursor-effect') || 'indigo');
   const [cursorAnim, setCursorAnim] = useState(() => localStorage.getItem('clock-cursor-anim') || 'none');
-  const [showGlowPicker, setShowGlowPicker] = useState(false);
-  const [showAnimPicker, setShowAnimPicker] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsPos, setSettingsPos] = useState({ right: 84, bottom: 24 });
+  const settingsBtnRef = useRef(null);
   const [toolsExpanded, setToolsExpanded] = useState(false);
   const [toolSearch, setToolSearch] = useState('');
   const [toolMatchCount, setToolMatchCount] = useState(0);
@@ -1409,6 +1410,62 @@ function App() {
         <span className="tools-toggle-label">Tools</span>
       </button>
 
+      {/* Cursor effects settings (페이지 전체 설정: glow 색 / 커서 애니메이션) */}
+      <div className="cursor-settings-wrap">
+        <button
+          ref={settingsBtnRef}
+          className={`tools-toggle-btn${settingsOpen ? ' expanded' : ''}`}
+          title="Cursor Effects"
+          onClick={() => {
+            if (!settingsOpen && settingsBtnRef.current) {
+              const r = settingsBtnRef.current.getBoundingClientRect();
+              setSettingsPos({ right: Math.round(window.innerWidth - r.left + 12), bottom: Math.round(window.innerHeight - r.bottom) });
+            }
+            setSettingsOpen(!settingsOpen);
+          }}
+        >
+          <span className="tools-toggle-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </span>
+          <span className="tools-toggle-label">Effects</span>
+        </button>
+      </div>
+      {settingsOpen && createPortal((
+        <div className="cursor-settings-overlay" onClick={() => setSettingsOpen(false)}>
+          <div className="cursor-settings-popover" style={{ right: settingsPos.right, bottom: settingsPos.bottom }} onClick={(e) => e.stopPropagation()}>
+            <div className="glow-picker-dropdown">
+              <div className="glow-picker-label">Glow Color</div>
+              {CURSOR_EFFECTS.map(e => (
+                <button
+                  key={e.id}
+                  className={`glow-option${cursorEffect === e.id ? ' active' : ''}`}
+                  onClick={() => setCursorEffect(e.id)}
+                >
+                  <span className={`glow-swatch glow-swatch-${e.id}`} />
+                  <span>{e.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="glow-picker-dropdown">
+              <div className="glow-picker-label">Animation</div>
+              {ANIM_EFFECTS.map(e => (
+                <button
+                  key={e.id}
+                  className={`glow-option${cursorAnim === e.id ? ' active' : ''}`}
+                  onClick={() => setCursorAnim(e.id)}
+                >
+                  <span className="glow-swatch" style={{ background: e.color, border: e.id === 'none' ? '1px solid rgba(255,255,255,0.2)' : 'none' }} />
+                  <span>{e.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ), document.body)}
+
       {/* Tools full-screen modal (portal: bottom-right-stack의 transform 영향에서 벗어나기 위해 body로 렌더) */}
       {toolsExpanded && createPortal((
       <div className="tools-modal-overlay" onClick={() => setToolsExpanded(false)}>
@@ -1691,60 +1748,10 @@ function App() {
           <span className="app-icon-label">Mermaid</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => { setShowAnimPicker(!showAnimPicker); setShowGlowPicker(false); }} title="Cursor Animation">
-          <span className="app-icon-visual">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-            </svg>
-          </span>
-          <span className="app-icon-label">Effect</span>
-        </button>
-
-        <button className="app-icon-btn" onClick={() => { setShowGlowPicker(!showGlowPicker); setShowAnimPicker(false); }} title="Glow Color">
-          <span className="app-icon-visual">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-            </svg>
-          </span>
-          <span className="app-icon-label">Glow</span>
-        </button>
           </div>{/* end tools-modal-grid */}
           {toolMatchCount === 0 && toolSearch && (
             <div className="tools-modal-empty">"{toolSearch}" 검색 결과가 없습니다</div>
           )}
-          {(showGlowPicker || showAnimPicker) && <div className="glow-picker-area">
-        {showGlowPicker && (
-          <div className="glow-picker-dropdown">
-            <div className="glow-picker-label">Glow Color</div>
-            {CURSOR_EFFECTS.map(e => (
-              <button
-                key={e.id}
-                className={`glow-option${cursorEffect === e.id ? ' active' : ''}`}
-                onClick={() => { setCursorEffect(e.id); setShowGlowPicker(false); }}
-              >
-                <span className={`glow-swatch glow-swatch-${e.id}`} />
-                <span>{e.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-        {showAnimPicker && (
-          <div className="glow-picker-dropdown">
-            <div className="glow-picker-label">Animation</div>
-            {ANIM_EFFECTS.map(e => (
-              <button
-                key={e.id}
-                className={`glow-option${cursorAnim === e.id ? ' active' : ''}`}
-                onClick={() => { setCursorAnim(e.id); setShowAnimPicker(false); }}
-              >
-                <span className="glow-swatch" style={{ background: e.color, border: e.id === 'none' ? '1px solid rgba(255,255,255,0.2)' : 'none' }} />
-                <span>{e.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-          </div>}{/* end glow-picker-area */}
         </div>{/* end tools-modal */}
       </div>
       ), document.body)}

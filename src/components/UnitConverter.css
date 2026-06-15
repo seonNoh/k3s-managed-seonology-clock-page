@@ -57,7 +57,7 @@
 
 .uc-header-title {
   font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: var(--text-primary);
   letter-spacing: 0.02em;
@@ -65,7 +65,7 @@
 
 .uc-header-count {
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.05);
   padding: 2px 8px;
@@ -219,7 +219,7 @@
 
 .uc-field-label {
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -317,7 +317,7 @@
 .uc-formula {
   text-align: center;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
   background: rgba(99, 102, 241, 0.06);
   border: 1px solid rgba(99, 102, 241, 0.1);
@@ -333,7 +333,7 @@
 
 .uc-ref-title {
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -355,7 +355,7 @@
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   font-family: 'Inter', sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-muted);
   letter-spacing: 0.05em;
@@ -367,7 +367,7 @@
   justify-content: space-between;
   padding: 7px 14px;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.75rem;
+  font-size: 0.86rem;
   color: var(--text-secondary);
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   cursor: pointer;
@@ -416,7 +416,7 @@
   }
 
   .uc-cat-name {
-    font-size: 0.65rem;
+    font-size: 0.9rem;
   }
 
   .uc-main {

@@ -56,7 +56,7 @@
 
 .md-header-title {
   font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: var(--text-primary);
   letter-spacing: 0.02em;
@@ -168,7 +168,7 @@
   border-radius: 4px;
   color: var(--text-muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -206,7 +206,7 @@
   padding: 6px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
   flex-shrink: 0;
 }
@@ -221,7 +221,7 @@
 
 .md-pane-label {
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.15em;
   color: var(--text-muted);
@@ -244,7 +244,7 @@
   outline: none;
   color: var(--text-primary);
   font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   line-height: 1.7;
   padding: 12px 16px;
   resize: none;
@@ -370,7 +370,7 @@
   top: 6px;
   right: 10px;
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -385,7 +385,7 @@
 
 .md-rendered .code-block code {
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   line-height: 1.6;
   color: #c4c4d4;
 }
@@ -400,7 +400,7 @@
 .md-rendered table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
 }
 
 .md-rendered th {

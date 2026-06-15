@@ -48,7 +48,7 @@
 }
 
 .chat-title {
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0.02em;
@@ -69,7 +69,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.86rem;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
   padding: 4px 8px;
   outline: none;
@@ -154,7 +154,7 @@
 }
 
 .chat-model-info-label {
-  font-size: 0.7rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
 }
@@ -167,7 +167,7 @@
 
 .chat-model-info-mono {
   opacity: 0.5;
-  font-size: 0.65rem;
+  font-size: 0.9rem;
 }
 
 .chat-model-info-divider {
@@ -312,7 +312,7 @@
   gap: 8px;
   padding: 3rem 1rem;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   text-align: center;
   flex: 1;
 }
@@ -350,7 +350,7 @@
   color: white;
   border-radius: var(--radius-md) var(--radius-md) 4px var(--radius-md);
   padding: 10px 14px;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -366,7 +366,7 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 4px;
   padding: 12px 14px;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   line-height: 1.7;
   color: var(--text-primary);
   word-break: break-word;
@@ -450,7 +450,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
   line-height: 1.5;
   resize: none;
@@ -534,7 +534,7 @@
 .markdown-body h3 { font-size: 0.92rem; }
 .markdown-body h4,
 .markdown-body h5,
-.markdown-body h6 { font-size: 0.85rem; }
+.markdown-body h6 { font-size: 0.92rem; }
 
 .markdown-body p {
   margin: 4px 0;
@@ -594,7 +594,7 @@
   position: absolute;
   top: 4px;
   right: 8px;
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
   opacity: 0.5;
@@ -635,7 +635,7 @@
 .markdown-body table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 
 .markdown-body th,
@@ -666,7 +666,7 @@
   border-radius: var(--radius-md);
   color: var(--text-muted);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: var(--transition);
 }

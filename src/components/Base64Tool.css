@@ -57,7 +57,7 @@
 
 .b64-header-title {
   font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: var(--text-primary);
   letter-spacing: 0.02em;
@@ -110,7 +110,7 @@
   background: transparent;
   color: var(--text-muted);
   font-family: 'Inter', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.84rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -146,7 +146,7 @@
   border-radius: 6px;
   color: var(--text-secondary);
   font-family: 'Inter', sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -166,14 +166,14 @@
   background: rgba(99, 102, 241, 0.06);
   border-bottom: 1px solid rgba(99, 102, 241, 0.1);
   font-family: 'Inter', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.84rem;
   color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .b64-file-meta {
   color: var(--text-muted);
-  font-size: 0.6rem;
+  font-size: 0.76rem;
 }
 
 /* Body - Split View */
@@ -200,7 +200,7 @@
 
 .b64-pane-label {
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.15em;
   color: var(--text-muted);
@@ -209,7 +209,7 @@
 
 .b64-char-count {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
 }
 
@@ -220,7 +220,7 @@
   outline: none;
   color: var(--text-primary);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   line-height: 1.6;
   padding: 8px 16px;
   resize: none;
@@ -280,7 +280,7 @@
   border-radius: 5px;
   color: var(--text-secondary);
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -306,7 +306,7 @@
 .b64-error {
   padding: 6px 16px;
   font-family: 'Inter', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.84rem;
   color: #ff6b6b;
   background: rgba(255, 80, 80, 0.06);
   flex-shrink: 0;
@@ -320,7 +320,7 @@
   padding: 8px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
   flex-shrink: 0;
 }

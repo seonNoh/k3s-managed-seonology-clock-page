@@ -2312,21 +2312,27 @@
   font-size: 1rem;
 }
 
-/* Glow/Anim 피커가 모달 내부에 표시될 때 */
-.tools-modal .glow-picker-area {
-  opacity: 1;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 1rem 1.4rem;
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-.tools-modal .glow-picker-dropdown {
+/* 커서 효과 설정(우측 사이드바 Effects 버튼 + 팝오버).
+   사이드바(transform stacking)에 갇혀 시계에 가려지므로 팝오버는 body로 portal 후 fixed 배치. */
+.cursor-settings-wrap {
   position: relative;
+}
+.cursor-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+}
+.cursor-settings-popover {
+  position: fixed;
+  display: flex;
+  gap: 8px;
+  animation: glowDropIn 0.2s ease;
+}
+.cursor-settings-popover .glow-picker-dropdown {
+  position: static;
   bottom: auto;
   right: auto;
-  max-height: 32vh;
+  max-height: 60vh;
 }
 
 @media (max-width: 640px) {

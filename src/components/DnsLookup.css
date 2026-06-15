@@ -19,7 +19,7 @@
 }
 .dns-header-left { display: flex; align-items: center; gap: 8px; }
 .dns-header-icon { color: var(--text-secondary); }
-.dns-header-title { font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+.dns-header-title { font-family: 'Inter', sans-serif; font-size: 0.92rem; font-weight: 500; color: var(--text-primary); }
 .dns-close-btn {
   width: 32px; height: 32px; border: none; background: transparent; border-radius: 6px;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -32,7 +32,7 @@
 .dns-input {
   flex: 1; padding: 8px 12px; background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; outline: none;
-  color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+  color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;
   transition: border-color 0.15s ease; box-sizing: border-box;
 }
 .dns-input:focus { border-color: rgba(99, 102, 241, 0.5); }
@@ -42,7 +42,7 @@
 .dns-type-btn {
   padding: 5px 8px; border: 1px solid rgba(255, 255, 255, 0.06); background: transparent;
   border-radius: 4px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem; cursor: pointer; transition: all 0.15s ease;
+  font-size: 0.76rem; cursor: pointer; transition: all 0.15s ease;
 }
 .dns-type-btn.active { background: rgba(99, 102, 241, 0.2); border-color: rgba(99, 102, 241, 0.4); color: var(--text-primary); }
 .dns-type-btn:hover:not(.active) { background: rgba(255, 255, 255, 0.06); }
@@ -51,20 +51,20 @@
 .dns-lookup-btn {
   padding: 6px 16px; border: none; background: rgba(99, 102, 241, 0.2);
   border-radius: 6px; color: #818cf8; font-family: 'Inter', sans-serif;
-  font-size: 0.7rem; font-weight: 500; cursor: pointer; transition: all 0.15s ease;
+  font-size: 0.84rem; font-weight: 500; cursor: pointer; transition: all 0.15s ease;
 }
 .dns-lookup-btn:hover:not(:disabled) { background: rgba(99, 102, 241, 0.3); }
 .dns-lookup-btn:disabled { opacity: 0.4; cursor: default; }
 .dns-all-btn {
   padding: 6px 12px; border: 1px solid rgba(255, 255, 255, 0.08); background: transparent;
   border-radius: 6px; color: var(--text-secondary); font-family: 'Inter', sans-serif;
-  font-size: 0.7rem; font-weight: 500; cursor: pointer; transition: all 0.15s ease;
+  font-size: 0.84rem; font-weight: 500; cursor: pointer; transition: all 0.15s ease;
 }
 .dns-all-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); }
 .dns-all-btn:disabled { opacity: 0.4; cursor: default; }
 
 .dns-error {
-  padding: 6px 20px; font-family: 'Inter', sans-serif; font-size: 0.7rem;
+  padding: 6px 20px; font-family: 'Inter', sans-serif; font-size: 0.84rem;
   color: #ff6b6b; background: rgba(255, 80, 80, 0.06); flex-shrink: 0;
 }
 
@@ -73,30 +73,30 @@
 .dns-results { padding: 12px 20px; }
 .dns-results-header { margin-bottom: 8px; }
 .dns-results-label {
-  font-family: 'Inter', sans-serif; font-size: 0.6rem; font-weight: 600;
+  font-family: 'Inter', sans-serif; font-size: 0.76rem; font-weight: 600;
   letter-spacing: 0.15em; color: var(--text-muted);
 }
 
 .dns-results-table { display: flex; flex-direction: column; gap: 0; }
 .dns-table-head {
   display: flex; align-items: center; gap: 8px; padding: 6px 10px;
-  font-family: 'Inter', sans-serif; font-size: 0.55rem; font-weight: 600;
+  font-family: 'Inter', sans-serif; font-size: 0.72rem; font-weight: 600;
   letter-spacing: 0.1em; color: var(--text-muted); border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 .dns-table-row {
   display: flex; align-items: center; gap: 8px; padding: 8px 10px;
   border-radius: 4px; cursor: pointer; transition: background 0.15s ease;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; position: relative;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; position: relative;
 }
 .dns-table-row:hover { background: rgba(255, 255, 255, 0.04); }
 
 .dns-col-type { width: 50px; flex-shrink: 0; }
 .dns-col-name { width: 180px; flex-shrink: 0; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dns-col-data { flex: 1; color: var(--text-primary); word-break: break-all; }
-.dns-col-ttl { width: 50px; flex-shrink: 0; color: var(--text-muted); text-align: right; font-size: 0.6rem; }
+.dns-col-ttl { width: 50px; flex-shrink: 0; color: var(--text-muted); text-align: right; font-size: 0.76rem; }
 
 .dns-type-badge {
-  padding: 2px 6px; border-radius: 3px; font-size: 0.6rem; font-weight: 600; text-align: center;
+  padding: 2px 6px; border-radius: 3px; font-size: 0.76rem; font-weight: 600; text-align: center;
 }
 .dns-type-a { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
 .dns-type-aaaa { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
@@ -107,7 +107,7 @@
 .dns-type-soa { background: rgba(244, 63, 94, 0.15); color: #fb7185; }
 
 .dns-copied {
-  position: absolute; right: 8px; font-family: 'Inter', sans-serif; font-size: 0.55rem;
+  position: absolute; right: 8px; font-family: 'Inter', sans-serif; font-size: 0.72rem;
   color: #4ade80; background: rgba(34, 197, 94, 0.15); padding: 2px 6px; border-radius: 3px;
 }
 
@@ -119,14 +119,14 @@
   border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
 }
 .dns-history-item:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
-.dns-history-domain { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-primary); }
-.dns-history-type { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: #818cf8; }
-.dns-history-time { font-family: 'Inter', sans-serif; font-size: 0.5rem; color: var(--text-muted); }
+.dns-history-domain { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--text-primary); }
+.dns-history-type { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #818cf8; }
+.dns-history-time { font-family: 'Inter', sans-serif; font-size: 0.68rem; color: var(--text-muted); }
 
 .dns-stats {
   display: flex; align-items: center; justify-content: space-between; padding: 8px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.06); font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem; color: var(--text-muted); flex-shrink: 0;
+  font-size: 0.76rem; color: var(--text-muted); flex-shrink: 0;
 }
 
 @media (max-width: 768px) {

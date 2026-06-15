@@ -55,7 +55,7 @@
 
 .jf-header-title {
   font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: var(--text-primary);
   letter-spacing: 0.02em;
@@ -63,7 +63,7 @@
 
 .jf-header-badge {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.05);
   padding: 2px 8px;
@@ -123,7 +123,7 @@
 
 .jf-indent-label {
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: var(--text-muted);
   letter-spacing: 0.08em;
@@ -140,7 +140,7 @@
   border-radius: 5px;
   color: var(--text-muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -166,7 +166,7 @@
   border-radius: 6px;
   color: var(--text-secondary);
   font-family: 'Inter', sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -246,7 +246,7 @@
 
 .jf-pane-label {
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.15em;
   color: var(--text-muted);
@@ -262,7 +262,7 @@
 
 .jf-char-count {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
 }
 
@@ -274,7 +274,7 @@
   outline: none;
   color: var(--text-primary);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   line-height: 1.6;
   padding: 8px 16px;
   resize: none;
@@ -316,7 +316,7 @@
   text-align: right;
   user-select: none;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
+  font-size: 0.84rem;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.15);
   border-right: 1px solid rgba(255, 255, 255, 0.04);
@@ -329,7 +329,7 @@
   margin: 0;
   padding: 8px 16px;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   line-height: 1.6;
   color: var(--text-primary);
   white-space: pre;
@@ -342,7 +342,7 @@
   justify-content: center;
   height: 100%;
   font-family: 'Inter', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
   opacity: 0.4;
 }
@@ -387,7 +387,7 @@
 
 .jf-search-count {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.55rem;
+  font-size: 0.72rem;
   color: var(--accent-primary);
   background: rgba(99, 102, 241, 0.15);
   padding: 1px 5px;
@@ -404,7 +404,7 @@
 .jf-search-item {
   padding: 4px 16px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.1s;
@@ -421,7 +421,7 @@
 .jf-search-more {
   padding: 4px 16px;
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
 }
 
@@ -436,7 +436,7 @@
   border-radius: 5px;
   color: var(--text-secondary);
   font-family: 'Inter', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -464,7 +464,7 @@
   padding: 8px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
   flex-shrink: 0;
 }

@@ -19,11 +19,11 @@
 }
 .tc-header-left { display: flex; align-items: center; gap: 8px; }
 .tc-header-icon { color: var(--text-secondary); }
-.tc-header-title { font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+.tc-header-title { font-family: 'Inter', sans-serif; font-size: 0.92rem; font-weight: 500; color: var(--text-primary); }
 .tc-header-actions { display: flex; align-items: center; gap: 4px; }
 .tc-tool-btn {
   padding: 5px 10px; border: none; background: transparent; border-radius: 6px;
-  color: var(--text-secondary); font-family: 'Inter', sans-serif; font-size: 0.65rem;
+  color: var(--text-secondary); font-family: 'Inter', sans-serif; font-size: 0.9rem;
   font-weight: 500; cursor: pointer; transition: all 0.15s ease;
 }
 .tc-tool-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); }
@@ -39,7 +39,7 @@
 .tc-input-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .tc-textarea {
   flex: 1; background: transparent; border: none; outline: none;
-  color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+  color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;
   line-height: 1.7; padding: 16px; resize: none; overflow-y: auto;
 }
 .tc-textarea::placeholder { color: var(--text-muted); opacity: 0.5; }
@@ -61,35 +61,35 @@
   font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 600; color: var(--text-primary);
 }
 .tc-stat-label {
-  font-family: 'Inter', sans-serif; font-size: 0.55rem; font-weight: 500;
+  font-family: 'Inter', sans-serif; font-size: 0.72rem; font-weight: 500;
   color: var(--text-muted); letter-spacing: 0.05em;
 }
 .tc-copied {
   position: absolute; top: 4px; right: 6px; font-family: 'Inter', sans-serif;
-  font-size: 0.5rem; color: #4ade80; background: rgba(34, 197, 94, 0.15);
+  font-size: 0.68rem; color: #4ade80; background: rgba(34, 197, 94, 0.15);
   padding: 1px 5px; border-radius: 3px;
 }
 
 .tc-freq-section { margin-top: 16px; }
 .tc-freq-title {
-  display: block; font-family: 'Inter', sans-serif; font-size: 0.55rem; font-weight: 600;
+  display: block; font-family: 'Inter', sans-serif; font-size: 0.72rem; font-weight: 600;
   letter-spacing: 0.15em; color: var(--text-muted); margin-bottom: 8px;
 }
 .tc-freq-list { display: flex; flex-direction: column; gap: 4px; }
 .tc-freq-item {
   display: flex; align-items: center; gap: 8px; padding: 3px 0;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.84rem;
 }
 .tc-freq-word { color: var(--text-secondary); min-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tc-freq-bar {
   height: 4px; background: rgba(99, 102, 241, 0.4); border-radius: 2px;
   min-width: 4px; transition: width 0.3s ease;
 }
-.tc-freq-count { color: var(--text-muted); font-size: 0.6rem; margin-left: auto; }
+.tc-freq-count { color: var(--text-muted); font-size: 0.76rem; margin-left: auto; }
 
 .tc-longest { margin-top: 12px; }
 .tc-longest-word {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #fbbf24;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; color: #fbbf24;
   word-break: break-all;
 }
 
