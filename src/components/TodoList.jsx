@@ -86,7 +86,7 @@ function TodoList() {
                 className="todo-checkbox"
                 onClick={() => toggleTodo(todo.id, todo.completed)}
               >
-                {todo.completed ? '✓' : ''}
+                {todo.completed ? <Check size={14} /> : ''}
               </button>
               <span className="todo-text">{todo.text}</span>
               <button

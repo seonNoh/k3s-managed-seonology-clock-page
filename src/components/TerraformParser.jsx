@@ -370,7 +370,7 @@ export default function TerraformParser({ isOpen, onClose }) {
             </svg>
             <h2>Terraform State Parser</h2>
           </div>
-          <button className="tfp-close" onClick={onClose}>✕</button>
+          <button className="tfp-close" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="tfp-body">
@@ -533,7 +533,7 @@ export default function TerraformParser({ isOpen, onClose }) {
                           <div className="tfp-attrs-toolbar">
                             <span className="tfp-attrs-label">Attributes</span>
                             <button className={`tfp-btn-sm ${copied ? 'copied' : ''}`} onClick={(e) => { e.stopPropagation(); handleCopy(JSON.stringify(r.attributes, null, 2)); }}>
-                              {copied ? '✓ Copied' : 'Copy JSON'}
+                              {copied ? <><Check size={13} style={{ verticalAlign: '-2px', marginRight: 3 }} />Copied</> : 'Copy JSON'}
                             </button>
                           </div>
                           <pre className="tfp-attrs-json">{JSON.stringify(r.attributes, null, 2)}</pre>

@@ -1,35 +1,41 @@
 import { useState, useEffect } from 'react';
+import {
+  Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain,
+  CloudSnow, Snowflake, CloudLightning, Thermometer, MapPin,
+} from 'lucide-react';
 import './Weather.css';
 
+// WMO weather code → lucide 아이콘 + 설명.
+// OS 의존 날씨 이모지는 mac/Windows에서 그림이 달라지므로 벡터 아이콘으로 통일한다.
 const WEATHER_CODES = {
-  0: { icon: '☀️', desc: '맑음' },
-  1: { icon: '🌤', desc: '대체로 맑음' },
-  2: { icon: '⛅', desc: '구름 조금' },
-  3: { icon: '☁️', desc: '흐림' },
-  45: { icon: '🌫', desc: '안개' },
-  48: { icon: '🌫', desc: '짙은 안개' },
-  51: { icon: '🌦', desc: '이슬비' },
-  53: { icon: '🌦', desc: '이슬비' },
-  55: { icon: '🌦', desc: '이슬비' },
-  56: { icon: '🌨', desc: '진눈깨비' },
-  57: { icon: '🌨', desc: '진눈깨비' },
-  61: { icon: '🌧', desc: '약한 비' },
-  63: { icon: '🌧', desc: '비' },
-  65: { icon: '🌧', desc: '강한 비' },
-  66: { icon: '🌨', desc: '진눈깨비' },
-  67: { icon: '🌨', desc: '강한 진눈깨비' },
-  71: { icon: '❄️', desc: '약한 눈' },
-  73: { icon: '❄️', desc: '눈' },
-  75: { icon: '❄️', desc: '강한 눈' },
-  77: { icon: '🌨', desc: '눈보라' },
-  80: { icon: '🌧', desc: '소나기' },
-  81: { icon: '🌧', desc: '소나기' },
-  82: { icon: '⛈', desc: '강한 소나기' },
-  85: { icon: '🌨', desc: '눈 소나기' },
-  86: { icon: '🌨', desc: '강한 눈 소나기' },
-  95: { icon: '⛈', desc: '뇌우' },
-  96: { icon: '⛈', desc: '우박 뇌우' },
-  99: { icon: '⛈', desc: '강한 우박 뇌우' },
+  0: { Icon: Sun, desc: '맑음' },
+  1: { Icon: CloudSun, desc: '대체로 맑음' },
+  2: { Icon: CloudSun, desc: '구름 조금' },
+  3: { Icon: Cloud, desc: '흐림' },
+  45: { Icon: CloudFog, desc: '안개' },
+  48: { Icon: CloudFog, desc: '짙은 안개' },
+  51: { Icon: CloudDrizzle, desc: '이슬비' },
+  53: { Icon: CloudDrizzle, desc: '이슬비' },
+  55: { Icon: CloudDrizzle, desc: '이슬비' },
+  56: { Icon: CloudSnow, desc: '진눈깨비' },
+  57: { Icon: CloudSnow, desc: '진눈깨비' },
+  61: { Icon: CloudRain, desc: '약한 비' },
+  63: { Icon: CloudRain, desc: '비' },
+  65: { Icon: CloudRain, desc: '강한 비' },
+  66: { Icon: CloudSnow, desc: '진눈깨비' },
+  67: { Icon: CloudSnow, desc: '강한 진눈깨비' },
+  71: { Icon: Snowflake, desc: '약한 눈' },
+  73: { Icon: Snowflake, desc: '눈' },
+  75: { Icon: Snowflake, desc: '강한 눈' },
+  77: { Icon: CloudSnow, desc: '눈보라' },
+  80: { Icon: CloudRain, desc: '소나기' },
+  81: { Icon: CloudRain, desc: '소나기' },
+  82: { Icon: CloudRain, desc: '강한 소나기' },
+  85: { Icon: CloudSnow, desc: '눈 소나기' },
+  86: { Icon: CloudSnow, desc: '강한 눈 소나기' },
+  95: { Icon: CloudLightning, desc: '뇌우' },
+  96: { Icon: CloudLightning, desc: '우박 뇌우' },
+  99: { Icon: CloudLightning, desc: '강한 우박 뇌우' },
 };
 
 function Weather() {
@@ -119,12 +125,13 @@ function Weather() {
     );
   }
 
-  const weatherInfo = WEATHER_CODES[weather.weatherCode] || { icon: '🌡', desc: '알 수 없음' };
+  const weatherInfo = WEATHER_CODES[weather.weatherCode] || { Icon: Thermometer, desc: '알 수 없음' };
+  const WeatherIcon = weatherInfo.Icon;
 
   return (
     <div className="weather">
       <div className="weather-main">
-        <div className="weather-icon">{weatherInfo.icon}</div>
+        <div className="weather-icon"><WeatherIcon size={56} strokeWidth={1.5} /></div>
         <div className="weather-temp">
           <span className="temp-current">{weather.temp}°</span>
           <span className="temp-desc">{weatherInfo.desc}</span>
@@ -152,7 +159,8 @@ function Weather() {
 
       {locationName && (
         <div className="weather-location">
-          <span>📍 {locationName}</span>
+          <MapPin size={14} strokeWidth={2} />
+          <span style={{ marginLeft: 4 }}>{locationName}</span>
         </div>
       )}
     </div>

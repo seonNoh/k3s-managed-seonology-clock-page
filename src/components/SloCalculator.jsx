@@ -313,7 +313,7 @@ function SloCalculator({ isOpen, onClose }) {
                   className={`slo-copy-btn${copiedText === budget.downtimeLong ? ' copied' : ''}`}
                   onClick={() => handleCopy(budget.downtimeLong)}
                 >
-                  {copiedText === budget.downtimeLong ? '✓' : 'Copy'}
+                  {copiedText === budget.downtimeLong ? <Check size={14} /> : 'Copy'}
                 </button>
               </div>
               <div className="slo-budget-big">
@@ -492,7 +492,7 @@ function SloCalculator({ isOpen, onClose }) {
                     {sliRatio.toFixed(4)}%
                   </span>
                   <span className={`slo-sli-status${sliRatio >= sloTarget ? ' ok' : ' burn'}`}>
-                    {sliRatio >= sloTarget ? '✓ Within SLO' : '✗ Burning budget'}
+                    {sliRatio >= sloTarget ? <><Check size={13} style={{ verticalAlign: '-2px', marginRight: 3 }} />Within SLO</> : <><X size={13} style={{ verticalAlign: '-2px', marginRight: 3 }} />Burning budget</>}
                   </span>
                 </div>
               )}
@@ -513,7 +513,7 @@ function SloCalculator({ isOpen, onClose }) {
                           {entry.ratio.toFixed(4)}%
                         </span>
                         <span className={`slo-sli-h-status${entry.ratio >= sloTarget ? ' ok' : ' burn'}`}>
-                          {entry.ratio >= sloTarget ? '✓' : '✗'}
+                          {entry.ratio >= sloTarget ? <Check size={13} /> : <X size={13} />}
                         </span>
                       </div>
                     ))}

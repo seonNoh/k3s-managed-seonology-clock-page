@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { X } from 'lucide-react';
 import './RbacVisualizer.css';
 
 /* ═══════════════════════════════════════════════
@@ -517,7 +518,7 @@ export default function RbacVisualizer({ isOpen, onClose }) {
             <h2>RBAC Visualizer</h2>
             <span className="rbac-subtitle">Kubernetes / Cloud</span>
           </div>
-          <button className="rbac-close" onClick={onClose}>✕</button>
+          <button className="rbac-close" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="rbac-body">
@@ -570,7 +571,7 @@ export default function RbacVisualizer({ isOpen, onClose }) {
                     {TYPE_LABELS[details.node.type]}
                   </span>
                   <h3>{details.node.label}</h3>
-                  <button className="rbac-btn-sm" onClick={() => setSelectedNode(null)}>✕</button>
+                  <button className="rbac-btn-sm" onClick={() => setSelectedNode(null)}><X size={14} /></button>
                 </div>
 
                 {details.node.namespace && (

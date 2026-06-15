@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { Check } from 'lucide-react';
 import './ColorPicker.css';
 
 // ── Color conversion utilities ──
@@ -542,12 +543,12 @@ function ColorPicker({ isOpen, onClose }) {
               <div className="cpick-contrast-chips">
                 <span className="cpick-contrast-chip" style={{ background: hex, color: '#fff' }}>
                   White {contrastWhite.toFixed(1)}:1
-                  {contrastWhite >= 4.5 ? ' ✓ AA' : ''}
+                  {contrastWhite >= 4.5 ? <>{' '}<Check size={11} style={{ verticalAlign: '-1px' }} /> AA</> : ''}
                   {contrastWhite >= 7 ? ' AAA' : ''}
                 </span>
                 <span className="cpick-contrast-chip" style={{ background: hex, color: '#000' }}>
                   Black {contrastBlack.toFixed(1)}:1
-                  {contrastBlack >= 4.5 ? ' ✓ AA' : ''}
+                  {contrastBlack >= 4.5 ? <>{' '}<Check size={11} style={{ verticalAlign: '-1px' }} /> AA</> : ''}
                   {contrastBlack >= 7 ? ' AAA' : ''}
                 </span>
               </div>

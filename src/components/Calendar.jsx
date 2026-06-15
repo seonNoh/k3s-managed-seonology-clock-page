@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Holidays from 'date-holidays';
+import { RefreshCw, X, MapPin, Users, CalendarDays } from 'lucide-react';
+import { FlagKR, FlagJP } from './Flags';
 import './Calendar.css';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
@@ -158,20 +160,6 @@ function Calendar() {
 
   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-  const FlagKR = ({ size = 14 }) => (
-    <svg className="flag-icon" width={size} height={Math.round(size * 2 / 3)} viewBox="0 0 900 600">
-      <rect fill="#FFFFFF" width="900" height="600"/>
-      <circle cx="450" cy="300" r="150" fill="#CD2E3A"/>
-      <path fill="#0047A0" d="M450,150 A150,150 0 0,0 450,450 A75,75 0 0,0 450,300 A75,75 0 0,1 450,150Z"/>
-    </svg>
-  );
-  const FlagJP = ({ size = 14 }) => (
-    <svg className="flag-icon" width={size} height={Math.round(size * 2 / 3)} viewBox="0 0 900 600">
-      <rect fill="#FFFFFF" width="900" height="600"/>
-      <circle fill="#BC002D" cx="450" cy="300" r="180"/>
-    </svg>
-  );
-
   // Get upcoming holidays
   const upcomingHolidays = useMemo(() => {
     const holidays = [];
@@ -254,7 +242,7 @@ function Calendar() {
             title={lastFetched ? `마지막 갱신: ${new Date(lastFetched).toLocaleTimeString('ko-KR')}` : '이벤트 갱신'}
             disabled={eventsLoading}
           >
-            ↻
+            <RefreshCw size={16} />
           </button>
         </div>
         <button className="calendar-nav" onClick={nextMonth}>›</button>
@@ -348,7 +336,7 @@ function Calendar() {
                 </button>
               ))}
             </div>
-            <button className="event-detail-close" onClick={() => setSelectedDate(null)}>✕</button>
+            <button className="event-detail-close" onClick={() => setSelectedDate(null)}><X size={14} /></button>
           </div>
           {selectedDateEvents.length === 0 ? (
             <div className="event-empty">이벤트가 없습니다</div>
@@ -372,10 +360,10 @@ function Calendar() {
                     </span>
                   </div>
                   <div className="event-card-title">{event.titleKo || event.title}</div>
-                  {event.venue && <div className="event-card-venue">📍 {event.venue}</div>}
+                  {event.venue && <div className="event-card-venue"><MapPin size={11} style={{ verticalAlign: '-2px', marginRight: 3 }} />{event.venue}</div>}
                   {event.source !== 'tourism' && event.source !== 'culture' && event.participants > 0 && (
                     <div className="event-card-meta">
-                      👥 {event.participants}{event.limit ? `/${event.limit}` : ''}명
+                      <Users size={12} style={{ verticalAlign: '-2px', marginRight: 3 }} />{event.participants}{event.limit ? `/${event.limit}` : ''}명
                       {event.groupName && <span> · {event.groupName}</span>}
                     </div>
                   )}
@@ -392,7 +380,7 @@ function Calendar() {
       {/* Upcoming Sapporo events */}
       {upcomingEvents.length > 0 && !selectedDate && (
         <div className="upcoming-events">
-          <div className="upcoming-title">📅 삿포로 이벤트 (2주 이내)</div>
+          <div className="upcoming-title"><CalendarDays size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />삿포로 이벤트 (2주 이내)</div>
           <div className="upcoming-list">
             {upcomingEvents.map(event => (
               <a

@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { AlertTriangle, Info, Check, X } from 'lucide-react';
 import './GitlabToGithub.css';
 
 /* ═══════════════════════════════════════════════
@@ -606,7 +607,7 @@ export default function GitlabToGithub({ isOpen, onClose }) {
             </div>
             <h2>GitLab CI → GitHub Actions</h2>
           </div>
-          <button className="gl2gh-close" onClick={onClose}>✕</button>
+          <button className="gl2gh-close" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="gl2gh-body">
@@ -657,7 +658,7 @@ export default function GitlabToGithub({ isOpen, onClose }) {
               <div className="gl2gh-messages">
                 {result.warnings.map((w, i) => (
                   <div key={i} className="gl2gh-msg warn">
-                    <span className="gl2gh-msg-icon">⚠</span>
+                    <span className="gl2gh-msg-icon"><AlertTriangle size={14} /></span>
                     <span>{w}</span>
                   </div>
                 ))}
@@ -667,7 +668,7 @@ export default function GitlabToGithub({ isOpen, onClose }) {
               <div className="gl2gh-messages">
                 {result.info.map((m, i) => (
                   <div key={i} className="gl2gh-msg info">
-                    <span className="gl2gh-msg-icon">ℹ</span>
+                    <span className="gl2gh-msg-icon"><Info size={14} /></span>
                     <span>{m}</span>
                   </div>
                 ))}
@@ -691,7 +692,7 @@ export default function GitlabToGithub({ isOpen, onClose }) {
               </div>
               {activeTab === 'output' && (
                 <button className={`gl2gh-btn-sm ${copied ? 'copied' : ''}`} onClick={handleCopy}>
-                  {copied ? '✓ Copied' : 'Copy'}
+                  {copied ? <><Check size={14} style={{ verticalAlign: '-2px', marginRight: 3 }} />Copied</> : 'Copy'}
                 </button>
               )}
             </div>

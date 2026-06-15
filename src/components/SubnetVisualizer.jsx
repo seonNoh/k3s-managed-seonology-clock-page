@@ -606,7 +606,7 @@ function SubnetVisualizer({ isOpen, onClose }) {
                     <div key={label} className="subnet-detail-row" onClick={() => handleCopy(val)}>
                       <span className="subnet-detail-label">{label}</span>
                       <span className={`subnet-detail-value${copiedText === val ? ' copied' : ''}`}>
-                        {copiedText === val ? '✓ Copied' : val}
+                        {copiedText === val ? <><Check size={13} style={{ verticalAlign: '-2px', marginRight: 3 }} />Copied</> : val}
                       </span>
                     </div>
                   ))}

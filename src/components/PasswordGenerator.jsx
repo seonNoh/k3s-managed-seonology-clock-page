@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { Space } from 'lucide-react';
 import './PasswordGenerator.css';
 
 const CHARSETS = {
@@ -393,7 +394,7 @@ function PasswordGenerator({ isOpen, onClose }) {
                           className={`pwgen-sep-btn${separator === s ? ' active' : ''}`}
                           onClick={() => setSeparator(s)}
                         >
-                          {s === '' ? 'none' : s === ' ' ? '⎵' : s}
+                          {s === '' ? 'none' : s === ' ' ? <Space size={14} /> : s}
                         </button>
                       ))}
                     </div>

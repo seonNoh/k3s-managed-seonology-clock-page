@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { Check } from 'lucide-react';
 import './CronEditor.css';
 
 // ── Cron field definitions ──
@@ -432,7 +433,7 @@ function CronEditor({ isOpen, onClose }) {
                       className={`cron-copy-btn${copied === 'cron' ? ' copied' : ''}`}
                       onClick={() => handleCopy(active.cron, 'cron')}
                     >
-                      {copied === 'cron' ? '✓' : 'Copy'}
+                      {copied === 'cron' ? <Check size={14} /> : 'Copy'}
                     </button>
                     <label className="cron-sec-toggle" title="Include seconds field">
                       <input type="checkbox" checked={hasSeconds} onChange={toggleSeconds} />

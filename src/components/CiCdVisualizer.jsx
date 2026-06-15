@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { X } from 'lucide-react';
 import './CiCdVisualizer.css';
 
 /* ──────────────────────── sample YAML strings ──────────────────────── */
@@ -544,7 +545,7 @@ export default function CiCdVisualizer({ isOpen, onClose }) {
             </svg>
             <h2>CI/CD Pipeline Visualizer</h2>
           </div>
-          <button className="cicd-close" onClick={onClose}>✕</button>
+          <button className="cicd-close" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="cicd-body">
@@ -628,7 +629,7 @@ export default function CiCdVisualizer({ isOpen, onClose }) {
               <div className="cicd-job-detail">
                 <div className="cicd-detail-header">
                   <h3>{selectedJob}</h3>
-                  <button className="cicd-btn-sm" onClick={() => setSelectedJob(null)}>✕</button>
+                  <button className="cicd-btn-sm" onClick={() => setSelectedJob(null)}><X size={14} /></button>
                 </div>
                 <div className="cicd-detail-body">
                   {parsed.type === 'github' && (

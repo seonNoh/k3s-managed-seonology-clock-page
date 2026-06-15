@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
+import { X, Check } from 'lucide-react';
 import './ArchIconSearch.css';
 
 /* ═══════════════════════════════════════════════
@@ -269,7 +270,7 @@ export default function ArchIconSearch({ isOpen, onClose }) {
             <h2>Architecture Icon Search</h2>
             <span className="archi-badge">{ARCH_ICONS.length} icons</span>
           </div>
-          <button className="archi-close" onClick={onClose}>✕</button>
+          <button className="archi-close" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="archi-body">
@@ -288,7 +289,7 @@ export default function ArchIconSearch({ isOpen, onClose }) {
                 onChange={e => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
-                <button className="archi-search-clear" onClick={() => setSearchQuery('')}>✕</button>
+                <button className="archi-search-clear" onClick={() => setSearchQuery('')}><X size={14} /></button>
               )}
             </div>
 
@@ -352,7 +353,7 @@ export default function ArchIconSearch({ isOpen, onClose }) {
                     PNG
                   </button>
                   <button className={`archi-dl-btn copy ${copiedSvg ? 'copied' : ''}`} onClick={() => handleCopySvg(selectedIcon)}>
-                    {copiedSvg ? '✓' : 'Copy SVG'}
+                    {copiedSvg ? <Check size={14} /> : 'Copy SVG'}
                   </button>
                 </div>
               </div>

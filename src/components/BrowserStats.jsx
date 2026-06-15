@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AppWindow } from 'lucide-react';
 import './BrowserStats.css';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
@@ -99,7 +100,7 @@ function BrowserStats() {
               <div key={win.windowId} className="stats-window-group">
                 {tabs.byWindow.length > 1 && (
                   <div className="stats-window-label">
-                    <span className="stats-window-icon">◻</span>
+                    <span className="stats-window-icon"><AppWindow size={10} /></span>
                     Window {winIdx + 1}
                     <span className="stats-window-badge">{win.count}</span>
                   </div>

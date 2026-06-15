@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { ArrowRight } from 'lucide-react';
+import { FlagUS, FlagKR, FlagJP } from './Flags';
 import './ExchangeRate.css';
 
 function ExchangeRate() {
@@ -74,10 +76,10 @@ function ExchangeRate() {
       <div className="exchange-cards">
         <div className="exchange-card">
           <div className="exchange-pair">
-            <span className="currency-flag">🇺🇸</span>
+            <span className="currency-flag"><FlagUS size={18} /></span>
             <span className="currency-code">USD</span>
-            <span className="exchange-arrow">→</span>
-            <span className="currency-flag">🇰🇷</span>
+            <span className="exchange-arrow"><ArrowRight size={14} /></span>
+            <span className="currency-flag"><FlagKR size={18} /></span>
             <span className="currency-code">KRW</span>
           </div>
           <div className="exchange-value">
@@ -87,10 +89,10 @@ function ExchangeRate() {
 
         <div className="exchange-card">
           <div className="exchange-pair">
-            <span className="currency-flag">🇺🇸</span>
+            <span className="currency-flag"><FlagUS size={18} /></span>
             <span className="currency-code">USD</span>
-            <span className="exchange-arrow">→</span>
-            <span className="currency-flag">🇯🇵</span>
+            <span className="exchange-arrow"><ArrowRight size={14} /></span>
+            <span className="currency-flag"><FlagJP size={18} /></span>
             <span className="currency-code">JPY</span>
           </div>
           <div className="exchange-value">
@@ -100,10 +102,10 @@ function ExchangeRate() {
 
         <div className="exchange-card highlight">
           <div className="exchange-pair">
-            <span className="currency-flag">🇰🇷</span>
+            <span className="currency-flag"><FlagKR size={18} /></span>
             <span className="currency-code">100원</span>
-            <span className="exchange-arrow">→</span>
-            <span className="currency-flag">🇯🇵</span>
+            <span className="exchange-arrow"><ArrowRight size={14} /></span>
+            <span className="currency-flag"><FlagJP size={18} /></span>
             <span className="currency-code">JPY</span>
           </div>
           <div className="exchange-value">
@@ -113,10 +115,10 @@ function ExchangeRate() {
 
         <div className="exchange-card highlight">
           <div className="exchange-pair">
-            <span className="currency-flag">🇯🇵</span>
+            <span className="currency-flag"><FlagJP size={18} /></span>
             <span className="currency-code">100엔</span>
-            <span className="exchange-arrow">→</span>
-            <span className="currency-flag">🇰🇷</span>
+            <span className="exchange-arrow"><ArrowRight size={14} /></span>
+            <span className="currency-flag"><FlagKR size={18} /></span>
             <span className="currency-code">KRW</span>
           </div>
           <div className="exchange-value">

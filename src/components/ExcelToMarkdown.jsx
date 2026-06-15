@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { X } from 'lucide-react';
 import './ExcelToMarkdown.css';
 
 /* ──────── helpers ──────── */
@@ -237,7 +238,7 @@ export default function ExcelToMarkdown({ isOpen, onClose }) {
             </svg>
             <h2>Excel → Markdown Table</h2>
           </div>
-          <button className="e2m-close" onClick={onClose}>✕</button>
+          <button className="e2m-close" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="e2m-body">

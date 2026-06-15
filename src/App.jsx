@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Sun, CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog } from 'lucide-react';
+import { Sun, CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog, Square, CalendarDays } from 'lucide-react';
 import Clock from './components/Clock';
 import CursorCanvas from './components/CursorCanvas';
 import Weather from './components/Weather';
@@ -167,7 +167,7 @@ function TodoPreview({ onClick }) {
   return (
     <div className="todo-preview" onClick={onClick}>
       <div className="todo-preview-header">
-        <span className="todo-icon">☐</span>
+        <span className="todo-icon"><Square size={18} /></span>
         <span className="todo-title">Todo</span>
         {todos.length > 0 && <span className="todo-count">{todos.length}</span>}
       </div>
@@ -192,7 +192,7 @@ function CalendarIcon({ onClick }) {
   const today = new Date();
   return (
     <div className="ambient-item calendar-item" onClick={onClick}>
-      <span className="ambient-symbol">◰</span>
+      <span className="ambient-symbol"><CalendarDays size={26} strokeWidth={1.5} /></span>
       <span className="ambient-value">{today.getDate()}</span>
     </div>
   );

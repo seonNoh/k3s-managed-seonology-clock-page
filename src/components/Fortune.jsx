@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Sparkles, Star, Sparkle, Briefcase, Heart, Dumbbell } from 'lucide-react';
 import './Fortune.css';
 
 // Fortune messages organized by category
@@ -93,17 +94,18 @@ function Fortune() {
     );
   }
 
-  const getScoreEmoji = (score) => {
-    if (score >= 90) return '🌟';
-    if (score >= 80) return '✨';
-    if (score >= 70) return '💫';
-    return '⭐';
+  const getScoreIcon = (score) => {
+    if (score >= 90) return Sparkles;
+    if (score >= 80) return Star;
+    if (score >= 70) return Sparkle;
+    return Star;
   };
+  const ScoreIcon = getScoreIcon(fortune.score);
 
   return (
     <div className="fortune">
       <div className="fortune-score">
-        <span className="score-emoji">{getScoreEmoji(fortune.score)}</span>
+        <span className="score-emoji"><ScoreIcon size={26} strokeWidth={1.75} /></span>
         <span className="score-value">{fortune.score}점</span>
         <span className="score-label">오늘의 운</span>
       </div>
@@ -114,15 +116,15 @@ function Fortune() {
 
       <div className="fortune-details">
         <div className="fortune-item">
-          <span className="fortune-icon">💼</span>
+          <span className="fortune-icon"><Briefcase size={16} /></span>
           <span className="fortune-text">{fortune.work}</span>
         </div>
         <div className="fortune-item">
-          <span className="fortune-icon">💝</span>
+          <span className="fortune-icon"><Heart size={16} /></span>
           <span className="fortune-text">{fortune.relationship}</span>
         </div>
         <div className="fortune-item">
-          <span className="fortune-icon">💪</span>
+          <span className="fortune-icon"><Dumbbell size={16} /></span>
           <span className="fortune-text">{fortune.health}</span>
         </div>
       </div>
