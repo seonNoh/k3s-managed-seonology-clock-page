@@ -1,3 +1,10 @@
+# [1.50.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.49.1...v1.50.0) (2026-06-15)
+
+
+### Features
+
+* Japan weather upgrade with JMA + Open-Meteo hybrid (forecast/warning SSE) ([677080a](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/677080ad9794fcaec50ef30dae3d69c3e51cffc7))
+
 ## [1.49.1](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.49.0...v1.49.1) (2026-06-15)
 
 
