@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Sun, CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog, Square, CalendarDays } from 'lucide-react';
 import Clock from './components/Clock';
 import CursorCanvas from './components/CursorCanvas';
@@ -1118,6 +1119,25 @@ function App() {
   const [showGlowPicker, setShowGlowPicker] = useState(false);
   const [showAnimPicker, setShowAnimPicker] = useState(false);
   const [toolsExpanded, setToolsExpanded] = useState(false);
+  const [toolSearch, setToolSearch] = useState('');
+  const [toolMatchCount, setToolMatchCount] = useState(0);
+  const toolsGridRef = useRef(null);
+
+  // Tools 모달 검색: 하드코딩된 도구 버튼들을 title/label 기준으로 실시간 필터한다.
+  useEffect(() => {
+    if (!toolsExpanded) return;
+    const grid = toolsGridRef.current;
+    if (!grid) return;
+    const q = toolSearch.trim().toLowerCase();
+    let count = 0;
+    grid.querySelectorAll('.app-icon-btn').forEach((btn) => {
+      const hay = `${btn.getAttribute('title') || ''} ${btn.textContent || ''}`.toLowerCase();
+      const match = !q || hay.includes(q);
+      btn.style.display = match ? '' : 'none';
+      if (match) count += 1;
+    });
+    setToolMatchCount(count);
+  }, [toolSearch, toolsExpanded]);
 
   const openModal = (name) => { setActiveModal(name); setMobileDrawerOpen(false); };
   const closeModal = () => setActiveModal(null);
@@ -1380,44 +1400,44 @@ function App() {
       </button>
 
       {/* App Icon Grid Toggle */}
-      <button className={`tools-toggle-btn${toolsExpanded ? ' expanded' : ''}`} onClick={() => setToolsExpanded(!toolsExpanded)}>
+      <button className={`tools-toggle-btn${toolsExpanded ? ' expanded' : ''}`} onClick={() => { setToolSearch(''); setToolsExpanded(true); setMobileDrawerOpen(false); }}>
         <span className="tools-toggle-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
           </svg>
         </span>
         <span className="tools-toggle-label">Tools</span>
-        <span className="tools-toggle-arrow">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </span>
       </button>
 
-      {/* App Icon Grid */}
-      {(toolsExpanded || mobileDrawerOpen) && <div className="app-icon-grid"
-        onMouseMove={(e) => {
-          const grid = e.currentTarget;
-          const btns = grid.querySelectorAll('.app-icon-btn');
-          const rect = grid.getBoundingClientRect();
-          const mx = e.clientX;
-          const my = e.clientY;
-          btns.forEach(btn => {
-            const br = btn.getBoundingClientRect();
-            const bx = br.left + br.width / 2;
-            const by = br.top + br.height / 2;
-            const dist = Math.sqrt((mx - bx) ** 2 + (my - by) ** 2);
-            const maxDist = 120;
-            const scale = 1 + Math.max(0, 1 - dist / maxDist) * 0.35;
-            btn.style.transform = `scale(${scale})`;
-            btn.style.zIndex = scale > 1.1 ? '2' : '1';
-          });
-        }}
-        onMouseLeave={(e) => {
-          const btns = e.currentTarget.querySelectorAll('.app-icon-btn');
-          btns.forEach(btn => { btn.style.transform = ''; btn.style.zIndex = ''; });
-        }}
-      >
+      {/* Tools full-screen modal (portal: bottom-right-stack의 transform 영향에서 벗어나기 위해 body로 렌더) */}
+      {toolsExpanded && createPortal((
+      <div className="tools-modal-overlay" onClick={() => setToolsExpanded(false)}>
+        <div className="tools-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="tools-modal-header">
+            <span className="tools-modal-title">Tools</span>
+            <div className="tools-modal-search-wrap">
+              <svg className="tools-modal-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+              </svg>
+              <input
+                className="tools-modal-search"
+                type="text"
+                autoFocus
+                placeholder="도구 검색..."
+                value={toolSearch}
+                onChange={(e) => setToolSearch(e.target.value)}
+              />
+              {toolSearch && (
+                <button className="tools-modal-search-clear" onClick={() => setToolSearch('')} aria-label="검색 지우기">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              )}
+            </div>
+            <button className="tools-modal-close" onClick={() => setToolsExpanded(false)} aria-label="닫기">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          </div>
+          <div className="tools-modal-grid" ref={toolsGridRef}>
         <button className="app-icon-btn" onClick={() => openModal('calendar')} title="Calendar">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1689,10 +1709,11 @@ function App() {
           </span>
           <span className="app-icon-label">Glow</span>
         </button>
-      </div>}
-
-      {/* Picker Dropdowns */}
-      {(toolsExpanded || mobileDrawerOpen) && <div className="glow-picker-area">
+          </div>{/* end tools-modal-grid */}
+          {toolMatchCount === 0 && toolSearch && (
+            <div className="tools-modal-empty">"{toolSearch}" 검색 결과가 없습니다</div>
+          )}
+          {(showGlowPicker || showAnimPicker) && <div className="glow-picker-area">
         {showGlowPicker && (
           <div className="glow-picker-dropdown">
             <div className="glow-picker-label">Glow Color</div>
@@ -1723,7 +1744,10 @@ function App() {
             ))}
           </div>
         )}
-      </div>}
+          </div>}{/* end glow-picker-area */}
+        </div>{/* end tools-modal */}
+      </div>
+      ), document.body)}
 
       </div>{/* end bottom-right-stack */}
 
