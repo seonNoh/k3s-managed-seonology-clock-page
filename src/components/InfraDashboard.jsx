@@ -41,6 +41,15 @@ function formatUptime(str) {
   return str;
 }
 
+function Spinner({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className="infra-spinner" fill="none" aria-label="loading">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" strokeOpacity="0.2" />
+      <path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function InfraDashboard({ isOpen, onClose }) {
   const [tab, setTab] = useState('cluster');
   const [cluster, setCluster] = useState(null);
@@ -94,7 +103,7 @@ function InfraDashboard({ isOpen, onClose }) {
             <span className="infra-header-title">Infrastructure</span>
           </div>
           <div className="infra-header-actions">
-            <button className="infra-refresh-btn" onClick={refresh} disabled={loading.cluster || loading.tailscale || loading.nas}>
+            <button className={`infra-refresh-btn${(loading.cluster || loading.tailscale || loading.nas) ? ' spinning' : ''}`} onClick={refresh} disabled={loading.cluster || loading.tailscale || loading.nas}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
               </svg>
@@ -116,7 +125,7 @@ function InfraDashboard({ isOpen, onClose }) {
         <div className="infra-body">
           {tab === 'cluster' && (
             <div className="infra-section">
-              {loading.cluster && <div className="infra-loading">Loading cluster data...</div>}
+              {loading.cluster && <div className="infra-loading"><Spinner /> Loading cluster data...</div>}
               {errors.cluster && <div className="infra-error">{errors.cluster}</div>}
               {cluster && (
                 <>
@@ -179,7 +188,7 @@ function InfraDashboard({ isOpen, onClose }) {
 
           {tab === 'tailscale' && (
             <div className="infra-section">
-              {loading.tailscale && <div className="infra-loading">Loading Tailscale data...</div>}
+              {loading.tailscale && <div className="infra-loading"><Spinner /> Loading Tailscale data...</div>}
               {errors.tailscale && <div className="infra-error">{errors.tailscale}</div>}
               {tailscale && (
                 <>
@@ -206,7 +215,7 @@ function InfraDashboard({ isOpen, onClose }) {
 
           {tab === 'nas' && (
             <div className="infra-section">
-              {loading.nas && <div className="infra-loading">Loading NAS data...</div>}
+              {loading.nas && <div className="infra-loading"><Spinner /> Loading NAS data...</div>}
               {errors.nas && <div className="infra-error">{errors.nas}</div>}
               {nas && (
                 <>

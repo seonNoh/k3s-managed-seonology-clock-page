@@ -42,7 +42,10 @@
 
 .infra-body { flex: 1; overflow-y: auto; }
 .infra-section { padding: 16px 20px; }
-.infra-loading { font-family: 'Inter', sans-serif; font-size: 0.86rem; color: var(--text-muted); padding: 20px 0; text-align: center; }
+.infra-loading { font-family: 'Inter', sans-serif; font-size: 0.86rem; color: var(--text-muted); padding: 20px 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+@keyframes infra-spin { to { transform: rotate(360deg); } }
+.infra-spinner { color: #6366f1; animation: infra-spin 0.7s linear infinite; flex-shrink: 0; }
+.infra-refresh-btn.spinning svg { animation: infra-spin 0.7s linear infinite; }
 .infra-error { font-family: 'Inter', sans-serif; font-size: 0.84rem; color: #ff6b6b; padding: 8px 12px; background: rgba(255,80,80,0.06); border-radius: 6px; margin-bottom: 12px; }
 
 /* Summary */
