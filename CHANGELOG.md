@@ -1,3 +1,10 @@
+## [1.50.2](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.50.1...v1.50.2) (2026-07-13)
+
+
+### Bug Fixes
+
+* **infra:** show loading spinner on infra dashboard ([4cba59e](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/4cba59e3361574567329ef6cdec9aa261156e7d7))
+
 ## [1.50.1](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.50.0...v1.50.1) (2026-06-15)
 
 
