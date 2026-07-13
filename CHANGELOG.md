@@ -1,3 +1,10 @@
+## [1.50.3](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.50.2...v1.50.3) (2026-07-13)
+
+
+### Bug Fixes
+
+* prevent password generator hang from infinite position-assignment loop ([fe2b74e](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/fe2b74e07365ecca0421d6d4d14b8ae032ce596a))
+
 ## [1.50.2](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.50.1...v1.50.2) (2026-07-13)
 
 
