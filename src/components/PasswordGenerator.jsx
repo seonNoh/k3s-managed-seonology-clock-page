@@ -125,14 +125,22 @@ function PasswordGenerator({ isOpen, onClose }) {
 
     if (ensureChars.length > 1 && length >= ensureChars.length) {
       const pwArr = pw.split('');
-      const positions = new Set();
-      const posArray = new Uint32Array(ensureChars.length);
-      crypto.getRandomValues(posArray);
-      
+
+      // Pick a distinct position per category via a partial Fisher-Yates shuffle.
+      // There is no rejection/retry here, so it can never spin forever.
+      // (The previous do-while drew randoms once outside the loop and, on a
+      //  position collision, only recomputed the same value — hanging the page
+      //  ~1/3 of the time with the default 16-char / 4-category settings.)
+      const slots = Array.from({ length }, (_, i) => i);
+      const swap = new Uint32Array(ensureChars.length);
+      crypto.getRandomValues(swap);
+      for (let i = 0; i < ensureChars.length; i++) {
+        const j = i + (swap[i] % (length - i));
+        [slots[i], slots[j]] = [slots[j], slots[i]];
+      }
+
       ensureChars.forEach((charset, idx) => {
-        let pos;
-        do { pos = posArray[idx] % length; } while (positions.has(pos));
-        positions.add(pos);
+        const pos = slots[idx];
         const charArray = new Uint32Array(1);
         crypto.getRandomValues(charArray);
         let cs = charset;
