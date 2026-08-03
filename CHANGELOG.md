@@ -1,3 +1,10 @@
+# [1.51.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.50.3...v1.51.0) (2026-08-03)
+
+
+### Features
+
+* replace Tailscale API token with OAuth client auth ([62bc40c](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/62bc40c889ed6bbe83bc40ed0667898e62265dd1))
+
 ## [1.50.3](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.50.2...v1.50.3) (2026-07-13)
 
 
