@@ -51,11 +51,17 @@ spec:
               name: clock-page-secrets
               key: gemini-api-key
               optional: true
-        - name: TAILSCALE_API_KEY
+        - name: TAILSCALE_OAUTH_CLIENT_ID
           valueFrom:
             secretKeyRef:
               name: clock-page-secrets
-              key: tailscale-api-key
+              key: tailscale-oauth-client-id
+              optional: true
+        - name: TAILSCALE_OAUTH_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: clock-page-secrets
+              key: tailscale-oauth-client-secret
               optional: true
         - name: NAS_PASSWORD
           valueFrom:

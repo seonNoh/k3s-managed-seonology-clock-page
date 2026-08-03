@@ -1761,7 +1761,10 @@ const GRAFANA_USER = process.env.GRAFANA_USER || 'admin';
 const GRAFANA_PASS = process.env.GRAFANA_PASS || 'grafana-admin-pass';
 
 // Tailscale configuration
-const TAILSCALE_API_KEY = process.env.TAILSCALE_API_KEY || '';
+// API access token(tskey-api-) 은 최대 90 일에 만료되고 연장이 불가능해 주기적으로 끊긴다.
+// 만료되지 않는 OAuth client 로 1 시간짜리 액세스 토큰을 그때그때 발급받아 쓴다.
+const TAILSCALE_OAUTH_CLIENT_ID = process.env.TAILSCALE_OAUTH_CLIENT_ID || '';
+const TAILSCALE_OAUTH_CLIENT_SECRET = process.env.TAILSCALE_OAUTH_CLIENT_SECRET || '';
 
 // Synology NAS configuration
 const NAS_HOST = process.env.NAS_HOST || '100.94.199.8';
@@ -1907,29 +1910,81 @@ app.get('/api/infra/cluster', async (req, res) => {
 });
 
 // Tailscale Devices
-app.get('/api/infra/tailscale', async (req, res) => {
-  if (!TAILSCALE_API_KEY) return res.status(500).json({ error: 'Tailscale API key not configured' });
-  try {
-    const auth = Buffer.from(`${TAILSCALE_API_KEY}:`).toString('base64');
-    const data = await new Promise((resolve, reject) => {
-      const r = https.request({
-        hostname: 'api.tailscale.com',
-        port: 443,
-        path: '/api/v2/tailnet/-/devices',
-        method: 'GET',
-        family: 4, // 일부 환경에서 IPv6 우선 연결이 실패하므로 IPv4 강제
-        timeout: 10000,
-        headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' },
-      }, (resp) => {
-        let body = '';
-        resp.on('data', c => body += c);
-        resp.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(new Error(`Parse error (HTTP ${resp.statusCode}): ${body.slice(0, 200)}`)); } });
-      });
-      r.on('timeout', () => r.destroy(new Error('timeout after 10s')));
-      // e.message 가 비어 원인 파악이 안 되던 문제 → code/errno 를 함께 노출
-      r.on('error', e => reject(new Error(`Request error [${e.code || e.errno || 'unknown'}]: ${e.message || ''}`)));
-      r.end();
+// OAuth 액세스 토큰은 1 시간 고정 수명이라 만료 직전까지 재사용한다. (NAS sid 캐시와 같은 방식)
+let tsToken = null;
+let tsTokenExpiry = 0;
+
+async function tailscaleToken() {
+  const now = Date.now();
+  if (tsToken && now < tsTokenExpiry) return tsToken;
+  const form = `client_id=${encodeURIComponent(TAILSCALE_OAUTH_CLIENT_ID)}&client_secret=${encodeURIComponent(TAILSCALE_OAUTH_CLIENT_SECRET)}`;
+  const data = await new Promise((resolve, reject) => {
+    const r = https.request({
+      hostname: 'api.tailscale.com',
+      port: 443,
+      path: '/api/v2/oauth/token',
+      method: 'POST',
+      family: 4, // 일부 환경에서 IPv6 우선 연결이 실패하므로 IPv4 강제
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(form),
+        'Accept': 'application/json',
+      },
+    }, (resp) => {
+      let body = '';
+      resp.on('data', c => body += c);
+      resp.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(new Error(`Token parse error (HTTP ${resp.statusCode}): ${body.slice(0, 200)}`)); } });
     });
+    r.on('timeout', () => r.destroy(new Error('token request timeout after 10s')));
+    r.on('error', e => reject(new Error(`Token request error [${e.code || e.errno || 'unknown'}]: ${e.message || ''}`)));
+    r.end(form);
+  });
+  if (!data.access_token) throw new Error(data.message || 'OAuth token exchange failed');
+  tsToken = data.access_token;
+  // expires_in(초) 에서 60 초를 빼 만료 직전 호출이 401 로 새는 것을 막는다.
+  tsTokenExpiry = now + Math.max((data.expires_in || 3600) - 60, 60) * 1000;
+  return tsToken;
+}
+
+app.get('/api/infra/tailscale', async (req, res) => {
+  if (!TAILSCALE_OAUTH_CLIENT_ID || !TAILSCALE_OAUTH_CLIENT_SECRET) {
+    return res.status(500).json({ error: 'Tailscale OAuth client not configured' });
+  }
+  try {
+    const fetchDevices = async () => {
+      const token = await tailscaleToken();
+      return new Promise((resolve, reject) => {
+        const r = https.request({
+          hostname: 'api.tailscale.com',
+          port: 443,
+          path: '/api/v2/tailnet/-/devices',
+          method: 'GET',
+          family: 4, // 일부 환경에서 IPv6 우선 연결이 실패하므로 IPv4 강제
+          timeout: 10000,
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+        }, (resp) => {
+          let body = '';
+          resp.on('data', c => body += c);
+          resp.on('end', () => {
+            try { resolve({ status: resp.statusCode, json: JSON.parse(body) }); }
+            catch(e) { reject(new Error(`Parse error (HTTP ${resp.statusCode}): ${body.slice(0, 200)}`)); }
+          });
+        });
+        r.on('timeout', () => r.destroy(new Error('timeout after 10s')));
+        // e.message 가 비어 원인 파악이 안 되던 문제 → code/errno 를 함께 노출
+        r.on('error', e => reject(new Error(`Request error [${e.code || e.errno || 'unknown'}]: ${e.message || ''}`)));
+        r.end();
+      });
+    };
+    let result = await fetchDevices();
+    // 클라이언트 폐기나 서버측 조기 만료로 캐시된 토큰이 죽으면 한 번만 재발급해 재시도한다.
+    if (result.status === 401) {
+      tsToken = null;
+      tsTokenExpiry = 0;
+      result = await fetchDevices();
+    }
+    const data = result.json;
     if (data.message) throw new Error(data.message);
     const now = Date.now();
     const devices = (data.devices || []).map(d => {
