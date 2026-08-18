@@ -95,6 +95,12 @@ spec:
               name: clock-page-secrets
               key: grafana-admin-pass
               optional: true
+        - name: CLOUD_TOKEN_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: clock-page-secrets
+              key: cloud-token-encryption-key
+              optional: false
         - name: GOOGLE_CLIENT_ID
           valueFrom:
             secretKeyRef:
