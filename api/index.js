@@ -11,7 +11,7 @@ const app = express();
 const runtimeConfig = dependencies.config || loadConfig();
 
 // Cloud Drives
-const { setupGoogleRoutes, setupMicrosoftRoutes } = require('./cloud-drives');
+const { createCloudRouteDependencies, setupGoogleRoutes, setupMicrosoftRoutes } = require('./cloud-drives');
 const { setupGithubCatalogRoutes } = require('./github-catalog');
 const { setupIconRoutes } = require('./icons');
 const { setupJmaRoutes } = require('./jma');
@@ -2320,16 +2320,27 @@ app.post('/api/nas/upload', async (req, res) => {
   let uploadDone = false;
   let fileSeen = false;
   const abortController = new AbortController();
+  const activeRequests = new Set();
+  const activeStreams = new Set();
   const uploadBoundary = createUploadBoundary({
     target: destPath,
     maxBytes: runtimeConfig.nas.maxUploadBytes,
     maxFiles: runtimeConfig.nas.maxUploadFiles,
   });
 
+  function abortActiveUpload() {
+    abortController.abort();
+    for (const stream of activeStreams) stream.destroy();
+    for (const request of activeRequests) request.destroy();
+    activeStreams.clear();
+    activeRequests.clear();
+  }
+
   function respondError(status, message) {
-    if (uploadDone || res.headersSent) return;
+    if (uploadDone) return;
     uploadDone = true;
-    res.status(status).json({ error: message });
+    if (!res.headersSent) res.status(status).json({ error: message });
+    abortActiveUpload();
   }
 
   try {
@@ -2338,7 +2349,7 @@ app.post('/api/nas/upload', async (req, res) => {
       headers: req.headers,
       limits: { fileSize: runtimeConfig.nas.maxUploadBytes, files: runtimeConfig.nas.maxUploadFiles },
     });
-    req.on('aborted', () => abortController.abort());
+    req.on('aborted', () => { uploadDone = true; abortActiveUpload(); });
 
     bb.on('field', (name, val) => {
       if (name !== 'path') return;
@@ -2352,6 +2363,7 @@ app.post('/api/nas/upload', async (req, res) => {
 
     bb.on('file', (fieldname, fileStream, info) => {
       fileSeen = true;
+      activeStreams.add(fileStream);
       let safePath;
       let safeName;
       try {
@@ -2392,6 +2404,7 @@ app.post('/api/nas/upload', async (req, res) => {
             nasRes.on('data', chunk => { body += chunk; });
             nasRes.on('end', () => resolve({ statusCode: nasRes.statusCode, body }));
           });
+          activeRequests.add(nasReq);
           nasReq.on('error', reject);
         });
         response.catch(() => {});
@@ -2428,8 +2441,13 @@ app.post('/api/nas/upload', async (req, res) => {
 });
 
 // Cloud Drive routes
-setupGoogleRoutes(app, dependencies.googleCloud);
-setupMicrosoftRoutes(app, dependencies.microsoftCloud);
+const cloudRouteDependencies = createCloudRouteDependencies({
+  config: runtimeConfig.cloud,
+  tokenStore: dependencies.storage?.cloudTokenStore,
+  ...dependencies.cloud,
+});
+setupGoogleRoutes(app, { ...cloudRouteDependencies.google, ...dependencies.googleCloud });
+setupMicrosoftRoutes(app, { ...cloudRouteDependencies.microsoft, ...dependencies.microsoftCloud });
 setupGithubCatalogRoutes(app);
 setupIconRoutes(app);
 setupJmaRoutes(app);

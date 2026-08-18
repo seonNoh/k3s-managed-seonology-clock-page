@@ -1,31 +1,39 @@
 const https = require('https');
-const { loadConfig } = require('./config');
 const { createOAuthTransactionStore } = require('./domains/cloud/oauth-transaction');
 const { uploadOneDriveChunks } = require('./domains/cloud/onedrive-uploader');
 const { createEncryptedTokenStore } = require('./infrastructure/storage/encrypted-token-store');
 
-const runtimeConfig = loadConfig();
-const defaultTransactions = createOAuthTransactionStore({});
-let defaultTokenStore = null;
-if (runtimeConfig.cloud.tokenEncryptionKey) {
-  try {
-    defaultTokenStore = createEncryptedTokenStore({
-      filePath: runtimeConfig.cloud.tokenFile,
-      key: runtimeConfig.cloud.tokenEncryptionKey,
-    });
-  } catch (error) {
-    console.error('Cloud token store configuration error:', error.message);
+function createCloudRouteDependencies({
+  config,
+  tokenStore,
+  oauthTransactions,
+  post = httpsPost,
+  get = httpsGet,
+} = {}) {
+  if (!config) throw new TypeError('Cloud configuration is required');
+  let resolvedTokenStore = tokenStore;
+  if (resolvedTokenStore === undefined && config.tokenEncryptionKey) {
+    try {
+      resolvedTokenStore = createEncryptedTokenStore({
+        filePath: config.tokenFile,
+        key: config.tokenEncryptionKey,
+      });
+    } catch (error) {
+      console.error('Cloud token store configuration error:', error.message);
+      resolvedTokenStore = null;
+    }
   }
-}
-
-function cloudDependencies(provider, overrides = {}) {
+  if (resolvedTokenStore === undefined) resolvedTokenStore = null;
+  const resolvedTransactions = oauthTransactions || createOAuthTransactionStore({});
+  const shared = {
+    tokenStore: resolvedTokenStore,
+    oauthTransactions: resolvedTransactions,
+    httpsPost: post,
+    httpsGet: get,
+  };
   return {
-    config: runtimeConfig.cloud[provider],
-    tokenStore: defaultTokenStore,
-    oauthTransactions: defaultTransactions,
-    httpsPost,
-    httpsGet,
-    ...overrides,
+    google: { ...shared, config: config.google },
+    microsoft: { ...shared, config: config.microsoft },
   };
 }
 
@@ -40,6 +48,24 @@ function configured(dependencies) {
 
 function unavailable(res, service) {
   return res.status(503).json({ error: `${service} is unavailable` });
+}
+
+function createUploadAbortScope() {
+  const controller = new AbortController();
+  const requests = new Set();
+  const streams = new Set();
+  return {
+    signal: controller.signal,
+    trackRequest(request) { requests.add(request); return request; },
+    trackStream(stream) { streams.add(stream); return stream; },
+    abort() {
+      controller.abort();
+      for (const stream of streams) stream.destroy();
+      for (const request of requests) request.destroy();
+      streams.clear();
+      requests.clear();
+    },
+  };
 }
 
 function httpsPost(hostname, path, body, headers = {}) {
@@ -97,8 +123,7 @@ async function googleToken(dependencies) {
   return gt.access_token;
 }
 
-function setupGoogleRoutes(app, overrides = {}) {
-  const dependencies = cloudDependencies('google', overrides);
+function setupGoogleRoutes(app, dependencies) {
   const { config, tokenStore, oauthTransactions } = dependencies;
   // Auth status
   app.get('/api/gdrive/status', async (req, res) => {
@@ -165,7 +190,7 @@ function setupGoogleRoutes(app, overrides = {}) {
     const folderId = req.query.folderId || 'root';
     const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
     try {
-      const data = await httpsGet('www.googleapis.com',
+      const data = await dependencies.httpsGet('www.googleapis.com',
         `/drive/v3/files?q=${q}&fields=files(id,name,mimeType,size,modifiedTime,parents)&orderBy=folder,name&pageSize=200`,
         { 'Authorization': `Bearer ${token}` });
       if (data.error) throw new Error(data.error.message);
@@ -257,57 +282,68 @@ function setupGoogleRoutes(app, overrides = {}) {
     let parentId = req.query.parentId || req.headers['x-upload-parent-id'] || '';
     let uploadDone = false;
     let fileCount = 0;
+    let fileStarted = false;
+    const abortScope = createUploadAbortScope();
+    const fail = (status, message) => {
+      if (uploadDone) return;
+      uploadDone = true;
+      if (!res.headersSent) res.status(status).json({ error: message });
+      abortScope.abort();
+    };
+    req.on('aborted', () => { uploadDone = true; abortScope.abort(); });
     try {
       const bb = busboy({ headers: req.headers, limits: { files: 1, fileSize: 11 * 1024 * 1024 * 1024 } });
-      bb.on('field', (name, val) => { if (name === 'parentId') parentId = val; });
+      bb.on('field', (name, val) => {
+        if (name !== 'parentId') return;
+        if (fileStarted) return fail(400, 'Upload target must be provided before file data');
+        parentId = val;
+      });
       bb.on('file', (fieldname, fileStream, info) => {
+        fileStarted = true;
         fileCount += 1;
+        abortScope.trackStream(fileStream);
         if (fileCount > 1 || !parentId) {
           fileStream.resume();
-          if (!uploadDone) { uploadDone = true; res.status(400).json({ error: 'Upload target must be provided before file data' }); }
+          fail(400, 'Upload target must be provided before file data');
           return;
         }
         const metadata = JSON.stringify({ name: info.filename, parents: [parentId] });
-        const initReq = https.request({
+        const initReq = abortScope.trackRequest(https.request({
           hostname: 'www.googleapis.com', path: '/upload/drive/v3/files?uploadType=resumable', method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8', 'Content-Length': Buffer.byteLength(metadata) },
         }, (initRes) => {
           const uploadUrl = initRes.headers.location;
-          if (initRes.statusCode < 200 || initRes.statusCode >= 300 || !uploadUrl) { fileStream.resume(); if (!uploadDone) { uploadDone = true; res.status(502).json({ error: 'Google Drive upload session failed' }); } return; }
+          if (initRes.statusCode < 200 || initRes.statusCode >= 300 || !uploadUrl) { fileStream.resume(); fail(502, 'Google Drive upload session failed'); return; }
           const urlObj = new URL(uploadUrl);
           let sizeLimitExceeded = false;
-          const upReq = https.request({ hostname: urlObj.hostname, path: urlObj.pathname + urlObj.search, method: 'PUT',
+          const upReq = abortScope.trackRequest(https.request({ hostname: urlObj.hostname, path: urlObj.pathname + urlObj.search, method: 'PUT',
             headers: { 'Content-Type': 'application/octet-stream', 'Transfer-Encoding': 'chunked' }, timeout: 600000,
           }, (upRes) => {
             let body = ''; upRes.on('data', c => body += c);
             upRes.on('end', () => {
+              if (uploadDone) return;
               uploadDone = true;
               if (sizeLimitExceeded) res.status(413).json({ error: 'Upload size limit exceeded' });
               else if (upRes.statusCode >= 200 && upRes.statusCode < 300) res.json({ success: true });
               else res.status(502).json({ error: `Google Drive upload failed with HTTP ${upRes.statusCode}` });
             });
-          });
+          }));
           fileStream.on('limit', () => {
             sizeLimitExceeded = true;
-            upReq.destroy(new Error('Upload size limit exceeded'));
+            fail(413, 'Upload size limit exceeded');
           });
           upReq.on('error', e => {
-            if (!uploadDone) {
-              uploadDone = true;
-              res.status(sizeLimitExceeded ? 413 : 500).json({ error: e.message });
-            }
+            fail(sizeLimitExceeded ? 413 : 500, e.message);
           });
           fileStream.pipe(upReq);
-        });
-        initReq.on('error', e => { fileStream.resume(); if (!uploadDone) { uploadDone = true; res.status(500).json({ error: e.message }); } });
+        }));
+        initReq.on('error', e => { fileStream.resume(); fail(500, e.message); });
         initReq.write(metadata); initReq.end();
       });
-      bb.on('filesLimit', () => {
-        if (!uploadDone) { uploadDone = true; res.status(400).json({ error: 'Upload file count limit exceeded' }); }
-      });
-      bb.on('error', e => { if (!uploadDone) { uploadDone = true; res.status(500).json({ error: e.message }); } });
+      bb.on('filesLimit', () => fail(400, 'Upload file count limit exceeded'));
+      bb.on('error', e => fail(500, e.message));
       req.pipe(bb);
-    } catch (e) { if (!uploadDone) res.status(500).json({ error: e.message }); }
+    } catch (e) { fail(500, e.message); }
   });
 }
 
@@ -340,8 +376,7 @@ async function msToken(dependencies) {
   return mt.access_token;
 }
 
-function setupMicrosoftRoutes(app, overrides = {}) {
-  const dependencies = cloudDependencies('microsoft', overrides);
+function setupMicrosoftRoutes(app, dependencies) {
   const { config, tokenStore, oauthTransactions } = dependencies;
   app.get('/api/onedrive/status', async (req, res) => {
     if (!configured(dependencies)) return res.json({ connected: false, configured: false });
@@ -404,7 +439,7 @@ function setupMicrosoftRoutes(app, overrides = {}) {
     const folderId = req.query.folderId || 'root';
     const apiPath = folderId === 'root' ? '/v1.0/me/drive/root/children' : `/v1.0/me/drive/items/${folderId}/children`;
     try {
-      const data = await httpsGet('graph.microsoft.com', `${apiPath}?$select=id,name,size,lastModifiedDateTime,folder,file&$orderby=name&$top=200`,
+      const data = await dependencies.httpsGet('graph.microsoft.com', `${apiPath}?$select=id,name,size,lastModifiedDateTime,folder,file&$orderby=name&$top=200`,
         { 'Authorization': `Bearer ${token}` });
       if (data.error) throw new Error(data.error.message);
       const files = (data.value || []).map(f => ({
@@ -469,7 +504,7 @@ function setupMicrosoftRoutes(app, overrides = {}) {
     if (!token) return res.status(401).json({ error: 'Not connected' });
     try {
       // Get download URL first
-      const meta = await httpsGet('graph.microsoft.com', `/v1.0/me/drive/items/${req.query.fileId}`,
+      const meta = await dependencies.httpsGet('graph.microsoft.com', `/v1.0/me/drive/items/${req.query.fileId}`,
         { 'Authorization': `Bearer ${token}` });
       const dlUrl = meta['@microsoft.graph.downloadUrl'];
       if (!dlUrl) return res.status(404).json({ error: 'No download URL' });
@@ -497,20 +532,31 @@ function setupMicrosoftRoutes(app, overrides = {}) {
     let declaredSize = Number.parseInt(req.query.size || req.headers['x-upload-size'], 10);
     let uploadDone = false;
     let fileCount = 0;
-    const abortController = new AbortController();
-    req.on('aborted', () => abortController.abort());
+    let fileStarted = false;
+    const abortScope = createUploadAbortScope();
+    const fail = (status, message) => {
+      if (uploadDone) return;
+      uploadDone = true;
+      if (!res.headersSent) res.status(status).json({ error: message });
+      abortScope.abort();
+    };
+    req.on('aborted', () => { uploadDone = true; abortScope.abort(); });
     try {
       const bb = busboy({ headers: req.headers, limits: { files: 1, fileSize: 11 * 1024 * 1024 * 1024 } });
       bb.on('field', (name, val) => {
+        if (name !== 'parentId' && name !== 'size') return;
+        if (fileStarted) return fail(400, 'Upload target and size must be provided before file data');
         if (name === 'parentId') parentId = val;
-        if (name === 'size') declaredSize = Number.parseInt(val, 10);
+        else declaredSize = Number.parseInt(val, 10);
       });
       bb.on('file', (fieldname, fileStream, info) => {
+        fileStarted = true;
         fileCount += 1;
+        abortScope.trackStream(fileStream);
         if (fileCount > 1 || !parentId || !Number.isSafeInteger(declaredSize) || declaredSize <= 0
           || declaredSize > 11 * 1024 * 1024 * 1024) {
           fileStream.resume();
-          if (!uploadDone) { uploadDone = true; res.status(400).json({ error: 'Upload target and size must be provided before file data' }); }
+          fail(400, 'Upload target and size must be provided before file data');
           return;
         }
         const fileName = info.filename;
@@ -518,7 +564,7 @@ function setupMicrosoftRoutes(app, overrides = {}) {
           ? `/v1.0/me/drive/root:/${encodeURIComponent(fileName)}:/createUploadSession`
           : `/v1.0/me/drive/items/${parentId}:/${encodeURIComponent(fileName)}:/createUploadSession`;
         const body = JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'rename', name: fileName } });
-        const initReq = https.request({
+        const initReq = abortScope.trackRequest(https.request({
           hostname: 'graph.microsoft.com', path: apiPath, method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
         }, (initRes) => {
@@ -528,13 +574,13 @@ function setupMicrosoftRoutes(app, overrides = {}) {
             try { sessionData = JSON.parse(initBody); } catch { sessionData = {}; }
             if (initRes.statusCode < 200 || initRes.statusCode >= 300 || !sessionData.uploadUrl) {
               fileStream.resume();
-              if (!uploadDone) { uploadDone = true; res.status(502).json({ error: 'OneDrive upload session failed' }); }
+              fail(502, 'OneDrive upload session failed');
               return;
             }
             const uploadUrl = new URL(sessionData.uploadUrl);
             const session = {
               uploadChunk: ({ chunk, start, end, total, signal }) => new Promise((resolve, reject) => {
-                const upReq = https.request({
+                const upReq = abortScope.trackRequest(https.request({
                   hostname: uploadUrl.hostname,
                   path: uploadUrl.pathname + uploadUrl.search,
                   method: 'PUT',
@@ -544,7 +590,7 @@ function setupMicrosoftRoutes(app, overrides = {}) {
                 }, upRes => {
                   upRes.resume();
                   upRes.on('end', () => resolve({ statusCode: upRes.statusCode }));
-                });
+                }));
                 upReq.on('error', reject);
                 upReq.end(chunk);
               }),
@@ -555,24 +601,22 @@ function setupMicrosoftRoutes(app, overrides = {}) {
                 size: declaredSize,
                 session,
                 chunkSize: 10 * 320 * 1024,
-                signal: abortController.signal,
+                signal: abortScope.signal,
               });
               if (!uploadDone) { uploadDone = true; res.json({ success: true }); }
             } catch (error) {
-              if (!uploadDone && !res.headersSent) { uploadDone = true; res.status(error.name === 'AbortError' ? 499 : 502).json({ error: error.message }); }
+              fail(error.name === 'AbortError' ? 499 : 502, error.message);
             }
           });
-        });
-        initReq.on('error', e => { fileStream.resume(); if (!uploadDone) { uploadDone = true; res.status(500).json({ error: e.message }); } });
+        }));
+        initReq.on('error', e => { fileStream.resume(); fail(500, e.message); });
         initReq.write(body); initReq.end();
       });
-      bb.on('filesLimit', () => {
-        if (!uploadDone) { uploadDone = true; res.status(400).json({ error: 'Upload file count limit exceeded' }); }
-      });
-      bb.on('error', e => { if (!uploadDone) { uploadDone = true; res.status(500).json({ error: e.message }); } });
+      bb.on('filesLimit', () => fail(400, 'Upload file count limit exceeded'));
+      bb.on('error', e => fail(500, e.message));
       req.pipe(bb);
-    } catch (e) { if (!uploadDone) res.status(500).json({ error: e.message }); }
+    } catch (e) { fail(500, e.message); }
   });
 }
 
-module.exports = { setupGoogleRoutes, setupMicrosoftRoutes };
+module.exports = { createCloudRouteDependencies, setupGoogleRoutes, setupMicrosoftRoutes };
