@@ -66,7 +66,15 @@ export function createToolRegistry({ catalog, loaders, validSurfaces = TOOL_SURF
     if (typeof tool.name !== 'string' || !tool.name.trim() || !Array.isArray(tool.aliases)) {
       throw new Error(`Invalid metadata for tool: ${tool.id}`);
     }
-    for (const surface of tool.surfaces || []) {
+    if (!Array.isArray(tool.surfaces) || tool.surfaces.length === 0) {
+      throw new Error(`Invalid surfaces for tool: ${tool.id}`);
+    }
+    const seenSurfaces = new Set();
+    for (const surface of tool.surfaces) {
+      if (seenSurfaces.has(surface)) {
+        throw new Error(`Duplicate surface: ${surface}`);
+      }
+      seenSurfaces.add(surface);
       if (!allowedSurfaces.has(surface)) throw new Error(`Invalid surface: ${surface}`);
     }
     const load = loaders[tool.id];
