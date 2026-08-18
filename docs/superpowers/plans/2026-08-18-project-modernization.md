@@ -151,7 +151,8 @@
 - [ ] React 19.2.8, Vite 7.3.6, Mermaid 11.16.1 등 현재 major의 안전 패치를 명시적으로 적용한다.
 - [ ] 세 lockfile의 production audit High 0을 확인한다.
 - [ ] quality workflow가 install, lint, unit/API, Playwright, web/extension build, audit를 실행하게 한다.
-- [ ] semantic-release 전후 release 생성 여부를 gate하고 새 release가 없으면 image push를 건너뛰는 테스트 가능한 script를 추가한다.
+- [x] Node 표준 라이브러리와 git으로 read-only release planner를 추가한다. 마지막 stable semver tag/VERSION 이후 Conventional Commit을 계산하고, no-release에서는 `released=false`와 빈 `version`을 출력하며 파일·network·git mutation을 수행하지 않는다.
+- [x] image 성공 후에만 publisher가 VERSION/결정적 CHANGELOG, release commit, annotated tag, GitHub REST Release를 생성하도록 workflow를 plan/image/publish로 분리한다. publisher는 원격 main SHA가 plan base SHA와 다르면 중단한다.
 - [ ] Actions를 최소 권한과 immutable SHA로 고정한다.
 - [ ] `chore: enforce release quality gates`로 커밋한다.
 
@@ -171,7 +172,7 @@
 - [ ] Node와 nginx에 종료 신호가 전달되는 init/supervision entrypoint를 적용한다.
 - [ ] upload route별 nginx 제한과 현대적 보안 header를 적용한다.
 - [ ] 저장소 `k8s/`가 non-authoritative임을 명시하고 라이브 GitOps SSOT를 문서화한다.
-- [ ] 로컬 실행, 환경변수, 보안 경계, release, smoke, rollback runbook을 작성한다.
+- [x] 로컬 실행, 환경변수, 보안 경계, release, smoke, rollback runbook을 작성한다. release 문서는 native planner/publisher, `GITHUB_TOKEN` 비노출 오류 처리, `release-main` 직렬화와 stale-plan 중단을 설명한다.
 - [ ] Docker build/run smoke를 실행한다.
 - [ ] `chore: modernize runtime and operations`로 커밋한다.
 

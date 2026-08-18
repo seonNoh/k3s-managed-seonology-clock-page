@@ -50,9 +50,13 @@ docker rm -f seonology-clock-page-smoke
 
 ## 릴리스
 
-`main` push에서 quality job이 먼저 실행됩니다. semantic-release가 새 `VERSION`을 만들지 않으면 `release:gate`는 `released=false`를 출력하고 GHCR image push는 실행되지 않습니다. 새 release가 있을 때만 `v<version>`과 `latest` tag를 push합니다.
+`main` push에서는 quality 이후 native release planner가 마지막 `vX.Y.Z` tag부터 현재 HEAD까지의 Conventional Commit subject/body를 읽고 `released`, `version`, `base_sha`를 GitHub output에 기록합니다. planner는 worktree의 `VERSION`과 `CHANGELOG.md`를 바꾸지 않습니다. release 대상이 없으면 `released=false`이고 GHCR image push와 publish job은 실행되지 않습니다.
 
-릴리스 직전에는 커밋 타입을 확인합니다. `feat`가 하나라도 포함되면 minor, `fix`·`chore`·`refactor`·`docs`만이면 patch를 올립니다. 새 tag와 image digest, Argo CD Application revision, rollout revision을 작업 이력에 함께 기록합니다.
+`feat`가 하나라도 있으면 minor, `fix`·`chore`·`refactor`·`docs`·`perf`만 있으면 patch를 올립니다. `!` 또는 `BREAKING CHANGE:`는 1.x 이상에서 major, 0.x에서는 minor로 계산합니다. `chore(release): ... [skip ci]`는 다시 릴리스하지 않습니다. image job이 `v<version>`과 `latest`를 성공적으로 push한 뒤에만 publish job이 `VERSION`·결정적으로 정렬한 `CHANGELOG.md`를 갱신하고 `chore(release): <version> [skip ci]` commit 및 annotated `v<version>` tag를 `origin/main`에 push한 뒤 GitHub Release를 만듭니다.
+
+publish 직전에는 origin의 `main` SHA가 planner의 `base_sha`와 같은지 확인합니다. 다르면 stale plan으로 중단하므로, 새 `main` push가 있으면 다음 직렬 실행에서 다시 plan합니다. workflow `concurrency`는 `release-main`을 한 번에 하나만 실행합니다. 현재 package integration은 `release:gate`가 `node scripts/release-gate.mjs`를 실행하도록 유지하며, publish는 workflow에서 `node scripts/release-publish.mjs`를 직접 실행합니다.
+
+새 tag와 image digest, Argo CD Application revision, rollout revision을 작업 이력에 함께 기록합니다.
 
 ## 배포 후 확인
 

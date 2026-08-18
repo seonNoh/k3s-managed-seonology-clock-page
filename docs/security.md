@@ -33,7 +33,7 @@ nginx는 `/health`와 `/api/`를 loopback Express API로만 프록시합니다. 
 
 ## 검증과 대응
 
-CI는 production dependency audit에서 High 이상을 허용하지 않고, lint·unit/API·browser·web/extension build·container smoke 이후에만 release를 실행합니다. security incident 또는 credential 노출 의심 시에는 즉시 Secret을 교체하고 GitOps SSOT에서 이전 검증 image digest로 롤백한 뒤 접근 로그와 배포 이력을 보존합니다.
+CI는 production dependency audit에서 High 이상을 허용하지 않고, lint·unit/API·browser·web/extension build·container smoke 이후에만 release plan을 실행합니다. native publisher는 `GITHUB_TOKEN`과 `GITHUB_REPOSITORY`를 환경변수로만 읽고 GitHub REST 실패 응답 본문이나 token을 출력하지 않습니다. image push 성공 뒤에만 release write 권한을 사용하며, stale plan은 remote SHA 검사에서 중단합니다. security incident 또는 credential 노출 의심 시에는 즉시 Secret을 교체하고 GitOps SSOT에서 이전 검증 image digest로 롤백한 뒤 접근 로그와 배포 이력을 보존합니다.
 
 ## 참고 자료
 
