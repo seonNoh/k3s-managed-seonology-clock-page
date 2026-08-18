@@ -34,3 +34,6 @@ certs/
 # toolkit-extension build artifacts
 toolkit-extension/*.zip
 seonology-toolkit.zip
+
+# Local isolated worktrees
+.worktrees/
