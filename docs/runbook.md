@@ -41,7 +41,7 @@ docker build -t seonology-clock-page:smoke .
 docker run --rm -d --name seonology-clock-page-smoke --read-only --tmpfs /tmp:rw,noexec,nosuid,mode=1777,size=16m --tmpfs /var/cache/nginx:rw,noexec,nosuid,mode=1777,size=16m --tmpfs /var/run/nginx:rw,noexec,nosuid,mode=1777,size=4m --tmpfs /data:rw,noexec,nosuid,mode=1777,size=16m -p 127.0.0.1::8080 seonology-clock-page:smoke
 docker port seonology-clock-page-smoke 8080
 curl --fail --silent --show-error http://127.0.0.1:<published-port>/health
-docker exec seonology-clock-page-smoke pkill -f 'node /app/api/server.js'
+docker exec seonology-clock-page-smoke sh -c 'kill -TERM "$(pidof node)"'
 curl --fail --silent --show-error http://127.0.0.1:<published-port>/health
 docker rm -f seonology-clock-page-smoke
 ```
