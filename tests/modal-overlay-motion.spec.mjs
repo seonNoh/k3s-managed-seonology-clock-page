@@ -69,3 +69,39 @@ test('tool launcher search has an accessible name', async ({ page }) => {
   await page.getByRole('button', { name: 'Tools', exact: true }).click();
   await expect(page.getByRole('textbox', { name: '도구 검색' })).toHaveAttribute('aria-label', '도구 검색');
 });
+
+test('rapid tool selections leave only the last requested tool surface active', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Tools', exact: true }).click();
+
+  await page.locator('.tools-modal').evaluate((launcher) => {
+    const buttons = Array.from(launcher.querySelectorAll('button'));
+    buttons.find((button) => button.title === 'Markdown')?.click();
+    buttons.find((button) => button.title === 'Base64')?.click();
+  });
+
+  await expect(page.locator('.b64-overlay')).toBeVisible();
+  await expect(page.locator('.tools-modal-overlay')).toHaveCount(0);
+  await expect(page.locator('.md-overlay')).toHaveCount(0);
+  await expect(page.locator('.tools-modal-overlay, .b64-overlay, .md-overlay')).toHaveCount(1);
+});
+
+test('mobile drawer opens a tool and Escape leaves no launcher or tool surface', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  await page.locator('.bottom-right-stack .mobile-drawer-handle').click();
+  await expect(page.locator('.bottom-right-stack')).toHaveClass(/drawer-open/);
+
+  await page.getByRole('button', { name: 'Tools', exact: true }).click();
+  await expect(page.locator('.tools-modal-overlay')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Markdown', exact: true }).click();
+  await expect(page.locator('.md-overlay')).toBeVisible();
+  await expect(page.locator('.tools-modal-overlay')).toHaveCount(0);
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.md-overlay')).toHaveCount(0);
+  await expect(page.locator('.tools-modal-overlay')).toHaveCount(0);
+  await expect(page.locator('.mobile-drawer-overlay')).toHaveCount(0);
+});

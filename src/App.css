@@ -1086,6 +1086,10 @@
     overflow-y: auto;
   }
 
+  .bottom-right-stack .tools-toggle-btn {
+    display: flex !important;
+  }
+
   .app-icon-btn {
     min-width: 0;
     min-height: 56px;
