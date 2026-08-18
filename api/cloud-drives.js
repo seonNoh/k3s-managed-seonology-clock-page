@@ -1,26 +1,44 @@
 const https = require('https');
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const { loadConfig } = require('./config');
+const { createOAuthTransactionStore } = require('./domains/cloud/oauth-transaction');
+const { createEncryptedTokenStore } = require('./infrastructure/storage/encrypted-token-store');
 
-const DATA_DIR = process.env.BOOKMARKS_DIR || '/data';
-const TOKENS_FILE = path.join(DATA_DIR, 'cloud-tokens.json');
-
-// Google Drive config
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT_URI || 'https://clock.seonology.com/api/auth/google/callback';
-
-// Microsoft OneDrive config
-const MS_CLIENT_ID = process.env.MS_CLIENT_ID || '';
-const MS_CLIENT_SECRET = process.env.MS_CLIENT_SECRET || '';
-const MS_REDIRECT = process.env.MS_REDIRECT_URI || 'https://clock.seonology.com/api/auth/microsoft/callback';
-
-function readTokens() {
-  try { return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8')); } catch { return {}; }
+const runtimeConfig = loadConfig();
+const defaultTransactions = createOAuthTransactionStore({});
+let defaultTokenStore = null;
+if (runtimeConfig.cloud.tokenEncryptionKey) {
+  try {
+    defaultTokenStore = createEncryptedTokenStore({
+      filePath: runtimeConfig.cloud.tokenFile,
+      key: runtimeConfig.cloud.tokenEncryptionKey,
+    });
+  } catch (error) {
+    console.error('Cloud token store configuration error:', error.message);
+  }
 }
-function writeTokens(data) {
-  fs.writeFileSync(TOKENS_FILE, JSON.stringify(data, null, 2));
+
+function cloudDependencies(provider, overrides = {}) {
+  return {
+    config: runtimeConfig.cloud[provider],
+    tokenStore: defaultTokenStore,
+    oauthTransactions: defaultTransactions,
+    httpsPost,
+    httpsGet,
+    ...overrides,
+  };
+}
+
+function configured(dependencies) {
+  return Boolean(
+    dependencies.config?.clientId
+    && dependencies.config?.clientSecret
+    && dependencies.config?.redirectUri
+    && dependencies.tokenStore,
+  );
+}
+
+function unavailable(res, service) {
+  return res.status(503).json({ error: `${service} is unavailable` });
 }
 
 function httpsPost(hostname, path, body, headers = {}) {
@@ -51,66 +69,97 @@ function httpsGet(hostname, path, headers = {}) {
 }
 
 // ===== Google Drive =====
-async function googleRefreshToken() {
-  const tokens = readTokens();
+async function googleRefreshToken(dependencies) {
+  const { config, tokenStore } = dependencies;
+  const tokens = await tokenStore.read();
   const gt = tokens.google;
   if (!gt?.refresh_token) return null;
-  const data = await httpsPost('oauth2.googleapis.com', '/token', {
-    client_id: GOOGLE_CLIENT_ID, client_secret: GOOGLE_CLIENT_SECRET,
+  const data = await dependencies.httpsPost('oauth2.googleapis.com', '/token', {
+    client_id: config.clientId, client_secret: config.clientSecret,
     refresh_token: gt.refresh_token, grant_type: 'refresh_token',
   });
   if (data.access_token) {
-    tokens.google = { ...gt, access_token: data.access_token, expires_at: Date.now() + (data.expires_in || 3600) * 1000 };
-    writeTokens(tokens);
-    return tokens.google.access_token;
+    await tokenStore.update(current => ({
+      ...current,
+      google: { ...gt, access_token: data.access_token, expires_at: Date.now() + (data.expires_in || 3600) * 1000 },
+    }));
+    return data.access_token;
   }
   return null;
 }
 
-async function googleToken() {
-  const tokens = readTokens();
+async function googleToken(dependencies) {
+  const tokens = await dependencies.tokenStore.read();
   const gt = tokens.google;
   if (!gt?.access_token) return null;
-  if (gt.expires_at && Date.now() > gt.expires_at - 60000) return googleRefreshToken();
+  if (gt.expires_at && Date.now() > gt.expires_at - 60000) return googleRefreshToken(dependencies);
   return gt.access_token;
 }
 
-function setupGoogleRoutes(app) {
+function setupGoogleRoutes(app, overrides = {}) {
+  const dependencies = cloudDependencies('google', overrides);
+  const { config, tokenStore, oauthTransactions } = dependencies;
   // Auth status
-  app.get('/api/gdrive/status', (req, res) => {
-    const tokens = readTokens();
-    res.json({ connected: !!tokens.google?.refresh_token, configured: !!GOOGLE_CLIENT_ID });
+  app.get('/api/gdrive/status', async (req, res) => {
+    if (!configured(dependencies)) return res.json({ connected: false, configured: false });
+    try {
+      const tokens = await tokenStore.read();
+      res.json({ connected: !!tokens.google?.refresh_token, configured: true });
+    } catch {
+      unavailable(res, 'Google Drive');
+    }
   });
 
   // Start OAuth
   app.get('/api/auth/google', (req, res) => {
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT)}&response_type=code&scope=${encodeURIComponent('https://www.googleapis.com/auth/drive')}&access_type=offline&prompt=consent`;
-    res.redirect(url);
+    if (!configured(dependencies)) return unavailable(res, 'Google Drive');
+    const transaction = oauthTransactions.create('google');
+    const params = new URLSearchParams({
+      client_id: config.clientId,
+      redirect_uri: config.redirectUri,
+      response_type: 'code',
+      scope: 'https://www.googleapis.com/auth/drive',
+      access_type: 'offline',
+      prompt: 'consent',
+      state: transaction.state,
+      code_challenge: transaction.challenge,
+      code_challenge_method: transaction.challengeMethod,
+    });
+    res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
   });
 
   // OAuth callback
   app.get('/api/auth/google/callback', async (req, res) => {
     const code = req.query.code;
     if (!code) return res.status(400).send('No code');
+    if (!configured(dependencies)) return unavailable(res, 'Google Drive');
+    let verifier;
     try {
-      const data = await httpsPost('oauth2.googleapis.com', '/token', {
-        code, client_id: GOOGLE_CLIENT_ID, client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: GOOGLE_REDIRECT, grant_type: 'authorization_code',
+      ({ verifier } = oauthTransactions.consume({ provider: 'google', state: req.query.state }));
+    } catch (error) {
+      return res.status(400).send(error.message);
+    }
+    try {
+      const data = await dependencies.httpsPost('oauth2.googleapis.com', '/token', {
+        code, client_id: config.clientId, client_secret: config.clientSecret,
+        redirect_uri: config.redirectUri, grant_type: 'authorization_code', code_verifier: verifier,
       });
       if (data.access_token) {
-        const tokens = readTokens();
-        tokens.google = { access_token: data.access_token, refresh_token: data.refresh_token, expires_at: Date.now() + (data.expires_in || 3600) * 1000 };
-        writeTokens(tokens);
+        await tokenStore.update(tokens => ({
+          ...tokens,
+          google: { access_token: data.access_token, refresh_token: data.refresh_token, expires_at: Date.now() + (data.expires_in || 3600) * 1000 },
+        }));
         res.send('<html><body><h2>Google Drive connected!</h2><script>window.close()</script></body></html>');
       } else {
-        res.status(500).send('Token exchange failed: ' + JSON.stringify(data));
+        res.status(502).send('Token exchange failed');
       }
-    } catch (e) { res.status(500).send(e.message); }
+    } catch { res.status(502).send('Token exchange failed'); }
   });
 
   // List files
   app.get('/api/gdrive/files', async (req, res) => {
-    const token = await googleToken();
+    if (!configured(dependencies)) return unavailable(res, 'Google Drive');
+    const token = await googleToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     const folderId = req.query.folderId || 'root';
     const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
@@ -129,7 +178,8 @@ function setupGoogleRoutes(app) {
 
   // Create folder
   app.post('/api/gdrive/mkdir', async (req, res) => {
-    const token = await googleToken();
+    if (!configured(dependencies)) return unavailable(res, 'Google Drive');
+    const token = await googleToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     const { parentId, name } = req.body;
     try {
@@ -147,7 +197,8 @@ function setupGoogleRoutes(app) {
 
   // Delete
   app.post('/api/gdrive/delete', async (req, res) => {
-    const token = await googleToken();
+    if (!configured(dependencies)) return unavailable(res, 'Google Drive');
+    const token = await googleToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     try {
       await new Promise((resolve, reject) => {
@@ -161,7 +212,8 @@ function setupGoogleRoutes(app) {
 
   // Rename
   app.post('/api/gdrive/rename', async (req, res) => {
-    const token = await googleToken();
+    if (!configured(dependencies)) return unavailable(res, 'Google Drive');
+    const token = await googleToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     const body = JSON.stringify({ name: req.body.name });
     try {
@@ -177,7 +229,8 @@ function setupGoogleRoutes(app) {
 
   // Download proxy
   app.get('/api/gdrive/download', async (req, res) => {
-    const token = await googleToken();
+    if (!configured(dependencies)) return unavailable(res, 'Google Drive');
+    const token = await googleToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     const fileId = req.query.fileId;
     try {
@@ -196,7 +249,8 @@ function setupGoogleRoutes(app) {
 
   // Upload (streaming via resumable upload)
   app.post('/api/gdrive/upload', async (req, res) => {
-    const token = await googleToken();
+    if (!configured(dependencies)) return unavailable(res, 'Google Drive');
+    const token = await googleToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     const busboy = require('busboy');
     let parentId = 'root';
@@ -232,63 +286,94 @@ function setupGoogleRoutes(app) {
 }
 
 // ===== Microsoft OneDrive =====
-async function msRefreshToken() {
-  const tokens = readTokens();
+async function msRefreshToken(dependencies) {
+  const { config, tokenStore } = dependencies;
+  const tokens = await tokenStore.read();
   const mt = tokens.microsoft;
   if (!mt?.refresh_token) return null;
-  const data = await httpsPost('login.microsoftonline.com', '/common/oauth2/v2.0/token', {
-    client_id: MS_CLIENT_ID, client_secret: MS_CLIENT_SECRET,
+  const data = await dependencies.httpsPost('login.microsoftonline.com', '/common/oauth2/v2.0/token', {
+    client_id: config.clientId, client_secret: config.clientSecret,
     refresh_token: mt.refresh_token, grant_type: 'refresh_token', scope: 'Files.ReadWrite.All User.Read offline_access',
   });
   if (data.access_token) {
-    tokens.microsoft = { ...mt, access_token: data.access_token, refresh_token: data.refresh_token || mt.refresh_token,
-      expires_at: Date.now() + (data.expires_in || 3600) * 1000 };
-    writeTokens(tokens);
-    return tokens.microsoft.access_token;
+    await tokenStore.update(current => ({
+      ...current,
+      microsoft: { ...mt, access_token: data.access_token, refresh_token: data.refresh_token || mt.refresh_token,
+        expires_at: Date.now() + (data.expires_in || 3600) * 1000 },
+    }));
+    return data.access_token;
   }
   return null;
 }
 
-async function msToken() {
-  const tokens = readTokens();
+async function msToken(dependencies) {
+  const tokens = await dependencies.tokenStore.read();
   const mt = tokens.microsoft;
   if (!mt?.access_token) return null;
-  if (mt.expires_at && Date.now() > mt.expires_at - 60000) return msRefreshToken();
+  if (mt.expires_at && Date.now() > mt.expires_at - 60000) return msRefreshToken(dependencies);
   return mt.access_token;
 }
 
-function setupMicrosoftRoutes(app) {
-  app.get('/api/onedrive/status', (req, res) => {
-    const tokens = readTokens();
-    res.json({ connected: !!tokens.microsoft?.refresh_token, configured: !!MS_CLIENT_ID });
+function setupMicrosoftRoutes(app, overrides = {}) {
+  const dependencies = cloudDependencies('microsoft', overrides);
+  const { config, tokenStore, oauthTransactions } = dependencies;
+  app.get('/api/onedrive/status', async (req, res) => {
+    if (!configured(dependencies)) return res.json({ connected: false, configured: false });
+    try {
+      const tokens = await tokenStore.read();
+      res.json({ connected: !!tokens.microsoft?.refresh_token, configured: true });
+    } catch {
+      unavailable(res, 'OneDrive');
+    }
   });
 
   app.get('/api/auth/microsoft', (req, res) => {
-    const url = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MS_CLIENT_ID}&redirect_uri=${encodeURIComponent(MS_REDIRECT)}&response_type=code&scope=${encodeURIComponent('Files.ReadWrite.All User.Read offline_access')}&response_mode=query`;
-    res.redirect(url);
+    if (!configured(dependencies)) return unavailable(res, 'OneDrive');
+    const transaction = oauthTransactions.create('microsoft');
+    const params = new URLSearchParams({
+      client_id: config.clientId,
+      redirect_uri: config.redirectUri,
+      response_type: 'code',
+      scope: 'Files.ReadWrite.All User.Read offline_access',
+      response_mode: 'query',
+      state: transaction.state,
+      code_challenge: transaction.challenge,
+      code_challenge_method: transaction.challengeMethod,
+    });
+    res.redirect(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`);
   });
 
   app.get('/api/auth/microsoft/callback', async (req, res) => {
     const code = req.query.code;
     if (!code) return res.status(400).send('No code');
+    if (!configured(dependencies)) return unavailable(res, 'OneDrive');
+    let verifier;
     try {
-      const data = await httpsPost('login.microsoftonline.com', '/common/oauth2/v2.0/token', {
-        code, client_id: MS_CLIENT_ID, client_secret: MS_CLIENT_SECRET,
-        redirect_uri: MS_REDIRECT, grant_type: 'authorization_code', scope: 'Files.ReadWrite.All User.Read offline_access',
+      ({ verifier } = oauthTransactions.consume({ provider: 'microsoft', state: req.query.state }));
+    } catch (error) {
+      return res.status(400).send(error.message);
+    }
+    try {
+      const data = await dependencies.httpsPost('login.microsoftonline.com', '/common/oauth2/v2.0/token', {
+        code, client_id: config.clientId, client_secret: config.clientSecret,
+        redirect_uri: config.redirectUri, grant_type: 'authorization_code',
+        scope: 'Files.ReadWrite.All User.Read offline_access', code_verifier: verifier,
       });
       if (data.access_token) {
-        const tokens = readTokens();
-        tokens.microsoft = { access_token: data.access_token, refresh_token: data.refresh_token, expires_at: Date.now() + (data.expires_in || 3600) * 1000 };
-        writeTokens(tokens);
+        await tokenStore.update(tokens => ({
+          ...tokens,
+          microsoft: { access_token: data.access_token, refresh_token: data.refresh_token, expires_at: Date.now() + (data.expires_in || 3600) * 1000 },
+        }));
         res.send('<html><body><h2>OneDrive connected!</h2><script>window.close()</script></body></html>');
       } else {
-        res.status(500).send('Token exchange failed: ' + JSON.stringify(data));
+        res.status(502).send('Token exchange failed');
       }
-    } catch (e) { res.status(500).send(e.message); }
+    } catch { res.status(502).send('Token exchange failed'); }
   });
 
   app.get('/api/onedrive/files', async (req, res) => {
-    const token = await msToken();
+    if (!configured(dependencies)) return unavailable(res, 'OneDrive');
+    const token = await msToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     const folderId = req.query.folderId || 'root';
     const apiPath = folderId === 'root' ? '/v1.0/me/drive/root/children' : `/v1.0/me/drive/items/${folderId}/children`;
@@ -305,7 +390,8 @@ function setupMicrosoftRoutes(app) {
   });
 
   app.post('/api/onedrive/mkdir', async (req, res) => {
-    const token = await msToken();
+    if (!configured(dependencies)) return unavailable(res, 'OneDrive');
+    const token = await msToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     const { parentId, name } = req.body;
     const apiPath = (!parentId || parentId === 'root') ? '/v1.0/me/drive/root/children' : `/v1.0/me/drive/items/${parentId}/children`;
@@ -322,7 +408,8 @@ function setupMicrosoftRoutes(app) {
   });
 
   app.post('/api/onedrive/delete', async (req, res) => {
-    const token = await msToken();
+    if (!configured(dependencies)) return unavailable(res, 'OneDrive');
+    const token = await msToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     try {
       await new Promise((resolve, reject) => {
@@ -335,7 +422,8 @@ function setupMicrosoftRoutes(app) {
   });
 
   app.post('/api/onedrive/rename', async (req, res) => {
-    const token = await msToken();
+    if (!configured(dependencies)) return unavailable(res, 'OneDrive');
+    const token = await msToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     const body = JSON.stringify({ name: req.body.name });
     try {
@@ -350,7 +438,8 @@ function setupMicrosoftRoutes(app) {
   });
 
   app.get('/api/onedrive/download', async (req, res) => {
-    const token = await msToken();
+    if (!configured(dependencies)) return unavailable(res, 'OneDrive');
+    const token = await msToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     try {
       // Get download URL first
@@ -374,7 +463,8 @@ function setupMicrosoftRoutes(app) {
 
   // Upload (streaming via upload session)
   app.post('/api/onedrive/upload', async (req, res) => {
-    const token = await msToken();
+    if (!configured(dependencies)) return unavailable(res, 'OneDrive');
+    const token = await msToken(dependencies);
     if (!token) return res.status(401).json({ error: 'Not connected' });
     const busboy = require('busboy');
     let parentId = 'root';

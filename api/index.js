@@ -2,9 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
+const { loadConfig } = require('./config');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const runtimeConfig = loadConfig();
 
 // Cloud Drives
 const { setupGoogleRoutes, setupMicrosoftRoutes } = require('./cloud-drives');
@@ -13,12 +14,12 @@ const { setupIconRoutes } = require('./icons');
 const { setupJmaRoutes } = require('./jma');
 
 // AI Chat configuration
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GITHUB_TOKEN = runtimeConfig.api.githubToken;
+const GEMINI_API_KEY = runtimeConfig.api.geminiApiKey;
 
 // Sapporo Events configuration
-const DOORKEEPER_TOKEN = process.env.DOORKEEPER_TOKEN || 'asKpciBVWtQbHPMyW1EM';
-const CONNPASS_API_KEY = process.env.CONNPASS_API_KEY || '';
+const DOORKEEPER_TOKEN = runtimeConfig.api.doorkeeperToken;
+const CONNPASS_API_KEY = runtimeConfig.api.connpassApiKey;
 
 // CORS configuration
 app.use(cors());
@@ -1019,6 +1020,7 @@ function fetchJSON(url, headers = {}) {
 
 // GET /api/sapporo-events/doorkeeper — Doorkeeper IT events proxy
 app.get('/api/sapporo-events/doorkeeper', async (req, res) => {
+  if (!DOORKEEPER_TOKEN) return res.status(503).json({ error: 'Doorkeeper API is unavailable' });
   try {
     const { since, until, keyword, refresh } = req.query;
 
@@ -1756,9 +1758,9 @@ app.get('/api/sapporo-events/all', async (req, res) => {
 // ===== Infrastructure Dashboard APIs =====
 
 // Grafana/Prometheus configuration
-const GRAFANA_URL = process.env.GRAFANA_URL || 'https://grafana.seonology.com';
-const GRAFANA_USER = process.env.GRAFANA_USER || 'admin';
-const GRAFANA_PASS = process.env.GRAFANA_PASS || 'grafana-admin-pass';
+const GRAFANA_URL = runtimeConfig.grafana.url;
+const GRAFANA_USER = runtimeConfig.grafana.user;
+const GRAFANA_PASS = runtimeConfig.grafana.password;
 
 // Tailscale configuration
 // API access token(tskey-api-) 은 최대 90 일에 만료되고 연장이 불가능해 주기적으로 끊긴다.
@@ -1795,6 +1797,9 @@ function promQuery(query) {
 
 // k3s Cluster Stats
 app.get('/api/infra/cluster', async (req, res) => {
+  if (!GRAFANA_USER || !GRAFANA_PASS) {
+    return res.status(503).json({ error: 'Grafana API is unavailable' });
+  }
   try {
     // Fetch from both metrics-server (all nodes) and Prometheus (detailed metrics)
     const metricsPromise = isInCluster ? k8sRequest('/apis/metrics.k8s.io/v1beta1/nodes').catch(() => null) : null;
@@ -1949,7 +1954,7 @@ async function tailscaleToken() {
 
 app.get('/api/infra/tailscale', async (req, res) => {
   if (!TAILSCALE_OAUTH_CLIENT_ID || !TAILSCALE_OAUTH_CLIENT_SECRET) {
-    return res.status(500).json({ error: 'Tailscale OAuth client not configured' });
+    return res.status(503).json({ error: 'Tailscale API is unavailable' });
   }
   try {
     const fetchDevices = async () => {
@@ -2046,7 +2051,7 @@ function nasApi(api, version, method, sid) {
 }
 
 app.get('/api/infra/nas', async (req, res) => {
-  if (!NAS_PASSWORD) return res.status(500).json({ error: 'NAS password not configured' });
+  if (!NAS_HOST || !NAS_ACCOUNT || !NAS_PASSWORD) return res.status(503).json({ error: 'NAS API is unavailable' });
   try {
     // Force fresh login to avoid stale session
     nasSid = null;
@@ -2322,10 +2327,8 @@ setupGithubCatalogRoutes(app);
 setupIconRoutes(app);
 setupJmaRoutes(app);
 
-app.listen(PORT, () => {
-  console.log(`API server running on port ${PORT}`);
-  console.log(`Running in cluster: ${isInCluster}`);
-  console.log(`Bookmarks file: ${BOOKMARKS_FILE}`);
-  console.log(`AI Chat: GitHub=${!!GITHUB_TOKEN}, Gemini=${!!GEMINI_API_KEY}`);
-  console.log(`Sapporo Events: Doorkeeper=${!!DOORKEEPER_TOKEN}, connpass=${!!CONNPASS_API_KEY}`);
-});
+module.exports = { app };
+
+if (require.main === module) {
+  require('./server').start();
+}
