@@ -57,6 +57,10 @@ export function createReadonlyRuntimeArgs(name, image) {
   ]
 }
 
+export function createApiShutdownCommand() {
+  return 'for pid in $(pidof node); do if grep -F -q \'/app/api/server.js\' "/proc/$pid/cmdline" 2>/dev/null; then kill -TERM "$pid"; exit 0; fi; done; exit 1'
+}
+
 async function waitForHealth(endpoint) {
   let lastError
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -99,7 +103,7 @@ async function main() {
     }
     await verifyAppVersion(endpoint, version || readFileSync('VERSION', 'utf8').trim())
 
-    docker(['exec', name, 'sh', '-c', 'kill -TERM "$(pidof node)"'])
+    docker(['exec', name, 'sh', '-c', createApiShutdownCommand()])
     for (let attempt = 0; attempt < 10; attempt += 1) {
       if (await healthFails(endpoint)) return
       await new Promise((resolve) => setTimeout(resolve, 500))

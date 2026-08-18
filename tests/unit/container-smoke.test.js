@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-import { createBuildArgs, createReadonlyRuntimeArgs, normalizeCommandOutput, parsePublishedPort, verifyAppVersion } from '../../scripts/container-smoke.mjs'
+import { createApiShutdownCommand, createBuildArgs, createReadonlyRuntimeArgs, normalizeCommandOutput, parsePublishedPort, verifyAppVersion } from '../../scripts/container-smoke.mjs'
 
 test('Docker의 loopback port 출력을 HTTP endpoint로 변환한다', () => {
   assert.equal(
@@ -96,4 +96,13 @@ test('release workflow는 smoke한 단일 loaded artifact만 v tag와 latest로 
   assert.equal((workflow.match(/uses: docker\/build-push-action@/g) ?? []).length, 1)
   assert.match(workflow, /- name: Build planned image for smoke[\s\S]*?load: true[\s\S]*?push: false[\s\S]*?ghcr\.io\/\$\{\{ steps\.lowercase\.outputs\.owner \}\}\/seonology-clock-page:v\$\{\{ needs\.plan\.outputs\.version \}\}[\s\S]*?ghcr\.io\/\$\{\{ steps\.lowercase\.outputs\.owner \}\}\/seonology-clock-page:latest/)
   assert.match(workflow, /- name: Push verified Docker image[\s\S]*?docker push ghcr\.io\/\$\{\{ steps\.lowercase\.outputs\.owner \}\}\/seonology-clock-page:v\$\{\{ needs\.plan\.outputs\.version \}\}[\s\S]*?docker push ghcr\.io\/\$\{\{ steps\.lowercase\.outputs\.owner \}\}\/seonology-clock-page:latest/)
+})
+
+test('API 종료 명령은 pidof의 임시 다중 결과에서 실제 server process만 선택한다', () => {
+  const command = createApiShutdownCommand()
+
+  assert.match(command, /for pid in \$\(pidof node\)/)
+  assert.match(command, /\/proc\/\$pid\/cmdline/)
+  assert.match(command, /\/app\/api\/server\.js/)
+  assert.doesNotMatch(command, /kill -TERM "\$\(pidof node\)"/)
 })
