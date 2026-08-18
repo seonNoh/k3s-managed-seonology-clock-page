@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const { EventEmitter, once } = require('node:events');
-const { mkdtemp, writeFile } = require('node:fs/promises');
+const { mkdtemp, readFile, readdir, writeFile } = require('node:fs/promises');
+const http = require('node:http');
 const https = require('node:https');
 const os = require('node:os');
 const path = require('node:path');
@@ -63,6 +64,91 @@ async function listen(app) {
       await once(server, 'close');
     },
   };
+}
+
+async function uploadSpoolDirectories() {
+  const entries = await readdir(os.tmpdir(), { withFileTypes: true });
+  return new Set(entries
+    .filter(entry => entry.isDirectory() && entry.name.startsWith('clock-upload-'))
+    .map(entry => path.join(os.tmpdir(), entry.name)));
+}
+
+async function waitForNewSpool(before) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    const current = await uploadSpoolDirectories();
+    const added = [...current].filter(directory => !before.has(directory));
+    if (added.length === 1) return added[0];
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  throw new Error('Deferred upload spool was not created');
+}
+
+async function waitForRemoval(directory) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    try {
+      await readdir(directory);
+    } catch (error) {
+      if (error.code === 'ENOENT') return;
+      throw error;
+    }
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  throw new Error(`Deferred upload spool was not removed: ${directory}`);
+}
+
+function incompleteFileFirstRequest(origin, route, fieldName) {
+  const boundary = 'clock-abort-boundary';
+  const target = new URL(route, origin);
+  let receivedResponse = false;
+  let clientError = null;
+  const request = http.request({
+    hostname: target.hostname,
+    port: target.port,
+    path: target.pathname + target.search,
+    method: 'POST',
+    headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+  });
+  request.on('response', () => { receivedResponse = true; });
+  request.on('error', error => { clientError = error; });
+  request.write([
+    `--${boundary}`,
+    'Content-Disposition: form-data; name="file"; filename="abort.txt"',
+    'Content-Type: application/octet-stream',
+    '',
+    'spooled-before-abort',
+    `--${boundary}`,
+    `Content-Disposition: form-data; name="${fieldName}"`,
+    '',
+    'unfinished-late-field',
+  ].join('\r\n'));
+  return {
+    request,
+    get receivedResponse() { return receivedResponse; },
+    get clientError() { return clientError; },
+  };
+}
+
+async function abortAfterFileSpool(origin, route, fieldName) {
+  const before = await uploadSpoolDirectories();
+  const client = incompleteFileFirstRequest(origin, route, fieldName);
+  const spoolDirectory = await waitForNewSpool(before);
+  assert.deepEqual(await readdir(spoolDirectory), ['payload']);
+  assert.equal(await readFile(path.join(spoolDirectory, 'payload'), 'utf8'), 'spooled-before-abort');
+
+  const closed = new Promise(resolve => client.request.once('close', resolve));
+  client.request.destroy(new Error('fixture client abort'));
+  await closed;
+  await waitForRemoval(spoolDirectory);
+
+  assert.equal(client.receivedResponse, false);
+  assert.match(client.clientError?.message || '', /fixture client abort/);
+  assert.deepEqual(
+    [...await uploadSpoolDirectories()].sort(),
+    [...before].sort(),
+    'client abort must leave no new upload spool',
+  );
 }
 
 test('Google filesLimit destroys an upload request that already started', async t => {
@@ -162,6 +248,104 @@ test('NAS late target field destroys an upload request that already started', as
   assert.equal(response.status, 400, responseBody);
   assert.ok(uploadRequest, 'the NAS upstream upload must have started');
   assert.equal(uploadRequest.destroyed, true);
+});
+
+test('Google removes a completed file-first spool when the unfinished late field is aborted', async t => {
+  const originalRequest = https.request;
+  let upstreamRequests = 0;
+  https.request = () => {
+    upstreamRequests += 1;
+    return new PendingRequest();
+  };
+  t.after(() => { https.request = originalRequest; });
+
+  const app = express();
+  setupGoogleRoutes(app, {
+    config: {
+      clientId: 'fixture-client',
+      clientSecret: 'fixture-secret',
+      redirectUri: 'https://clock.seonology.com/api/auth/google/callback',
+    },
+    tokenStore: tokenStore('google'),
+    oauthTransactions: createOAuthTransactionStore({}),
+    httpsPost: async () => ({}),
+    httpsGet: async () => ({}),
+  });
+  const runtime = await listen(app);
+  t.after(() => runtime.close());
+
+  await abortAfterFileSpool(runtime.origin, '/api/gdrive/upload', 'parentId');
+
+  assert.equal(upstreamRequests, 0);
+});
+
+test('OneDrive removes a completed file-first spool when the unfinished late field is aborted', async t => {
+  const originalRequest = https.request;
+  let upstreamRequests = 0;
+  https.request = () => {
+    upstreamRequests += 1;
+    return new PendingRequest();
+  };
+  t.after(() => { https.request = originalRequest; });
+
+  const app = express();
+  setupMicrosoftRoutes(app, {
+    config: {
+      clientId: 'fixture-client',
+      clientSecret: 'fixture-secret',
+      redirectUri: 'https://clock.seonology.com/api/auth/microsoft/callback',
+    },
+    tokenStore: tokenStore('microsoft'),
+    oauthTransactions: createOAuthTransactionStore({}),
+    httpsPost: async () => ({}),
+    httpsGet: async () => ({}),
+  });
+  const runtime = await listen(app);
+  t.after(() => runtime.close());
+
+  await abortAfterFileSpool(runtime.origin, '/api/onedrive/upload', 'parentId');
+
+  assert.equal(upstreamRequests, 0);
+});
+
+test('NAS removes a completed file-first spool when the unfinished late field is aborted', async t => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'clock-nas-route-'));
+  const caPath = path.join(directory, 'nas-ca.pem');
+  await writeFile(caPath, 'fixture-ca');
+  const config = loadConfig({
+    BOOKMARKS_DIR: directory,
+    NAS_HOST: 'nas.fixture',
+    NAS_PORT: '5001',
+    NAS_ACCOUNT: 'fixture-account',
+    NAS_PASSWORD: 'fixture-password',
+    NAS_ALLOWED_ROOTS: '/volume1/team',
+    NAS_CA_PATH: caPath,
+    NAS_TLS_SERVERNAME: 'nas.fixture',
+  });
+  const originalRequest = https.request;
+  let uploadRequests = 0;
+  https.request = (...args) => {
+    const callback = args.find(argument => typeof argument === 'function');
+    const first = args[0];
+    const requestUrl = typeof first === 'string' ? new URL(first) : first;
+    const requestPath = requestUrl instanceof URL
+      ? `${requestUrl.pathname}${requestUrl.search}`
+      : requestUrl.path;
+    const request = new PendingRequest(() => {
+      if (requestPath.includes('SYNO.API.Auth')) {
+        responseFixture({ body: JSON.stringify({ success: true, data: { sid: 'fixture-sid' } }) }).deliver(callback);
+      }
+    });
+    if (requestPath === '/webapi/entry.cgi?_sid=fixture-sid') uploadRequests += 1;
+    return request;
+  };
+  t.after(() => { https.request = originalRequest; });
+  const runtime = await listen(createApp({ config }));
+  t.after(() => runtime.close());
+
+  await abortAfterFileSpool(runtime.origin, '/api/nas/upload', 'path');
+
+  assert.equal(uploadRequests, 0);
 });
 
 test('Google accepts a legacy multipart upload whose parentId follows the file', async t => {

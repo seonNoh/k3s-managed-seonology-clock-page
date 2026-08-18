@@ -2312,6 +2312,7 @@ app.post('/api/nas/upload', async (req, res) => {
   const abortController = new AbortController();
   const activeRequests = new Set();
   const activeStreams = new Set();
+  const activeCleanups = new Set();
   const uploadBoundary = createUploadBoundary({
     target: destPath,
     maxBytes: runtimeConfig.nas.maxUploadBytes,
@@ -2322,8 +2323,12 @@ app.post('/api/nas/upload', async (req, res) => {
     abortController.abort();
     for (const stream of activeStreams) stream.destroy();
     for (const request of activeRequests) request.destroy();
+    for (const cleanup of activeCleanups) {
+      void Promise.resolve().then(cleanup).catch(() => {});
+    }
     activeStreams.clear();
     activeRequests.clear();
+    activeCleanups.clear();
   }
 
   function respondError(status, message) {
@@ -2441,6 +2446,13 @@ app.post('/api/nas/upload', async (req, res) => {
       deferredUpload = spoolUploadToTemp(fileStream, {
         maxBytes: runtimeConfig.nas.maxUploadBytes,
         signal: abortController.signal,
+      }).then(spool => {
+        if (abortController.signal.aborted) {
+          void spool.cleanup().catch(() => {});
+        } else {
+          activeCleanups.add(spool.cleanup);
+        }
+        return spool;
       }).catch(error => {
         respondError(error.name === 'AbortError' ? 499 : 413, error.message);
         return null;
@@ -2454,14 +2466,17 @@ app.post('/api/nas/upload', async (req, res) => {
       void (async () => {
         const spool = await deferredUpload;
         if (!spool) return;
+        const cleanup = async () => {
+          try { await spool.cleanup(); } finally { activeCleanups.delete(spool.cleanup); }
+        };
         if (uploadDone || !destPath) {
-          await spool.cleanup();
+          await cleanup();
           if (!uploadDone) respondError(400, 'Target must be provided before file data');
           return;
         }
         const stream = spool.createReadStream();
         activeStreams.add(stream);
-        startNasUpload(stream, deferredInfo, sid, spool.cleanup);
+        startNasUpload(stream, deferredInfo, sid, cleanup);
       })();
     });
     bb.on('error', error => respondError(400, error.message));

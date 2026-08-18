@@ -60,16 +60,28 @@ function createUploadAbortScope() {
   const controller = new AbortController();
   const requests = new Set();
   const streams = new Set();
+  const cleanups = new Set();
+  const runCleanup = cleanup => {
+    void Promise.resolve().then(cleanup).catch(() => {});
+  };
   return {
     signal: controller.signal,
     trackRequest(request) { requests.add(request); return request; },
     trackStream(stream) { streams.add(stream); return stream; },
+    trackCleanup(cleanup) {
+      if (controller.signal.aborted) runCleanup(cleanup);
+      else cleanups.add(cleanup);
+      return cleanup;
+    },
+    releaseCleanup(cleanup) { cleanups.delete(cleanup); },
     abort() {
       controller.abort();
       for (const stream of streams) stream.destroy();
       for (const request of requests) request.destroy();
+      for (const cleanup of cleanups) runCleanup(cleanup);
       streams.clear();
       requests.clear();
+      cleanups.clear();
     },
   };
 }
@@ -79,7 +91,7 @@ async function spoolUploadToTemp(stream, { maxBytes, signal }) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'clock-upload-'));
   const filePath = path.join(directory, 'payload');
   let bytes = 0;
-  let cleaned = false;
+  let cleanupPromise = null;
   const meter = new Transform({
     transform(chunk, encoding, callback) {
       bytes += chunk.length;
@@ -87,10 +99,9 @@ async function spoolUploadToTemp(stream, { maxBytes, signal }) {
       else callback(null, chunk);
     },
   });
-  const cleanup = async () => {
-    if (cleaned) return;
-    cleaned = true;
-    await rm(directory, { recursive: true, force: true });
+  const cleanup = () => {
+    if (!cleanupPromise) cleanupPromise = rm(directory, { recursive: true, force: true });
+    return cleanupPromise;
   };
   try {
     await pipeline(
@@ -416,6 +427,9 @@ function setupGoogleRoutes(app, dependencies) {
         deferredUpload = spoolUploadToTemp(fileStream, {
           maxBytes: 11 * 1024 * 1024 * 1024,
           signal: abortScope.signal,
+        }).then(spool => {
+          abortScope.trackCleanup(spool.cleanup);
+          return spool;
         }).catch(error => {
           fail(error.name === 'AbortError' ? 499 : 413, error.message);
           return null;
@@ -428,13 +442,16 @@ function setupGoogleRoutes(app, dependencies) {
         void (async () => {
           const spool = await deferredUpload;
           if (!spool) return;
+          const cleanup = async () => {
+            try { await spool.cleanup(); } finally { abortScope.releaseCleanup(spool.cleanup); }
+          };
           if (uploadDone || !parentId) {
-            await spool.cleanup();
+            await cleanup();
             if (!uploadDone) fail(400, 'Upload target must be provided before file data');
             return;
           }
           const stream = abortScope.trackStream(spool.createReadStream());
-          startUpload(stream, deferredInfo, spool.cleanup);
+          startUpload(stream, deferredInfo, cleanup);
         })();
       });
       bb.on('error', e => fail(500, e.message));
@@ -740,6 +757,9 @@ function setupMicrosoftRoutes(app, dependencies) {
         deferredUpload = spoolUploadToTemp(fileStream, {
           maxBytes: 11 * 1024 * 1024 * 1024,
           signal: abortScope.signal,
+        }).then(spool => {
+          abortScope.trackCleanup(spool.cleanup);
+          return spool;
         }).catch(error => {
           fail(error.name === 'AbortError' ? 499 : 413, error.message);
           return null;
@@ -752,14 +772,17 @@ function setupMicrosoftRoutes(app, dependencies) {
         void (async () => {
           const spool = await deferredUpload;
           if (!spool) return;
+          const cleanup = async () => {
+            try { await spool.cleanup(); } finally { abortScope.releaseCleanup(spool.cleanup); }
+          };
           if (!Number.isSafeInteger(declaredSize)) declaredSize = spool.size;
           if (uploadDone || !parentId || declaredSize <= 0 || declaredSize > 11 * 1024 * 1024 * 1024) {
-            await spool.cleanup();
+            await cleanup();
             if (!uploadDone) fail(400, 'Upload target and size must be provided before file data');
             return;
           }
           const stream = abortScope.trackStream(spool.createReadStream());
-          startUpload(stream, deferredInfo, declaredSize, spool.cleanup);
+          startUpload(stream, deferredInfo, declaredSize, cleanup);
         })();
       });
       bb.on('error', e => fail(500, e.message));
