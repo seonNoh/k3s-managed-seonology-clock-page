@@ -11,12 +11,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: archiFadeIn 0.25s ease;
-}
-
-@keyframes archiFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 .archi-container {

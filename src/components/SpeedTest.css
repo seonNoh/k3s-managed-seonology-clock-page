@@ -41,12 +41,6 @@
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  animation: speedFadeIn 0.2s ease;
-}
-
-@keyframes speedFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 /* ── Modal ── */

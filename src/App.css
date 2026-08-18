@@ -826,7 +826,6 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.2s ease;
 }
 
 @keyframes fadeIn {
@@ -2174,10 +2173,7 @@
   padding: 2.5rem;
   background: rgba(8, 8, 12, 0.72);
   backdrop-filter: blur(10px);
-  animation: toolsFadeIn 0.18s ease;
 }
-@keyframes toolsFadeIn { from { opacity: 0; } to { opacity: 1; } }
-
 .tools-modal {
   display: flex;
   flex-direction: column;
@@ -2381,4 +2377,12 @@
   max-width: 96vw;
   height: 94vh;
   max-height: 94vh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class$="-overlay"] > *,
+  .modal-overlay > .modal-content,
+  .tools-modal-overlay > .tools-modal {
+    animation: none !important;
+  }
 }

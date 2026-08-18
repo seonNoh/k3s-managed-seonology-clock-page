@@ -12,13 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: rbacFadeIn 0.2s ease-out;
 }
-@keyframes rbacFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
 /* ── container ── */
 .rbac-container {
   width: 96vw;
