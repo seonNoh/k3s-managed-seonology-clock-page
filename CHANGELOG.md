@@ -1,3 +1,10 @@
+## [1.51.1](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.51.0...v1.51.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* keep modal backdrops stable on open ([92b0afa](https://github.com/seonNoh/k3s-managed-seonology-clock-page/commit/92b0afadc1deafc1030ded4cbf3ba00c45be9092))
+
 # [1.51.0](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.50.3...v1.51.0) (2026-08-03)
 
 
