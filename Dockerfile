@@ -3,11 +3,13 @@ FROM node:24-alpine AS builder
 
 WORKDIR /app
 
+ARG APP_VERSION
+
 COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN if [ -n "$APP_VERSION" ]; then printf '%s\n' "$APP_VERSION" > VERSION; fi && npm run build
 
 # Production stage
 FROM node:24-alpine

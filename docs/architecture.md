@@ -28,7 +28,7 @@ nginx는 비특권 포트 `8080`에서 일반 API 요청을 작은 기본 요청
 
 이 저장소의 `k8s/`는 배포 이해와 smoke 검증을 위한 참고 manifest입니다. 라이브 desired state의 SSOT는 `seonology-k3s` 저장소의 Argo CD Application과 Kustomization입니다. 이미지 태그, replica, secret, ingress 또는 rollout을 변경할 때는 앱 저장소 manifest가 아니라 해당 GitOps 저장소의 깨끗한 worktree에서 변경하고 동기화 상태를 확인해야 합니다.
 
-릴리스 파이프라인은 quality, read-only plan, GHCR image, publish의 순서로 분리됩니다. plan은 Node 표준 라이브러리와 git만 사용하고 base SHA 및 계산한 version을 출력합니다. image가 성공하기 전에는 release commit, tag, GitHub Release를 만들지 않습니다. publish는 원격 `main`의 SHA를 다시 비교해 stale plan을 거부한 다음에만 버전 파일과 changelog를 커밋하고 annotated tag 및 GitHub REST Release를 생성합니다.
+릴리스 파이프라인은 quality, read-only plan, GHCR image, publish의 순서로 분리됩니다. plan은 Node 표준 라이브러리와 git만 사용하고 base SHA 및 계산한 version을 출력합니다. image는 이 version을 Docker `APP_VERSION` build arg로 주입해 Vite static artifact, runtime footer, `v<version>` image tag가 일치하도록 합니다. image가 성공하기 전에는 release commit, tag, GitHub Release를 만들지 않습니다. publish는 원격 `main`의 SHA를 다시 비교해 stale plan을 거부하고, commit/tag는 atomic push 하나로 전송합니다. 이미 remote에 release commit/tag가 있지만 GitHub REST만 실패한 상태는 Release 조회 후 API 단계만 재개합니다.
 
 ## 관련 자료
 

@@ -23,13 +23,21 @@ function nextVersion(version, bump) {
   return { major: version.major, minor: version.minor, patch: version.patch + 1 }
 }
 
+function compareVersions(left, right) {
+  if (left.major !== right.major) return left.major - right.major
+  if (left.minor !== right.minor) return left.minor - right.minor
+  return left.patch - right.patch
+}
+
 function classifyCommit(commit) {
   const subject = String(commit.subject ?? '').trim()
   const body = String(commit.body ?? '')
-  if (/\[skip ci\]/i.test(subject)) return null
+  if (/^chore\(release\):\s+\d+\.\d+\.\d+\s+\[skip ci\]$/i.test(subject)) return null
   const match = COMMIT_PATTERN.exec(subject)
-  if (!match || !RELEASE_TYPES.includes(match[1])) return null
-  return { type: match[1], subject, breaking: match[2] === '!' || /^BREAKING[ -]CHANGE:/mi.test(body) }
+  if (!match) return null
+  const breaking = match[2] === '!' || /^BREAKING[ -]CHANGE:/mi.test(body)
+  if (!breaking && !RELEASE_TYPES.includes(match[1])) return null
+  return { type: match[1], subject, breaking }
 }
 
 function calculateBump(version, commits) {
@@ -62,6 +70,10 @@ function requireSuccess(run, args) {
   return result.stdout
 }
 
+function commandSucceeded(run, args) {
+  return run('git', args).status === 0
+}
+
 function parseLog(output) {
   const fields = output.split('\0')
   const commits = []
@@ -73,22 +85,31 @@ export function createGitAdapter({ run = defaultRun } = {}) {
   return {
     headSha: () => requireSuccess(run, ['rev-parse', 'HEAD']).trim(),
     latestSemverTag() {
-      const tags = requireSuccess(run, ['tag', '--merged', 'HEAD', '--sort=-creatordate']).trim().split('\n').filter(Boolean)
+      const tags = requireSuccess(run, ['tag', '--merged', 'HEAD']).trim().split('\n').filter(Boolean)
+      const versions = []
       for (const tag of tags) {
         const tagVersion = tag.startsWith('v') ? tag.slice(1) : tag
         if (/^\d/.test(tagVersion)) {
-          parseVersion(tagVersion, `tag ${tag}`)
-          return tag
+          versions.push({ tag, version: parseVersion(tagVersion, `tag ${tag}`) })
         }
       }
-      return ''
+      return versions.sort((left, right) => compareVersions(right.version, left.version))[0]?.tag ?? ''
     },
     commitsSince(tag) { return parseLog(requireSuccess(run, ['log', tag ? `${tag}..HEAD` : 'HEAD', '--format=%s%x00%b%x00'])) },
     remoteMainSha() { return requireSuccess(run, ['ls-remote', 'origin', 'refs/heads/main']).trim().split(/\s+/)[0] ?? '' },
     stageRelease() { requireSuccess(run, ['add', 'VERSION', 'CHANGELOG.md']) },
     commitRelease(version) { requireSuccess(run, ['commit', '-m', `chore(release): ${version} [skip ci]`]) },
     tagRelease(version) { requireSuccess(run, ['tag', '-a', `v${version}`, '-m', `Release v${version}`]) },
-    pushRelease(version) { requireSuccess(run, ['push', 'origin', 'HEAD:main']); requireSuccess(run, ['push', 'origin', `v${version}`]) },
+    pushRelease(version) { requireSuccess(run, ['push', '--atomic', 'origin', 'HEAD:main', `refs/tags/v${version}`]) },
+    isPublishedRelease({ baseSha, version }) {
+      if (!commandSucceeded(run, ['fetch', '--quiet', 'origin', 'main', `refs/tags/v${version}`])) return false
+      const remoteMain = requireSuccess(run, ['rev-parse', 'origin/main']).trim()
+      const tagCommit = requireSuccess(run, ['rev-parse', `refs/tags/v${version}^{commit}`]).trim()
+      const subject = requireSuccess(run, ['log', '-1', '--format=%s', `refs/tags/v${version}`]).trim()
+      return subject === `chore(release): ${version} [skip ci]`
+        && commandSucceeded(run, ['merge-base', '--is-ancestor', baseSha, remoteMain])
+        && commandSucceeded(run, ['merge-base', '--is-ancestor', tagCommit, remoteMain])
+    },
   }
 }
 
@@ -98,16 +119,22 @@ function readVersion(versionPath = 'VERSION') {
 }
 
 export function planRepositoryRelease({ git = createGitAdapter(), version = readVersion() } = {}) {
-  parseVersion(version)
+  const parsedVersion = parseVersion(version)
   const tag = git.latestSemverTag()
-  return planRelease({ version: tag ? tag.replace(/^v/, '') : version, baseSha: git.headSha(), commits: git.commitsSince(tag) })
+  const tagVersion = tag ? parseVersion(tag.replace(/^v/, ''), `tag ${tag}`) : null
+  if (tagVersion && compareVersions(parsedVersion, tagVersion) !== 0) {
+    throw new ReleasePlanError(`VERSION ${formatVersion(parsedVersion)} does not match latest tag ${tag}`)
+  }
+  return planRelease({ version: tagVersion ? formatVersion(tagVersion) : formatVersion(parsedVersion), baseSha: git.headSha(), commits: git.commitsSince(tag) })
 }
 
 export function createChangelogSection({ version, date, commits }) {
   parseVersion(version)
   const groups = new Map(RELEASE_TYPES.map((type) => [type, []]))
-  for (const commit of commits) groups.get(commit.type)?.push(commit.subject)
+  const breakingSubjects = commits.filter((commit) => commit.breaking).map((commit) => commit.subject)
+  for (const commit of commits) if (!commit.breaking) groups.get(commit.type)?.push(commit.subject)
   const sections = []
+  if (breakingSubjects.length) sections.push(`### Breaking Changes\n\n${breakingSubjects.sort((left, right) => (left < right ? -1 : left > right ? 1 : 0)).map((subject) => `- ${subject}`).join('\n')}`)
   for (const type of RELEASE_TYPES) {
     const subjects = groups.get(type).sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
     if (subjects.length) sections.push(`### ${TYPE_HEADINGS[type]}\n\n${subjects.map((subject) => `- ${subject}`).join('\n')}`)
@@ -125,27 +152,55 @@ export function createGithubAdapter({ token, repository, fetchImpl = fetch } = {
   if (!token) throw new GithubReleaseError('GITHUB_TOKEN is required')
   if (!repository) throw new GithubReleaseError('GITHUB_REPOSITORY is required')
   return {
-    async createRelease(version, notes) {
+    async ensureRelease(version, notes) {
+      const tag = `v${version}`
       let response
+      try {
+        response = await fetchImpl(`https://api.github.com/repos/${repository}/releases/tags/${tag}`, {
+          method: 'GET', headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28' },
+        })
+      } catch { throw new GithubReleaseError('GitHub release request failed') }
+      if (response.ok) {
+        const release = await response.json()
+        if (release.tag_name !== tag) throw new GithubReleaseError('GitHub release tag mismatch')
+        return { created: false }
+      }
+      if (response.status !== 404) throw new GithubReleaseError(`GitHub release request failed (status ${response.status})`)
       try {
         response = await fetchImpl(`https://api.github.com/repos/${repository}/releases`, {
           method: 'POST', headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' },
-          body: JSON.stringify({ tag_name: `v${version}`, name: `v${version}`, body: notes }),
+          body: JSON.stringify({ tag_name: tag, name: tag, body: notes }),
         })
       } catch { throw new GithubReleaseError('GitHub release request failed') }
       if (!response.ok) throw new GithubReleaseError(`GitHub release request failed (status ${response.status})`)
+      return { created: true }
     },
+    async createRelease(version, notes) { return this.ensureRelease(version, notes) },
   }
+}
+
+async function ensureGithubRelease(github, version, notes) {
+  if (github.ensureRelease) return github.ensureRelease(version, notes)
+  return github.createRelease(version, notes)
 }
 
 export async function publishRelease({ plan, git = createGitAdapter(), files = { read: (path) => readFileSync(path, 'utf8'), write: writeFileSync }, github, date = new Date().toISOString().slice(0, 10) } = {}) {
   if (!plan?.released) return plan
-  if (git.remoteMainSha() !== plan.baseSha) throw new ReleasePlanError('stale release plan: origin/main no longer matches the planned base SHA')
   const notes = createChangelogSection({ version: plan.nextVersion, date, commits: plan.commits }).trim()
+  if (git.remoteMainSha() !== plan.baseSha) {
+    if (git.isPublishedRelease?.({ baseSha: plan.baseSha, version: plan.nextVersion })) {
+      try { await ensureGithubRelease(github, plan.nextVersion, notes) } catch (error) {
+        const status = error instanceof GithubReleaseError ? /status \d+/.exec(error.message)?.[0] : ''
+        throw new GithubReleaseError(`GitHub release request failed${status ? ` (${status})` : ''}`)
+      }
+      return { ...plan, recovered: true }
+    }
+    throw new ReleasePlanError('stale release plan: origin/main no longer matches the planned base SHA')
+  }
   files.write('VERSION', `${plan.nextVersion}\n`)
   files.write('CHANGELOG.md', `${notes}\n\n${files.read('CHANGELOG.md')}`)
   git.stageRelease(); git.commitRelease(plan.nextVersion); git.tagRelease(plan.nextVersion); git.pushRelease(plan.nextVersion)
-  try { await github.createRelease(plan.nextVersion, notes) } catch (error) {
+  try { await ensureGithubRelease(github, plan.nextVersion, notes) } catch (error) {
     const status = error instanceof GithubReleaseError ? /status \d+/.exec(error.message)?.[0] : ''
     throw new GithubReleaseError(`GitHub release request failed${status ? ` (${status})` : ''}`)
   }

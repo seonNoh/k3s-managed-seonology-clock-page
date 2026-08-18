@@ -4,7 +4,7 @@
 
 **Goal:** 기존 기능과 API 계약을 유지하면서 보안 취약점, 중복 UI 상태, 취약 저장·업로드 경계와 배포 품질 문제를 제거하고 검증된 패치 릴리스를 배포한다.
 
-**Architecture:** 직렬화 가능한 공통 도구 catalog와 surface별 lazy registry를 사용하고, 웹은 단일 dialog 상태를 갖는다. API는 테스트 가능한 `createApp`, 원자적 저장소, OAuth transaction, NAS path policy를 경계로 분리한다. 릴리스는 quality/container gate 이후 새 semantic release가 생성된 경우에만 image를 push한다.
+**Architecture:** 직렬화 가능한 공통 도구 catalog와 surface별 lazy registry를 사용하고, 웹은 단일 dialog 상태를 갖는다. API는 테스트 가능한 `createApp`, 원자적 저장소, OAuth transaction, NAS path policy를 경계로 분리한다. 릴리스는 quality/container gate 뒤 native planner가 계산한 version으로 image를 만들고, image 성공 뒤 publisher가 commit/tag/Release를 원자적으로 게시한다.
 
 **Tech Stack:** React 19, Vite 7, Express 5, Vitest, Testing Library, Supertest, Playwright, DOMPurify, Node 24 LTS, nginx, Docker, GitHub Actions, Argo CD
 
@@ -151,8 +151,8 @@
 - [ ] React 19.2.8, Vite 7.3.6, Mermaid 11.16.1 등 현재 major의 안전 패치를 명시적으로 적용한다.
 - [ ] 세 lockfile의 production audit High 0을 확인한다.
 - [ ] quality workflow가 install, lint, unit/API, Playwright, web/extension build, audit를 실행하게 한다.
-- [x] Node 표준 라이브러리와 git으로 read-only release planner를 추가한다. 마지막 stable semver tag/VERSION 이후 Conventional Commit을 계산하고, no-release에서는 `released=false`와 빈 `version`을 출력하며 파일·network·git mutation을 수행하지 않는다.
-- [x] image 성공 후에만 publisher가 VERSION/결정적 CHANGELOG, release commit, annotated tag, GitHub REST Release를 생성하도록 workflow를 plan/image/publish로 분리한다. publisher는 원격 main SHA가 plan base SHA와 다르면 중단한다.
+- [x] Node 표준 라이브러리와 git으로 read-only release planner를 추가한다. stable tag는 SemVer 최대값을 사용하고 VERSION과 불일치하면 중단한다. breaking change는 type allowlist와 무관하게 우선 계산하며 no-release에서는 파일·network·git mutation을 수행하지 않는다.
+- [x] image 성공 후에만 publisher가 VERSION/결정적 CHANGELOG, release commit, annotated tag, GitHub REST Release를 생성하도록 workflow를 plan/image/publish로 분리한다. image에는 계산 version을 build arg로 주입하고, publisher는 atomic push·stale SHA 차단·GitHub API-only recovery를 수행한다.
 - [ ] Actions를 최소 권한과 immutable SHA로 고정한다.
 - [ ] `chore: enforce release quality gates`로 커밋한다.
 
@@ -190,9 +190,9 @@
 - [ ] fresh reviewer가 security, compatibility, data-loss, deployment findings를 검토하고 Critical/Important를 수정한다.
 - [ ] `npm run verify`, 세 production audit, 두 build, API syntax, Docker smoke를 새로 실행한다.
 - [ ] live secret, NAS CA/hostname, PVC JSON/token migration readiness를 read-only preflight한다.
-- [ ] 커밋 타입에 `feat`가 없는지 확인하고 patch release임을 확정한다.
+- [ ] 이번 modernisation history에는 `feat: add native release planner and publisher`가 있으므로 다음 release가 minor임을 확인한다. 과거 계획의 patch baseline은 당시의 historical assumption으로만 보존한다.
 - [ ] branch를 origin에 push하고 승인된 main 통합 경로로 반영한다.
-- [ ] semantic-release workflow와 GHCR image tag/digest를 확인한다.
+- [ ] native release workflow의 planned version, GHCR image tag/digest, static artifact version, atomic tag와 GitHub Release를 확인한다.
 - [ ] Argo CD Image Updater write-back, Application Synced/Healthy, rollout을 확인한다.
 - [ ] 인증된 브라우저에서 대표 도구, Markdown/Mermaid, Escape, backdrop, read-only API smoke를 수행한다.
 - [ ] 실패 시 runbook의 GitOps rollback을 수행하고 원인을 기록한다.

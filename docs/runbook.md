@@ -52,9 +52,11 @@ docker rm -f seonology-clock-page-smoke
 
 `main` push에서는 quality 이후 native release planner가 마지막 `vX.Y.Z` tag부터 현재 HEAD까지의 Conventional Commit subject/body를 읽고 `released`, `version`, `base_sha`를 GitHub output에 기록합니다. planner는 worktree의 `VERSION`과 `CHANGELOG.md`를 바꾸지 않습니다. release 대상이 없으면 `released=false`이고 GHCR image push와 publish job은 실행되지 않습니다.
 
-`feat`가 하나라도 있으면 minor, `fix`·`chore`·`refactor`·`docs`·`perf`만 있으면 patch를 올립니다. `!` 또는 `BREAKING CHANGE:`는 1.x 이상에서 major, 0.x에서는 minor로 계산합니다. `chore(release): ... [skip ci]`는 다시 릴리스하지 않습니다. image job이 `v<version>`과 `latest`를 성공적으로 push한 뒤에만 publish job이 `VERSION`·결정적으로 정렬한 `CHANGELOG.md`를 갱신하고 `chore(release): <version> [skip ci]` commit 및 annotated `v<version>` tag를 `origin/main`에 push한 뒤 GitHub Release를 만듭니다.
+`feat`가 하나라도 있으면 minor, `fix`·`chore`·`refactor`·`docs`·`perf`만 있으면 patch를 올립니다. type allowlist 밖이라도 `!` 또는 `BREAKING CHANGE:`가 있으면 breaking change이며 1.x 이상에서 major, 0.x에서는 minor로 계산합니다. `chore(release): <version> [skip ci]`만 다시 릴리스에서 제외하고, 일반 feature의 `[skip ci]`는 계산에 포함합니다. 마지막 tag는 생성 시간이 아니라 stable `vX.Y.Z` 중 SemVer 최대값을 사용하며 `VERSION`과 다르면 fail-closed 합니다. tag가 없는 bootstrap은 `VERSION`과 전체 history를 base로 사용합니다.
 
-publish 직전에는 origin의 `main` SHA가 planner의 `base_sha`와 같은지 확인합니다. 다르면 stale plan으로 중단하므로, 새 `main` push가 있으면 다음 직렬 실행에서 다시 plan합니다. workflow `concurrency`는 `release-main`을 한 번에 하나만 실행합니다. 현재 package integration은 `release:gate`가 `node scripts/release-gate.mjs`를 실행하도록 유지하며, publish는 workflow에서 `node scripts/release-publish.mjs`를 직접 실행합니다.
+image job은 planner의 version을 Docker `APP_VERSION` build arg로 전달하고 builder가 build context의 `VERSION`을 그 값으로 바꾼 뒤 Vite artifact를 생성합니다. 따라서 footer의 `VITE_APP_VERSION`, image tag `v<version>`, runtime image의 정적 artifact가 같은 version을 가집니다. smoke는 final image의 static artifact에서 version 값을 검사합니다. image job이 `v<version>`과 `latest`를 성공적으로 push한 뒤에만 publish job이 `VERSION`·결정적으로 정렬한 `CHANGELOG.md`를 갱신하고 `chore(release): <version> [skip ci]` commit 및 annotated `v<version>` tag를 atomic push한 뒤 GitHub Release를 만듭니다.
+
+publish 직전에는 origin의 `main` SHA가 planner의 `base_sha`와 같은지 확인합니다. 다르면 stale plan으로 중단하므로, 새 `main` push가 있으면 다음 직렬 실행에서 다시 plan합니다. 단, branch/tag atomic push 뒤 GitHub REST만 실패한 경우에는 remote main에 해당 release commit과 tag가 있는지 확인하고 GitHub Release 조회·생성 단계만 idempotent하게 재개합니다. workflow `concurrency`는 `release-main`을 한 번에 하나만 실행하고 publish 전에 `github-actions[bot]` git identity를 설정합니다. 현재 package integration은 `release:gate`가 `node scripts/release-gate.mjs`를 실행하도록 유지하며, publish는 workflow에서 `node scripts/release-publish.mjs`를 직접 실행합니다.
 
 새 tag와 image digest, Argo CD Application revision, rollout revision을 작업 이력에 함께 기록합니다.
 

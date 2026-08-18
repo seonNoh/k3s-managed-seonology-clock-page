@@ -123,6 +123,8 @@ jobs:
           tags: |
             ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:v${{ needs.plan.outputs.version }}
             ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:latest
+          build-args: |
+            APP_VERSION=${{ needs.plan.outputs.version }}
           cache-from: type=gha
           # 캐시 export는 best-effort. gha 캐시 백엔드의 일시적 오류
           # (error writing layer blob: not_found)로 이미지 푸시 성공 후에도
@@ -144,6 +146,11 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
+
+      - name: Configure release author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Publish planned release
         env:
