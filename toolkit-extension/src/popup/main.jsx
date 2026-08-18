@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../shared/theme.css';
 import './popup.css';
@@ -56,7 +56,7 @@ function PopupApp() {
   const recentTools = useMemo(() => recent.map(byId).filter(Boolean), [recent]);
 
   if (activeTool) {
-    const Component = React.lazy(activeTool.load);
+    const Component = activeTool.components.popup;
     return (
       <div className="popup-container">
         <div className="popup-embed-container">

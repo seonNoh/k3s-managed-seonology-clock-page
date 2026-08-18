@@ -1,4 +1,5 @@
 import { TOOL_CATALOG, createToolRegistry } from '@seonology/toolkit-core/catalog';
+import { lazy } from 'react';
 import * as base64 from './transforms/base64';
 import * as jsonT from './transforms/json';
 import * as epoch from './transforms/epoch';
@@ -55,6 +56,7 @@ const EXTENSION_CATALOG = TOOL_CATALOG.filter((tool) => tool.surfaces.some((surf
 export const TOOLS = Object.freeze(createToolRegistry({
   catalog: EXTENSION_CATALOG,
   loaders: EXTENSION_TOOL_LOADERS,
+  createLazyComponent: lazy,
 }).map((tool) => Object.freeze({
   ...tool,
   context: CONTEXT_ACTIONS[tool.id] || [],

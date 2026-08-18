@@ -56,7 +56,7 @@ export function toolsForSurface(surface) {
   return TOOL_CATALOG.filter((tool) => tool.surfaces.includes(surface));
 }
 
-export function createToolRegistry({ catalog, loaders, validSurfaces = TOOL_SURFACES }) {
+export function createToolRegistry({ catalog, loaders, validSurfaces = TOOL_SURFACES, createLazyComponent }) {
   const seenIds = new Set();
   const allowedSurfaces = new Set(validSurfaces);
 
@@ -79,6 +79,13 @@ export function createToolRegistry({ catalog, loaders, validSurfaces = TOOL_SURF
     }
     const load = loaders[tool.id];
     if (typeof load !== 'function') throw new Error(`Missing loader for tool: ${tool.id}`);
-    return Object.freeze({ ...tool, load });
+    const components = typeof createLazyComponent === 'function'
+      ? Object.freeze(Object.fromEntries(tool.surfaces.map((surface) => [surface, createLazyComponent(load)])))
+      : null;
+    return Object.freeze({
+      ...tool,
+      load,
+      ...(components ? { components } : {}),
+    });
   }));
 }

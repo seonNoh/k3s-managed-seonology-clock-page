@@ -79,3 +79,26 @@ test('registry construction rejects metadata entries without a loader', () => {
     validSurfaces: VALID_SURFACES,
   }), /missing loader for tool: json/i);
 });
+
+test('registry creates one stable lazy component for each tool surface', () => {
+  const createdComponents = [];
+  const createLazyComponent = (load) => {
+    const component = { load };
+    createdComponents.push(component);
+    return component;
+  };
+  const loaders = { json: () => Promise.resolve() };
+  const [tool] = createToolRegistry({
+    catalog: [{ id: 'json', name: 'JSON Formatter', aliases: [], surfaces: ['popup', 'newtab'] }],
+    loaders,
+    validSurfaces: VALID_SURFACES,
+    createLazyComponent,
+  });
+
+  assert.equal(createdComponents.length, 2);
+  assert.equal(tool.components.popup, createdComponents[0]);
+  assert.equal(tool.components.newtab, createdComponents[1]);
+  assert.equal(tool.components.popup, tool.components.popup);
+  assert.equal(tool.components.newtab, tool.components.newtab);
+  assert.ok(Object.isFrozen(tool.components));
+});

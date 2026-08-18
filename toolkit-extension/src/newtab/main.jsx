@@ -31,6 +31,7 @@ function NewTabApp() {
   };
 
   const dockTools = bySurface('newtab').filter(t => t.id !== 'clock');
+  const ActiveToolComponent = activeTool?.components.newtab || null;
   const toolsByCategory = {
     tools: dockTools.filter(t => t.category === 'tools'),
     infra: dockTools.filter(t => t.category === 'infra'),
@@ -88,7 +89,7 @@ function NewTabApp() {
       </div>
 
       {/* Tool Modal Overlay */}
-      {activeTool && (
+      {activeTool && ActiveToolComponent && (
         <div className="newtab-modal-overlay" onClick={() => setActiveTool(null)}>
           <div className="newtab-modal-content" onClick={e => e.stopPropagation()}>
             <Suspense fallback={<div style={{padding: '40px', textAlign: 'center'}}>Loading {activeTool.name}...</div>}>
@@ -97,7 +98,7 @@ function NewTabApp() {
                 onClose={() => setActiveTool(null)} 
                 variant="modal"
               >
-                {React.createElement(React.lazy(activeTool.load), { isOpen: true, onClose: () => setActiveTool(null) })}
+                <ActiveToolComponent isOpen={true} onClose={() => setActiveTool(null)} />
               </ToolHost>
             </Suspense>
           </div>
