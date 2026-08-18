@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { renderMarkdown } from '../utils/markdown';
+import { renderSafeMarkdown } from '../utils/markdown';
 import './MarkdownPreview.css';
 
 const TOOLBAR_ITEMS = [
@@ -134,7 +134,7 @@ function MarkdownPreview({ isOpen, onClose }) {
   };
 
   const handleDownloadHtml = () => {
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Markdown Export</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:2rem auto;padding:0 1rem;color:#1a1a1a;line-height:1.7}code{background:#f0f0f0;padding:2px 6px;border-radius:3px;font-size:0.9em}pre{background:#f5f5f5;padding:1rem;border-radius:6px;overflow-x:auto}pre code{background:none;padding:0}blockquote{border-left:3px solid #6366f1;padding:0.5em 1em;margin:1em 0;color:#555;background:#f8f8ff}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px 12px;text-align:left}th{background:#f5f5f5}</style></head><body>${renderMarkdown(markdown)}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Markdown Export</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:2rem auto;padding:0 1rem;color:#1a1a1a;line-height:1.7}code{background:#f0f0f0;padding:2px 6px;border-radius:3px;font-size:0.9em}pre{background:#f5f5f5;padding:1rem;border-radius:6px;overflow-x:auto}pre code{background:none;padding:0}blockquote{border-left:3px solid #6366f1;padding:0.5em 1em;margin:1em 0;color:#555;background:#f8f8ff}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px 12px;text-align:left}th{background:#f5f5f5}</style></head><body>${renderSafeMarkdown(markdown)}</body></html>`;
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -262,7 +262,7 @@ function MarkdownPreview({ isOpen, onClose }) {
               <div
                 ref={previewRef}
                 className="md-preview-content md-rendered"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
+                dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(markdown) }}
               />
             </div>
           )}

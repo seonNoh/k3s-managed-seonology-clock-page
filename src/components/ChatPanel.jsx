@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { renderMarkdown } from '../utils/markdown';
+import { renderSafeMarkdown } from '../utils/markdown';
 import './ChatPanel.css';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
@@ -331,7 +331,7 @@ function ChatPanel({ isOpen, onClose }) {
                 <>
                   <div
                     className="chat-msg-content markdown-body"
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+                    dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(msg.content) }}
                   />
                   <button
                     className={`chat-copy-btn${copiedIdx === idx ? ' copied' : ''}`}

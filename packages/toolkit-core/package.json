@@ -1,0 +1,12 @@
+{
+  "name": "@seonology/toolkit-core",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/markdown.js",
+    "./markdown": "./src/markdown.js"
+  },
+  "dependencies": {
+    "dompurify": "3.4.1"
+  }
+}

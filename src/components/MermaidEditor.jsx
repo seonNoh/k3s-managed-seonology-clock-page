@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import mermaid from 'mermaid';
+import { sanitizeMermaidSvg } from '../utils/markdown';
 import './MermaidEditor.css';
 
 const TEMPLATES = {
@@ -60,57 +60,77 @@ const TEMPLATES = {
     "Other" : 8`,
 };
 
-let mermaidInitialized = false;
+let mermaidPromise = null;
+
+export const MERMAID_CONFIG = {
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    darkMode: true,
+    background: '#0f0f19',
+    primaryColor: '#6366f1',
+    primaryTextColor: '#e2e8f0',
+    primaryBorderColor: '#4f46e5',
+    lineColor: '#64748b',
+    secondaryColor: '#1e1b4b',
+    tertiaryColor: '#1e293b',
+  },
+  flowchart: { curve: 'basis' },
+  securityLevel: 'strict',
+};
+
+export function createLatestRenderGuard() {
+  let latestRequest = 0;
+  return {
+    next: () => ++latestRequest,
+    isCurrent: (request) => request === latestRequest,
+  };
+}
+
+function loadMermaid() {
+  if (!mermaidPromise) {
+    mermaidPromise = import('mermaid')
+      .then(({ default: mermaid }) => {
+        mermaid.initialize(MERMAID_CONFIG);
+        return mermaid;
+      })
+      .catch((error) => {
+        mermaidPromise = null;
+        throw error;
+      });
+  }
+  return mermaidPromise;
+}
 
 function MermaidEditor({ isOpen, onClose }) {
   const [code, setCode] = useState(TEMPLATES.flowchart);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState('');
   const previewRef = useRef(null);
-  const renderCounter = useRef(0);
+  const renderGuard = useRef(createLatestRenderGuard());
 
-  const initMermaid = useCallback(() => {
-    if (!mermaidInitialized) {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'dark',
-        themeVariables: {
-          darkMode: true,
-          background: '#0f0f19',
-          primaryColor: '#6366f1',
-          primaryTextColor: '#e2e8f0',
-          primaryBorderColor: '#4f46e5',
-          lineColor: '#64748b',
-          secondaryColor: '#1e1b4b',
-          tertiaryColor: '#1e293b',
-        },
-        flowchart: { curve: 'basis' },
-        securityLevel: 'loose',
-      });
-      mermaidInitialized = true;
-    }
-  }, []);
-
-  const renderDiagram = useCallback(async (src) => {
+  const renderDiagram = useCallback(async (src, request) => {
     if (!previewRef.current || !src.trim()) return;
-    initMermaid();
     setError('');
     try {
-      renderCounter.current += 1;
-      const id = `mermaid-preview-${renderCounter.current}`;
+      const mermaid = await loadMermaid();
+      if (!renderGuard.current.isCurrent(request)) return;
+      const id = `mermaid-preview-${request}`;
       const { svg } = await mermaid.render(id, src.trim());
-      if (previewRef.current) {
-        previewRef.current.innerHTML = svg;
+      if (renderGuard.current.isCurrent(request) && previewRef.current) {
+        previewRef.current.innerHTML = sanitizeMermaidSvg(svg);
       }
     } catch (e) {
+      if (!renderGuard.current.isCurrent(request)) return;
       setError(e.message || 'Render error');
       if (previewRef.current) previewRef.current.innerHTML = '';
     }
-  }, [initMermaid]);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
-    const timer = setTimeout(() => renderDiagram(code), 400);
+    const request = renderGuard.current.next();
+    const timer = setTimeout(() => renderDiagram(code, request), 400);
     return () => clearTimeout(timer);
   }, [code, isOpen, renderDiagram]);
 
@@ -120,7 +140,7 @@ function MermaidEditor({ isOpen, onClose }) {
 
   const handleExportSvg = () => {
     if (!previewRef.current) return;
-    const svg = previewRef.current.innerHTML;
+    const svg = sanitizeMermaidSvg(previewRef.current.innerHTML);
     if (!svg) return;
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);

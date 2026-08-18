@@ -8,6 +8,9 @@
     "zip": "cd dist && zip -r ../seonology-toolkit.zip ."
   },
   "dependencies": {
+    "@seonology/toolkit-core": "file:../packages/toolkit-core",
+    "dompurify": "3.4.1",
+    "mermaid": "11.14.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
