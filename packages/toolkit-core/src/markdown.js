@@ -5,7 +5,7 @@ const MARKDOWN_ALLOWED_TAGS = [
   'hr', 'li', 'ol', 'p', 'pre', 'span', 'strong', 'table', 'tbody', 'td', 'th', 'thead',
   'tr', 'ul',
 ];
-const MARKDOWN_ALLOWED_ATTR = ['class', 'href', 'rel', 'target'];
+const MARKDOWN_ALLOWED_ATTR = ['class', 'href', 'rel'];
 
 export function sanitizeRenderedHtml(html) {
   return DOMPurify.sanitize(html || '', {

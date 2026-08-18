@@ -19,4 +19,14 @@ describe('safe Markdown rendering', () => {
     expect(html).toContain('href="https://example.com"');
     expect(html).not.toMatch(/<script|<img|onerror|javascript:/i);
   });
+
+  test('removes untrusted new-tab targets from raw HTML and generated Markdown links', () => {
+    const rawHtml = renderMarkdown('<a href="https://example.com" target="_blank">raw link</a>');
+    const markdownLink = renderMarkdown('[Markdown link](https://example.com)');
+
+    expect(rawHtml).toContain('href="https://example.com"');
+    expect(rawHtml).not.toContain('target=');
+    expect(markdownLink).toContain('href="https://example.com"');
+    expect(markdownLink).not.toContain('target=');
+  });
 });
