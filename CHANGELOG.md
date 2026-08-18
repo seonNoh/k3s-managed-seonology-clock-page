@@ -1,3 +1,54 @@
+## [1.52.0] - 2026-08-18
+
+### Features
+
+- feat: add native release planner and publisher
+
+### Fixes
+
+- fix: address API security review findings
+- fix: address tool launcher review findings
+- fix: align upload proxy limits
+- fix: build extension before popup e2e
+- fix: clean aborted upload spools
+- fix: encrypt token migration backups
+- fix: enforce non-root runtime security
+- fix: harden API state and credentials
+- fix: harden native release publishing
+- fix: patch rendered content dependencies
+- fix: preserve API data and upload compatibility
+- fix: preserve plaintext token rollback
+- fix: remove untrusted link targets
+- fix: require cloud token encryption key in reference manifest
+- fix: restore mobile tool launcher access
+- fix: seal release artifact provenance
+- fix: secure rendered tool content
+- fix: ship token recovery cli
+- fix: smoke test extension popup runtime
+- fix: stabilize extension lazy tools
+- fix: target api process in container smoke
+- fix: validate storage operations and uploads
+- fix: validate tool registry surfaces
+- fix: verify native release recovery
+
+### Chores
+
+- chore: complete modernization integration
+- chore: enforce release quality gates
+- chore: ignore local worktrees
+- chore: modernize runtime and operations
+- chore: patch development dependency audit
+
+### Refactors
+
+- refactor: centralize web tool dialogs
+
+### Documentation
+
+- docs: align upload boundary contract
+- docs: correct container smoke command
+- docs: define project modernization plan
+
 ## [1.51.1](https://github.com/seonNoh/k3s-managed-seonology-clock-page/compare/v1.51.0...v1.51.1) (2026-08-18)
 
 
