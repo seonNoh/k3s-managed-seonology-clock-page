@@ -1,5 +1,7 @@
 # Modal Overlay Flicker Design
 
+> 역사 기록: 이 문서는 native release 전환 전의 설계입니다. semantic-release 관련 서술은 당시 전제를 보존한 것이며 현재 릴리스에는 적용하지 않습니다.
+
 ## 목적
 
 `clock.seonology.com`에서 모달을 열 때 전체 화면 오버레이가 `opacity: 0`에서 시작하여 배경이 순간적으로 노출되는 현상을 제거한다. 모달의 열기·닫기, Tools에서 개별 도구를 선택한 뒤 원래 Tools 화면으로 돌아오는 흐름, 데이터 로딩 방식은 변경하지 않는다.

@@ -66,3 +66,17 @@ test('Dockerfile과 release workflow가 APP_VERSION을 build artifact에 연결�
   assert.match(workflow, /git config user\.name "github-actions\[bot\]"/)
   assert.match(workflow, /git config user\.email "41898282\+github-actions\[bot\]@users\.noreply\.github\.com"/)
 })
+
+test('release workflow는 push 전에 load한 planned image를 동일 version으로 smoke한다', () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/release.yaml', import.meta.url), 'utf8')
+  const smokeIndex = workflow.indexOf('- name: Smoke planned image')
+  const pushIndex = workflow.indexOf('- name: Build and push Docker image')
+
+  assert.ok(smokeIndex >= 0)
+  assert.ok(pushIndex > smokeIndex)
+  assert.match(workflow, /- name: Build planned image for smoke[\s\S]*?load: true[\s\S]*?push: false/)
+  assert.match(workflow, /SMOKE_IMAGE: seonology-clock-page:release-verify-\$\{\{ needs\.plan\.outputs\.version \}\}/)
+  assert.match(workflow, /SMOKE_SKIP_BUILD: '1'/)
+  assert.match(workflow, /SMOKE_APP_VERSION: \$\{\{ needs\.plan\.outputs\.version \}\}/)
+  assert.match(workflow, /- name: Smoke planned image[\s\S]*?run: node scripts\/container-smoke\.mjs/)
+})

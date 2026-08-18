@@ -75,7 +75,7 @@ TDD의 각 동작 테스트는 수정 전 실패를 확인하고 최소 구현 �
 
 Node 24 LTS를 `.nvmrc`, package engines, GitHub Actions, Docker build/runtime에 통일한다. nginx와 API의 생존 상태를 구분하고 `/health`가 API까지 확인하도록 한다. 컨테이너 프로세스 종료 신호가 Node와 nginx에 전달되도록 init/supervision 방식을 사용한다.
 
-초기 설계의 semantic-release 전제는 취약한 bundled npm 의존성 때문에 폐기했다. native planner는 새 release가 없는 main push에서 Docker tag를 덮어쓰지 않고, 마지막 stable semver tag/VERSION과 Conventional Commit으로 `released`, version, base SHA를 계산한다. 이 현대화 작업에는 `feat` commit이 포함되므로 다음 stable release는 patch가 아닌 minor를 예상한다. image job은 계산한 version을 Docker build arg로 주입하며, publisher는 image 성공 뒤에만 atomic commit/tag push와 idempotent GitHub Release를 수행한다. GitHub Actions는 최소 권한과 immutable SHA pinning을 사용한다.
+초기 semantic-release 시도는 bundled npm 취약점으로 root·API·extension production audit 0을 만족할 수 없어 역사적 문제로 폐기했다. 현재 설계는 Node 표준 라이브러리와 git만 쓰는 native planner/publisher다. planner는 새 release가 없는 main push에서 Docker tag를 덮어쓰지 않고, 마지막 stable `vX.Y.Z`/VERSION과 Conventional Commit으로 `released`, version, base SHA, release date를 계산한다. 이 현대화 작업에는 `feat` commit이 포함되므로 다음 stable release는 patch가 아닌 minor를 예상한다. image job은 계산 version을 Docker build arg로 주입해 load 가능한 planned image를 smoke한 뒤에만 `v<version>`/`latest`를 push한다. publisher는 그 성공 뒤에만 atomic commit/tag push와, remote annotated tag·direct parent·VERSION·결정적 changelog를 모두 검증한 idempotent GitHub Release 재개를 수행한다. GitHub Actions는 최소 권한과 immutable SHA pinning을 사용한다.
 
 ## 배포와 롤백
 

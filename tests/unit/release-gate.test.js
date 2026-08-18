@@ -90,6 +90,17 @@ test('GITHUB_OUTPUT에 기존 released/version 계약을 기록한다', () => {
   }
 })
 
+test('release date가 있으면 GITHUB_OUTPUT에 함께 기록한다', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'release-output-date-'))
+  const outputPath = join(directory, 'output')
+  try {
+    writeGithubOutput({ released: true, nextVersion: '1.2.4', baseSha: 'base', releaseDate: '2026-08-18' }, outputPath)
+    assert.equal(readFileSync(outputPath, 'utf8'), 'released=true\nversion=1.2.4\nbase_sha=base\nrelease_date=2026-08-18\n')
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
 test('stale remote이면 publish는 파일 또는 git mutation 전에 중단한다', async () => {
   const writes = []
   await assert.rejects(() => publishRelease({
@@ -131,12 +142,24 @@ test('GitHub REST adapter는 POST 전에 기존 tag release를 조회한다', as
     repository: 'owner/repo',
     fetchImpl: async (url, options) => {
       calls.push({ url, options })
-      return { ok: true, status: 200, json: async () => ({ tag_name: 'v1.2.4' }) }
+      return { ok: true, status: 200, json: async () => ({ tag_name: 'v1.2.4', name: 'v1.2.4', body: 'notes', prerelease: false, draft: false }) }
     },
   })
   const result = await github.ensureRelease('1.2.4', 'notes')
   assert.equal(result.created, false)
   assert.deepEqual(calls.map(({ options }) => options.method), ['GET'])
+})
+
+test('GitHub REST adapter는 기존 release의 모든 기대 필드가 일치할 때만 성공한다', async () => {
+  const expected = { tag_name: 'v1.2.4', name: 'v1.2.4', body: 'notes', prerelease: false, draft: false }
+  for (const field of Object.keys(expected)) {
+    const github = createGithubAdapter({
+      token: 'token',
+      repository: 'owner/repo',
+      fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ ...expected, [field]: field === 'prerelease' || field === 'draft' ? true : 'different' }) }),
+    })
+    await assert.rejects(() => github.ensureRelease('1.2.4', 'notes'), GithubReleaseError)
+  }
 })
 
 test('GitHub REST adapter는 tag release가 없을 때만 POST한다', async () => {
@@ -155,6 +178,37 @@ test('GitHub REST adapter는 tag release가 없을 때만 POST한다', async () 
   assert.deepEqual(methods, ['GET', 'POST'])
 })
 
+test('GitHub REST adapter는 POST 422 경쟁 뒤 GET 재조회로 동일 release를 수락한다', async () => {
+  const methods = []
+  const github = createGithubAdapter({
+    token: 'token',
+    repository: 'owner/repo',
+    fetchImpl: async (_url, options) => {
+      methods.push(options.method)
+      if (methods.length === 1) return { ok: false, status: 404 }
+      if (methods.length === 2) return { ok: false, status: 422 }
+      return { ok: true, status: 200, json: async () => ({ tag_name: 'v1.2.4', name: 'v1.2.4', body: 'notes', prerelease: false, draft: false }) }
+    },
+  })
+  assert.deepEqual(await github.ensureRelease('1.2.4', 'notes'), { created: false })
+  assert.deepEqual(methods, ['GET', 'POST', 'GET'])
+})
+
+test('GitHub REST adapter는 POST 422 뒤 불일치 release를 fail-closed 한다', async () => {
+  let calls = 0
+  const github = createGithubAdapter({
+    token: 'token',
+    repository: 'owner/repo',
+    fetchImpl: async () => {
+      calls += 1
+      if (calls === 1) return { ok: false, status: 404 }
+      if (calls === 2) return { ok: false, status: 422 }
+      return { ok: true, status: 200, json: async () => ({ tag_name: 'v1.2.4', name: 'v1.2.4', body: 'other', prerelease: false, draft: false }) }
+    },
+  })
+  await assert.rejects(() => github.ensureRelease('1.2.4', 'notes'), GithubReleaseError)
+})
+
 test('이미 git publish된 stale plan은 GitHub Release 단계만 재개한다', async () => {
   const writes = []
   const result = await publishRelease({
@@ -165,6 +219,38 @@ test('이미 git publish된 stale plan은 GitHub Release 단계만 재개한다'
   })
   assert.equal(result.recovered, true)
   assert.deepEqual(writes, [])
+})
+
+test('API-only recovery는 annotated tag, parent, VERSION, changelog provenance를 모두 요구한다', () => {
+  const baseSha = 'a'.repeat(40)
+  const releaseSha = 'b'.repeat(40)
+  const tagObjectSha = 'c'.repeat(40)
+  const version = '1.2.4'
+  const notes = '## [1.2.4] - 2026-08-18\n\n### Fixes\n\n- fix: publish'
+  const runFor = (overrides = {}) => (_command, args) => {
+    const key = args.join(' ')
+    const defaults = {
+      [`fetch --quiet origin main refs/tags/v${version}`]: { status: 0, stdout: '' },
+      'rev-parse origin/main': { status: 0, stdout: `${releaseSha}\n` },
+      [`cat-file -t refs/tags/v${version}`]: { status: 0, stdout: 'tag\n' },
+      [`rev-parse refs/tags/v${version}`]: { status: 0, stdout: `${tagObjectSha}\n` },
+      [`rev-parse refs/tags/v${version}^{commit}`]: { status: 0, stdout: `${releaseSha}\n` },
+      [`ls-remote origin refs/tags/v${version} refs/tags/v${version}^{}`]: { status: 0, stdout: `${tagObjectSha}\trefs/tags/v${version}\n${releaseSha}\trefs/tags/v${version}^{}\n` },
+      [`rev-parse ${releaseSha}^`]: { status: 0, stdout: `${baseSha}\n` },
+      [`log -1 --format=%s refs/tags/v${version}`]: { status: 0, stdout: `chore(release): ${version} [skip ci]\n` },
+      [`show ${releaseSha}:VERSION`]: { status: 0, stdout: `${version}\n` },
+      [`show ${releaseSha}:CHANGELOG.md`]: { status: 0, stdout: `${notes}\n\n# Changelog\n` },
+      [`merge-base --is-ancestor ${releaseSha} ${releaseSha}`]: { status: 0, stdout: '' },
+    }
+    return overrides[key] ?? defaults[key] ?? { status: 1, stdout: '', stderr: 'unexpected command' }
+  }
+  const input = { baseSha, version, notes }
+  assert.equal(createGitAdapter({ run: runFor() }).isPublishedRelease(input), true)
+  assert.equal(createGitAdapter({ run: runFor({ [`cat-file -t refs/tags/v${version}`]: { status: 0, stdout: 'commit\n' } }) }).isPublishedRelease(input), false)
+  assert.equal(createGitAdapter({ run: runFor({ [`rev-parse ${releaseSha}^`]: { status: 0, stdout: `${'d'.repeat(40)}\n` } }) }).isPublishedRelease(input), false)
+  assert.equal(createGitAdapter({ run: runFor({ [`show ${releaseSha}:VERSION`]: { status: 0, stdout: '9.9.9\n' } }) }).isPublishedRelease(input), false)
+  assert.equal(createGitAdapter({ run: runFor({ [`show ${releaseSha}:CHANGELOG.md`]: { status: 0, stdout: '## [1.2.4] - 2026-08-18\n\n### Fixes\n\n- fake\n' } }) }).isPublishedRelease(input), false)
+  assert.equal(createGitAdapter({ run: runFor({ [`ls-remote origin refs/tags/v${version} refs/tags/v${version}^{}`]: { status: 0, stdout: `${tagObjectSha}\trefs/tags/v${version}\n${'d'.repeat(40)}\trefs/tags/v${version}^{}\n` } }) }).isPublishedRelease(input), false)
 })
 
 test('no-release publish는 파일, git, network mutation을 수행하지 않는다', async () => {
@@ -194,6 +280,11 @@ test('git adapter는 branch와 annotated tag를 atomic push 하나로 전송한�
 
 test('latest semver tag는 생성 시각이 아닌 가장 큰 stable version을 선택한다', () => {
   const git = createGitAdapter({ run: () => ({ status: 0, stdout: 'v1.9.0\nv1.10.0\nv1.8.9\n' }) })
+  assert.equal(git.latestSemverTag(), 'v1.10.0')
+})
+
+test('stable tag 선택은 v 접두사 없는 tag를 무시한다', () => {
+  const git = createGitAdapter({ run: () => ({ status: 0, stdout: '1.99.0\nv1.9.0\nv1.10.0\n' }) })
   assert.equal(git.latestSemverTag(), 'v1.10.0')
 })
 

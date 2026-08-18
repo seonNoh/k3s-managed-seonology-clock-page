@@ -70,6 +70,7 @@ jobs:
       released: ${{ steps.release.outputs.released }}
       version: ${{ steps.release.outputs.version }}
       base_sha: ${{ steps.release.outputs.base_sha }}
+      release_date: ${{ steps.release.outputs.release_date }}
     permissions:
       contents: read
     steps:
@@ -99,6 +100,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+
       - name: Set lowercase owner
         id: lowercase
         run: |
@@ -114,6 +119,24 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build planned image for smoke
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          load: true
+          push: false
+          tags: seonology-clock-page:release-verify-${{ needs.plan.outputs.version }}
+          build-args: |
+            APP_VERSION=${{ needs.plan.outputs.version }}
+          cache-from: type=gha
+
+      - name: Smoke planned image
+        env:
+          SMOKE_IMAGE: seonology-clock-page:release-verify-${{ needs.plan.outputs.version }}
+          SMOKE_SKIP_BUILD: '1'
+          SMOKE_APP_VERSION: ${{ needs.plan.outputs.version }}
+        run: node scripts/container-smoke.mjs
 
       - name: Build and push Docker image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
@@ -158,4 +181,5 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           RELEASE_BASE_SHA: ${{ needs.plan.outputs.base_sha }}
           RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          RELEASE_DATE: ${{ needs.plan.outputs.release_date }}
         run: node scripts/release-publish.mjs

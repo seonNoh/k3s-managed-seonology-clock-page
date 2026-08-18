@@ -1,5 +1,7 @@
 # Modal Overlay Flicker Fix Implementation Plan
 
+> 역사 기록: 이 문서는 native release 전환 전의 계획입니다. 아래 semantic-release 표기는 당시 실패한 전제를 보존한 것이며 현재 릴리스 설계나 실행 지침이 아닙니다.
+
 > **For agentic workers:** Implement this plan task-by-task, dispatching a fresh subagent per independent task where possible. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 모달을 여는 첫 프레임부터 dim 배경과 blur를 유지하여 뒤 화면 노출을 제거한다.

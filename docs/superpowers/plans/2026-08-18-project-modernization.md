@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Implement this plan task-by-task, dispatching a fresh subagent per independent task where possible. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 기존 기능과 API 계약을 유지하면서 보안 취약점, 중복 UI 상태, 취약 저장·업로드 경계와 배포 품질 문제를 제거하고 검증된 패치 릴리스를 배포한다.
+**Goal:** 기존 기능과 API 계약을 유지하면서 보안 취약점, 중복 UI 상태, 취약 저장·업로드 경계와 배포 품질 문제를 제거하고 검증된 native minor 릴리스를 배포한다.
 
 **Architecture:** 직렬화 가능한 공통 도구 catalog와 surface별 lazy registry를 사용하고, 웹은 단일 dialog 상태를 갖는다. API는 테스트 가능한 `createApp`, 원자적 저장소, OAuth transaction, NAS path policy를 경계로 분리한다. 릴리스는 quality/container gate 뒤 native planner가 계산한 version으로 image를 만들고, image 성공 뒤 publisher가 commit/tag/Release를 원자적으로 게시한다.
 
@@ -149,10 +149,10 @@
 - [ ] ESLint config를 browser, Node/CommonJS, test, extension 경계로 나누고 generated/worktree 경로를 ignore한다.
 - [ ] 기존 1,354 lint 오류를 환경 오류, 실제 correctness 오류, compiler advisory로 분류해 실제 오류를 수정하고 gate를 0 error로 만든다.
 - [ ] React 19.2.8, Vite 7.3.6, Mermaid 11.16.1 등 현재 major의 안전 패치를 명시적으로 적용한다.
-- [ ] 세 lockfile의 production audit High 0을 확인한다.
+- [x] root·API·extension의 production audit High 0을 release gate로 통합한다. semantic-release 계열 의존성은 bundled npm 취약점 때문에 제거하고 `npx` 우회 없이 세 lockfile을 함께 검증한다.
 - [ ] quality workflow가 install, lint, unit/API, Playwright, web/extension build, audit를 실행하게 한다.
 - [x] Node 표준 라이브러리와 git으로 read-only release planner를 추가한다. stable tag는 SemVer 최대값을 사용하고 VERSION과 불일치하면 중단한다. breaking change는 type allowlist와 무관하게 우선 계산하며 no-release에서는 파일·network·git mutation을 수행하지 않는다.
-- [x] image 성공 후에만 publisher가 VERSION/결정적 CHANGELOG, release commit, annotated tag, GitHub REST Release를 생성하도록 workflow를 plan/image/publish로 분리한다. image에는 계산 version을 build arg로 주입하고, publisher는 atomic push·stale SHA 차단·GitHub API-only recovery를 수행한다.
+- [x] image 성공 후에만 publisher가 VERSION/결정적 CHANGELOG, release commit, annotated tag, GitHub REST Release를 생성하도록 workflow를 plan/image/publish로 분리한다. image는 push 전에 load한 planned artifact를 `SMOKE_SKIP_BUILD=1`과 계획 version으로 smoke하고, publisher는 atomic push·stale SHA 차단·원격 annotated tag/commit/VERSION/changelog provenance를 검증한 GitHub API-only recovery를 수행한다.
 - [ ] Actions를 최소 권한과 immutable SHA로 고정한다.
 - [ ] `chore: enforce release quality gates`로 커밋한다.
 
@@ -172,7 +172,7 @@
 - [ ] Node와 nginx에 종료 신호가 전달되는 init/supervision entrypoint를 적용한다.
 - [ ] upload route별 nginx 제한과 현대적 보안 header를 적용한다.
 - [ ] 저장소 `k8s/`가 non-authoritative임을 명시하고 라이브 GitOps SSOT를 문서화한다.
-- [x] 로컬 실행, 환경변수, 보안 경계, release, smoke, rollback runbook을 작성한다. release 문서는 native planner/publisher, `GITHUB_TOKEN` 비노출 오류 처리, `release-main` 직렬화와 stale-plan 중단을 설명한다.
+- [x] 로컬 실행, 환경변수, 보안 경계, release, smoke, rollback runbook을 작성한다. release 문서는 native planner/publisher, `GITHUB_TOKEN` 비노출 오류 처리, planned image smoke, `release-main` 직렬화와 stale-plan/API-only recovery 검증을 설명한다.
 - [ ] Docker build/run smoke를 실행한다.
 - [ ] `chore: modernize runtime and operations`로 커밋한다.
 
@@ -184,7 +184,7 @@
 
 **Interfaces:**
 - Consumes: Tasks 1-6 commits
-- Produces: reviewed branch, semantic patch release, deployed image digest
+- Produces: reviewed branch, native minor release, deployed image digest
 
 - [ ] plan/spec 요구사항을 diff와 테스트 목록에 대조한다.
 - [ ] fresh reviewer가 security, compatibility, data-loss, deployment findings를 검토하고 Critical/Important를 수정한다.
