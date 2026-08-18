@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: seonology-clock-page
   namespace: seonology-apps
+  annotations:
+    seonology.io/manifest-authority: "reference-only; live desired state is managed in seonology-k3s GitOps"
   labels:
     app: seonology-clock-page
 spec:
@@ -80,7 +82,11 @@ spec:
         - name: GRAFANA_USER
           value: "admin"
         - name: GRAFANA_PASS
-          value: "grafana-admin-pass"
+          valueFrom:
+            secretKeyRef:
+              name: clock-page-secrets
+              key: grafana-pass
+              optional: true
         - name: GOOGLE_CLIENT_ID
           valueFrom:
             secretKeyRef:
@@ -117,16 +123,22 @@ spec:
             cpu: "500m"
         livenessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 80
           initialDelaySeconds: 10
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 80
+          failureThreshold: 30
+          periodSeconds: 2
       volumes:
       - name: bookmarks-data
         persistentVolumeClaim:
