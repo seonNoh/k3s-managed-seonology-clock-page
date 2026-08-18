@@ -62,3 +62,10 @@ test('opening a tool replaces the launcher instead of stacking overlays', async 
   await expect(page.locator('.md-overlay')).toHaveCount(0);
   await expect(page.locator('.tools-modal-overlay')).toHaveCount(0);
 });
+
+test('tool launcher search has an accessible name', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Tools', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '도구 검색' })).toHaveAttribute('aria-label', '도구 검색');
+});

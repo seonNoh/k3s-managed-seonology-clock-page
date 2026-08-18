@@ -7,6 +7,15 @@ export function openToolDialog(state, toolId) {
   };
 }
 
+export function openToolLauncher(state) {
+  return {
+    ...state,
+    toolsExpanded: true,
+    activeToolId: null,
+    activeModal: null,
+  };
+}
+
 export function closeTopDialog(state) {
   if (state.activeToolId) return { ...state, activeToolId: null };
   if (state.toolsExpanded) return { ...state, toolsExpanded: false };

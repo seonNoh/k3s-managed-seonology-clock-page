@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   closeTopDialog,
   filterToolCatalog,
+  openToolLauncher,
   openToolDialog,
 } from '../../src/features/tool-launcher/dialog-state.js';
 
@@ -20,26 +21,37 @@ test('opening a tool closes the launcher and replaces the active tool', () => {
   });
 });
 
-test('closing the top dialog closes one surface in priority order', () => {
-  const toolClosed = closeTopDialog({
-    toolsExpanded: true,
+test('opening the launcher closes an active tool and modal before showing the launcher', () => {
+  const next = openToolLauncher({
+    toolsExpanded: false,
     activeToolId: 'markdown',
     activeModal: 'services',
   });
-  assert.deepEqual(toolClosed, {
+
+  assert.deepEqual(next, {
     toolsExpanded: true,
     activeToolId: null,
-    activeModal: 'services',
+    activeModal: null,
+  });
+});
+
+test('closing the top dialog follows states that keep dialog surfaces mutually exclusive', () => {
+  const launcherClosed = closeTopDialog({
+    toolsExpanded: true,
+    activeToolId: null,
+    activeModal: null,
+  });
+  assert.deepEqual(launcherClosed, {
+    toolsExpanded: false,
+    activeToolId: null,
+    activeModal: null,
   });
 
-  const launcherClosed = closeTopDialog(toolClosed);
-  assert.deepEqual(launcherClosed, {
+  const modalClosed = closeTopDialog({
     toolsExpanded: false,
     activeToolId: null,
     activeModal: 'services',
   });
-
-  const modalClosed = closeTopDialog(launcherClosed);
   assert.deepEqual(modalClosed, {
     toolsExpanded: false,
     activeToolId: null,

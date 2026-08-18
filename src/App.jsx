@@ -8,8 +8,8 @@ import TodoList from './components/TodoList';
 import Calendar from './components/Calendar';
 import ExchangeRate from './components/ExchangeRate';
 import BrowserStats from './components/BrowserStats';
-import { SpeedTestMini } from './components/SpeedTest';
-import { closeTopDialog, filterToolCatalog, openToolDialog } from './features/tool-launcher/dialog-state';
+import { SpeedTestMini } from './components/SpeedTestMini';
+import { closeTopDialog, filterToolCatalog, openToolDialog, openToolLauncher } from './features/tool-launcher/dialog-state';
 import { getWebTool, WEB_TOOL_CATALOG } from './features/tool-launcher/toolRegistry.web';
 import './App.css';
 
@@ -1096,6 +1096,15 @@ function App() {
     setMobileDrawerOpen(false);
   };
 
+  const openToolsLauncher = () => {
+    const next = openToolLauncher({ toolsExpanded, activeToolId, activeModal });
+    setToolSearch('');
+    setToolsExpanded(next.toolsExpanded);
+    setActiveToolId(next.activeToolId);
+    setActiveModal(next.activeModal);
+    setMobileDrawerOpen(false);
+  };
+
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') {
@@ -1328,7 +1337,7 @@ function App() {
       </button>
 
       {/* App Icon Grid Toggle */}
-      <button className={`tools-toggle-btn${toolsExpanded ? ' expanded' : ''}`} onClick={() => { setToolSearch(''); setToolsExpanded(true); setMobileDrawerOpen(false); }}>
+      <button className={`tools-toggle-btn${toolsExpanded ? ' expanded' : ''}`} onClick={openToolsLauncher}>
         <span className="tools-toggle-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
@@ -1407,6 +1416,7 @@ function App() {
                 className="tools-modal-search"
                 type="text"
                 autoFocus
+                aria-label="도구 검색"
                 placeholder="도구 검색..."
                 value={toolSearch}
                 onChange={(e) => setToolSearch(e.target.value)}

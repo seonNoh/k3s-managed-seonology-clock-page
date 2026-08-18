@@ -4,7 +4,8 @@
   "type": "module",
   "exports": {
     ".": "./src/markdown.js",
-    "./markdown": "./src/markdown.js"
+    "./markdown": "./src/markdown.js",
+    "./catalog": "./src/catalog.js"
   },
   "dependencies": {
     "dompurify": "3.4.13"
