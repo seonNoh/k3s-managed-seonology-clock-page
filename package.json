@@ -3,12 +3,22 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=24.15 <25"
+  },
   "scripts": {
     "dev": "vite",
     "test": "playwright test",
+    "test:unit": "vitest run --config vitest.config.js && node --test tests/unit/release-gate.test.js tests/unit/container-smoke.test.js",
+    "test:api": "npm test --prefix api",
+    "test:e2e": "playwright test",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "smoke:container": "node scripts/container-smoke.mjs",
+    "release:gate": "node scripts/release-gate.mjs",
+    "audit:dependencies": "npm audit --audit-level=high && npm audit --prefix api --audit-level=high && npm audit --prefix toolkit-extension --audit-level=high",
+    "verify": "npm run lint && npm run test:unit && npm run test:api && npm run test:e2e && npm run build && npm run build --prefix toolkit-extension && npm run audit:dependencies && npm run smoke:container"
   },
   "dependencies": {
     "@seonology/toolkit-core": "file:packages/toolkit-core",
@@ -16,8 +26,8 @@
     "dompurify": "3.4.13",
     "lucide-react": "^0.563.0",
     "mermaid": "11.16.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "uuid": "11.1.1"
   },
   "devDependencies": {

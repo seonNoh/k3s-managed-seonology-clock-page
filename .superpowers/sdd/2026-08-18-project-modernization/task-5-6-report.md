@@ -41,7 +41,7 @@
 
 ### 파일 경로와 package script
 
-release gate 구현 파일은 `scripts/release-gate.mjs`, container smoke 구현 파일은 `scripts/container-smoke.mjs`이다. root `package.json`에는 다음 script를 추가해야 workflow가 실행된다.
+release gate 구현 파일은 `scripts/release-gate.mjs`, image preflight는 `scripts/release-image-gate.mjs`, container smoke는 `scripts/container-smoke.mjs`이다. root `package.json`에는 다음 script가 통합되어 있다.
 
 ```json
 {
@@ -50,7 +50,8 @@ release gate 구현 파일은 `scripts/release-gate.mjs`, container smoke 구현
   "test:e2e": "playwright test",
   "smoke:container": "node scripts/container-smoke.mjs",
   "release:gate": "node scripts/release-gate.mjs",
-  "verify": "npm run lint && npm run test:unit && npm run test:api && npm run test:e2e && npm run build && npm run build --prefix toolkit-extension && npm run smoke:container"
+  "audit:dependencies": "npm audit --audit-level=high && npm audit --prefix api --audit-level=high && npm audit --prefix toolkit-extension --audit-level=high",
+  "verify": "npm run lint && npm run test:unit && npm run test:api && npm run test:e2e && npm run build && npm run build --prefix toolkit-extension && npm run audit:dependencies && npm run smoke:container"
 }
 ```
 
@@ -58,7 +59,7 @@ API 담당자가 현재 `api/package.json`의 `test`를 Node built-in test로 �
 
 ### engines·의존성·lockfile
 
-- 세 package의 `engines.node`를 Node 24로 맞춘다. 예: `">=24 <25"`.
+- 세 package와 lockfile의 `engines.node`를 `">=24.15 <25"`로 맞췄다.
 - root에는 `vitest`, `jsdom` 등 test dependency만 유지한다. semantic-release와 모든 `@semantic-release/*` dependency는 bundled npm 취약점 때문에 제거했으며 `npx`로 우회하지 않는다.
 - React/React DOM `19.2.8`, Vite `7.3.6`, Mermaid `11.16.1`과 각 lockfile의 production audit High 0은 현재 통합된 package/lockfile에서 유지한다.
 
@@ -93,8 +94,9 @@ container smoke의 `task56-final-smoke`는 Task 2 API worktree를 Docker 임시 
 
 ## 검증 결과
 
-- `npm run lint`: 성공, 0 error/105 warning
-- `node --test tests/unit/release-gate.test.js tests/unit/container-smoke.test.js`: 성공, 4/4 pass
+- `npm run verify`: 성공. lint, unit/API/E2E, web/extension build, 세 full audit, container smoke를 연속 실행했다.
+- `npm run lint`: 성공, 0 error/137 warning
+- `node --test tests/unit/release-gate.test.js tests/unit/container-smoke.test.js`: 성공, 42/42 pass
 - `docker build -t seonology-clock-page:task56-final .`: 성공
 - `docker run --rm --entrypoint nginx seonology-clock-page:task56-final -t`: 성공
 - Task 2 API overlay `SMOKE_IMAGE=... node scripts/container-smoke.mjs`: 성공. health JSON 확인 후 Node 종료 시 health 실패 확인
@@ -104,12 +106,14 @@ container smoke의 `task56-final-smoke`는 Task 2 API worktree를 Docker 임시 
 
 ## 결과
 
-Task 5와 Task 6의 소유 파일 및 보조 gate/test script 구현을 완료했고, package/lockfile 보안 패치, scripts 연결, Task 2 API entrypoint 통합까지 반영됐다. 현재 release는 native planner/publisher, exact release provenance, single-artifact image smoke/push를 사용한다. 초기 `npm run verify` 통합 대기는 과거 상태이며 현재 변경은 별도 release/container 검증으로 확인한다.
+Task 5와 Task 6의 소유 파일 및 보조 gate/test script 구현을 완료했고, package/lockfile 보안 패치, scripts 연결, Task 2 API entrypoint 통합까지 반영됐다. 현재 release는 native planner/publisher, exact release provenance, stale-image preflight, single-artifact image smoke/push를 사용한다. 전체 `npm run verify`와 세 full audit가 통과했다.
 
 ## 관련 커밋/PR
 
 - `7773ec2 chore: enforce release quality gates`
 - `3418a07 chore: modernize runtime and operations`
+- `4627a48 feat: add native release planner and publisher`
+- `500f557 fix: seal release artifact provenance`
 
 ## 1차 리뷰 후속 수정: non-root·read-only runtime
 

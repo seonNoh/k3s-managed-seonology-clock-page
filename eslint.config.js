@@ -11,6 +11,7 @@ const reactHooksWarnings = Object.fromEntries(
 export default defineConfig([
   globalIgnores([
     'dist/',
+    '**/dist/',
     'coverage/',
     'playwright-report/',
     'test-results/',
@@ -41,6 +42,7 @@ export default defineConfig([
       'no-irregular-whitespace': 'warn',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^[A-Z_]' }],
       'no-useless-escape': 'warn',
+      'react-refresh/only-export-components': 'warn',
     },
   },
   {

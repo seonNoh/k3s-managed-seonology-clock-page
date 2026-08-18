@@ -3,7 +3,14 @@ const path = require('node:path');
 const SORT_VALUES = new Set(['name', 'size', 'user', 'group', 'mtime', 'atime', 'ctime', 'crtime', 'posix']);
 const DIRECTION_VALUES = new Set(['ASC', 'DESC']);
 const FORBIDDEN_INPUT = /[\0\r\n\\]/;
-const FORBIDDEN_NAME = /[\0-\x1f\x7f\\"]/;
+const FORBIDDEN_NAME = /[\\"]/;
+
+function hasControlCharacter(value) {
+  return [...value].some(character => {
+    const codePoint = character.codePointAt(0);
+    return codePoint <= 0x1f || codePoint === 0x7f;
+  });
+}
 
 function invalid(message) {
   const error = new Error(message);
@@ -34,7 +41,7 @@ function createNasPathPolicy({ allowedRoots }) {
 
   function assertName(value) {
     if (typeof value !== 'string' || value.length === 0 || value === '.' || value === '..'
-      || value.includes('/') || FORBIDDEN_NAME.test(value)) {
+      || value.includes('/') || FORBIDDEN_NAME.test(value) || hasControlCharacter(value)) {
       throw invalid('Invalid NAS name');
     }
     return value;
