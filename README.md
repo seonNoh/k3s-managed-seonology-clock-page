@@ -51,7 +51,7 @@ docker build -t seonology-clock-page:local .
 docker run --rm -d --name seonology-clock-page-smoke -p 127.0.0.1::8080 seonology-clock-page:local
 docker port seonology-clock-page-smoke 8080
 curl --fail --silent --show-error http://127.0.0.1:<published-port>/health
-docker exec seonology-clock-page-smoke pkill -f 'node /app/api/server.js'
+docker exec seonology-clock-page-smoke sh -c 'for pid in $(pidof node); do if grep -F -q "/app/api/server.js" "/proc/$pid/cmdline" 2>/dev/null; then kill -TERM "$pid"; exit 0; fi; done; exit 1'
 curl --fail --silent --show-error http://127.0.0.1:<published-port>/health
 docker rm -f seonology-clock-page-smoke
 ```

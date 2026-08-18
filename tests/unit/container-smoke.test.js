@@ -106,3 +106,21 @@ test('API 종료 명령은 pidof의 임시 다중 결과에서 실제 server pro
   assert.match(command, /\/app\/api\/server\.js/)
   assert.doesNotMatch(command, /kill -TERM "\$\(pidof node\)"/)
 })
+
+test('nginx upload routes preserve the API 11 GiB streaming contract with bounded multipart overhead', () => {
+  const nginx = readFileSync(new URL('../../nginx.conf', import.meta.url), 'utf8')
+  const uploadRoutes = [
+    '/api/nas/upload',
+    '/api/gdrive/upload',
+    '/api/onedrive/upload',
+  ]
+
+  for (const route of uploadRoutes) {
+    const location = nginx.match(new RegExp(`location = ${route.replaceAll('/', '\\/')} \\{([\\s\\S]*?)\\n    \\}`))?.[1]
+    assert.ok(location, `${route} location must exist`)
+    assert.match(location, /client_max_body_size 12g;/)
+    assert.match(location, /proxy_request_buffering off;/)
+  }
+
+  assert.doesNotMatch(nginx, /client_max_body_size (?:0|100m);/)
+})
