@@ -140,9 +140,15 @@ function CloudBrowser({ isOpen, onClose, provider }) {
     setUploading(true); setError('');
     try {
       const form = new FormData();
-      form.append('file', file);
       form.append('parentId', currentFolderId);
-      const res = await fetch(`${API}/upload`, { method: 'POST', body: form });
+      form.append('size', String(file.size));
+      form.append('file', file);
+      const uploadQuery = new URLSearchParams({ parentId: currentFolderId, size: String(file.size) });
+      const res = await fetch(`${API}/upload?${uploadQuery}`, {
+        method: 'POST',
+        headers: { 'X-Upload-Parent-Id': currentFolderId, 'X-Upload-Size': String(file.size) },
+        body: form,
+      });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       fetchFiles(currentFolderId);
     } catch (e) { setError(e.message); } finally { setUploading(false); e.target.value = ''; }

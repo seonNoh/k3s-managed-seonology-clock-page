@@ -176,10 +176,12 @@ function setupGithubCatalogRoutes(app) {
   });
 
   // 기동 5초 후 1차 수집 → INTERVAL 주기 폴링
-  setTimeout(() => {
+  const catalogStartTimer = setTimeout(() => {
     refreshCatalog();
-    setInterval(refreshCatalog, INTERVAL);
+    const catalogInterval = setInterval(refreshCatalog, INTERVAL);
+    catalogInterval.unref();
   }, 5000);
+  catalogStartTimer.unref();
 
   console.log(`GitHub catalog: token=${!!TOKEN}, interval=${INTERVAL}ms`);
 }

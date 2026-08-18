@@ -108,9 +108,14 @@ function NasBrowser({ isOpen, onClose }) {
     setUploading(true); setError('');
     try {
       const form = new FormData();
-      form.append('file', file);
       form.append('path', path);
-      const res = await fetch(`${API}/upload`, { method: 'POST', body: form });
+      form.append('file', file);
+      const uploadQuery = new URLSearchParams({ path });
+      const res = await fetch(`${API}/upload?${uploadQuery}`, {
+        method: 'POST',
+        headers: { 'X-Upload-Path': path },
+        body: form,
+      });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       fetchFiles(path);
     } catch (e) { setError(e.message); } finally { setUploading(false); e.target.value = ''; }

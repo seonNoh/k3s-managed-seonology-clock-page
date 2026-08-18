@@ -3,9 +3,12 @@ const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
 const { loadConfig } = require('./config');
+const { createNasPathPolicy } = require('./domains/nas/path-policy');
+const { createUploadBoundary, writeWithBackpressure } = require('./domains/nas/nas-uploader');
 
+function createApp(dependencies = {}) {
 const app = express();
-const runtimeConfig = loadConfig();
+const runtimeConfig = dependencies.config || loadConfig();
 
 // Cloud Drives
 const { setupGoogleRoutes, setupMicrosoftRoutes } = require('./cloud-drives');
@@ -1486,10 +1489,12 @@ async function scrapeAllEvents() {
 }
 
 // Start periodic scraping (after 5s delay for server startup, then every 24h)
-setTimeout(() => {
+const scraperStartTimer = setTimeout(() => {
   scrapeAllEvents();
-  setInterval(scrapeAllEvents, SCRAPE_INTERVAL);
+  const scraperInterval = setInterval(scrapeAllEvents, SCRAPE_INTERVAL);
+  scraperInterval.unref();
 }, 5000);
+scraperStartTimer.unref();
 
 // ─── Fallback Static Data (confirmed 2026 dates from official sites) ───
 
@@ -1765,14 +1770,41 @@ const GRAFANA_PASS = runtimeConfig.grafana.password;
 // Tailscale configuration
 // API access token(tskey-api-) 은 최대 90 일에 만료되고 연장이 불가능해 주기적으로 끊긴다.
 // 만료되지 않는 OAuth client 로 1 시간짜리 액세스 토큰을 그때그때 발급받아 쓴다.
-const TAILSCALE_OAUTH_CLIENT_ID = process.env.TAILSCALE_OAUTH_CLIENT_ID || '';
-const TAILSCALE_OAUTH_CLIENT_SECRET = process.env.TAILSCALE_OAUTH_CLIENT_SECRET || '';
+const TAILSCALE_OAUTH_CLIENT_ID = runtimeConfig.tailscale.clientId;
+const TAILSCALE_OAUTH_CLIENT_SECRET = runtimeConfig.tailscale.clientSecret;
 
 // Synology NAS configuration
-const NAS_HOST = process.env.NAS_HOST || '100.94.199.8';
-const NAS_PORT = process.env.NAS_PORT || '5001';
-const NAS_ACCOUNT = process.env.NAS_ACCOUNT || 'seon';
-const NAS_PASSWORD = process.env.NAS_PASSWORD || '';
+const NAS_HOST = runtimeConfig.nas.host;
+const NAS_PORT = runtimeConfig.nas.port;
+const NAS_ACCOUNT = runtimeConfig.nas.account;
+const NAS_PASSWORD = runtimeConfig.nas.password;
+const NAS_CA_PATH = runtimeConfig.nas.caPath;
+const NAS_SERVERNAME = runtimeConfig.nas.servername;
+const nasPathPolicy = runtimeConfig.nas.allowedRoots.length > 0
+  ? createNasPathPolicy({ allowedRoots: runtimeConfig.nas.allowedRoots })
+  : null;
+
+function nasConfigured() {
+  return Boolean(
+    NAS_HOST
+    && NAS_ACCOUNT
+    && NAS_PASSWORD
+    && NAS_CA_PATH
+    && fs.existsSync(NAS_CA_PATH)
+    && NAS_SERVERNAME
+    && !/[\0\r\n]/.test(NAS_SERVERNAME)
+    && nasPathPolicy,
+  );
+}
+
+function nasTlsOptions() {
+  if (!nasConfigured()) throw new Error('NAS TLS configuration is unavailable');
+  return {
+    ca: fs.readFileSync(NAS_CA_PATH),
+    servername: NAS_SERVERNAME,
+    rejectUnauthorized: true,
+  };
+}
 
 function promQuery(query) {
   const url = `${GRAFANA_URL}/api/datasources/proxy/1/api/v1/query?query=${encodeURIComponent(query)}`;
@@ -2018,12 +2050,15 @@ let nasSidTime = 0;
 async function nasLogin() {
   const now = Date.now();
   if (nasSid && (now - nasSidTime) < 600000) return nasSid; // reuse for 10min
-  const url = `https://${NAS_HOST}:${NAS_PORT}/webapi/entry.cgi?api=SYNO.API.Auth&version=6&method=login&account=${NAS_ACCOUNT}&passwd=${encodeURIComponent(NAS_PASSWORD)}&format=sid`;
+  const url = `https://${NAS_HOST}:${NAS_PORT}/webapi/entry.cgi?api=SYNO.API.Auth&version=6&method=login&account=${encodeURIComponent(NAS_ACCOUNT)}&passwd=${encodeURIComponent(NAS_PASSWORD)}&format=sid`;
   const data = await new Promise((resolve, reject) => {
-    const req = https.request(url, { rejectUnauthorized: false }, (resp) => {
+    const req = https.request(url, nasTlsOptions(), (resp) => {
       let body = '';
       resp.on('data', c => body += c);
-      resp.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(e); } });
+      resp.on('end', () => {
+        if (resp.statusCode < 200 || resp.statusCode >= 300) return reject(new Error(`NAS login failed with HTTP ${resp.statusCode}`));
+        try { resolve(JSON.parse(body)); } catch(e) { reject(e); }
+      });
     });
     req.on('error', reject);
     req.end();
@@ -2039,10 +2074,13 @@ async function nasLogin() {
 function nasApi(api, version, method, sid) {
   const url = `https://${NAS_HOST}:${NAS_PORT}/webapi/entry.cgi?api=${api}&version=${version}&method=${method}&_sid=${sid}`;
   return new Promise((resolve, reject) => {
-    const req = https.request(url, { rejectUnauthorized: false, timeout: 10000 }, (resp) => {
+    const req = https.request(url, { ...nasTlsOptions(), timeout: 10000 }, (resp) => {
       let body = '';
       resp.on('data', c => body += c);
-      resp.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(e); } });
+      resp.on('end', () => {
+        if (resp.statusCode < 200 || resp.statusCode >= 300) return reject(new Error(`NAS API failed with HTTP ${resp.statusCode}`));
+        try { resolve(JSON.parse(body)); } catch(e) { reject(e); }
+      });
     });
     req.on('error', reject);
     req.on('timeout', () => { req.destroy(); reject(new Error('NAS API timeout')); });
@@ -2051,7 +2089,7 @@ function nasApi(api, version, method, sid) {
 }
 
 app.get('/api/infra/nas', async (req, res) => {
-  if (!NAS_HOST || !NAS_ACCOUNT || !NAS_PASSWORD) return res.status(503).json({ error: 'NAS API is unavailable' });
+  if (!nasConfigured()) return res.status(503).json({ error: 'NAS API is unavailable' });
   try {
     // Force fresh login to avoid stale session
     nasSid = null;
@@ -2148,6 +2186,11 @@ app.get('/api/infra/nas', async (req, res) => {
 
 // ===== NAS File Browser APIs =====
 
+app.use('/api/nas', (req, res, next) => {
+  if (!nasConfigured()) return res.status(503).json({ error: 'NAS API is unavailable' });
+  next();
+});
+
 async function getNasSid() {
   nasSid = null;
   nasSidTime = 0;
@@ -2160,8 +2203,11 @@ app.get('/api/nas/shares', async (req, res) => {
     const sid = await getNasSid();
     const data = await nasApi('SYNO.FileStation.List', 2, 'list_share', sid);
     if (!data.success) throw new Error('Failed to list shares');
-    res.json({ shares: (data.data.shares || []).map(s => ({ name: s.name, path: s.path })) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    const shares = (data.data.shares || [])
+      .filter(share => { try { nasPathPolicy.assertPath(share.path); return true; } catch { return false; } })
+      .map(share => ({ name: share.name, path: share.path }));
+    res.json({ shares });
+  } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
 });
 
 // List files in folder
@@ -2169,11 +2215,12 @@ app.get('/api/nas/files', async (req, res) => {
   const folder = req.query.path;
   if (!folder) return res.status(400).json({ error: 'path required' });
   try {
+    const safeFolder = nasPathPolicy.assertPath(folder);
     const sid = await getNasSid();
-    const sort = req.query.sort || 'name';
-    const dir = req.query.dir || 'ASC';
+    const sort = nasPathPolicy.assertSort(req.query.sort || 'name');
+    const dir = nasPathPolicy.assertDirection(req.query.dir || 'ASC');
     const data = await nasApi('SYNO.FileStation.List', 2,
-      `list&folder_path=${encodeURIComponent(folder)}&additional=size,time,type&sort_by=${sort}&sort_direction=${dir}`, sid);
+      `list&folder_path=${encodeURIComponent(safeFolder)}&additional=size,time,type&sort_by=${sort}&sort_direction=${dir}`, sid);
     if (!data.success) throw new Error(`Failed to list: ${JSON.stringify(data.error)}`);
     const files = (data.data.files || []).map(f => ({
       name: f.name,
@@ -2184,7 +2231,7 @@ app.get('/api/nas/files', async (req, res) => {
       type: f.additional?.type || '',
     }));
     res.json({ files, total: data.data.total || files.length });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
 });
 
 // Create folder
@@ -2192,12 +2239,14 @@ app.post('/api/nas/mkdir', async (req, res) => {
   const { folderPath, name } = req.body;
   if (!folderPath || !name) return res.status(400).json({ error: 'folderPath and name required' });
   try {
+    const safeFolderPath = nasPathPolicy.assertPath(folderPath);
+    const safeName = nasPathPolicy.assertName(name);
     const sid = await getNasSid();
     const data = await nasApi('SYNO.FileStation.CreateFolder', 2,
-      `create&folder_path=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(name)}`, sid);
+      `create&folder_path=${encodeURIComponent(safeFolderPath)}&name=${encodeURIComponent(safeName)}`, sid);
     if (!data.success) throw new Error(`Failed: ${JSON.stringify(data.error)}`);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
 });
 
 // Rename
@@ -2205,12 +2254,14 @@ app.post('/api/nas/rename', async (req, res) => {
   const { path: filePath, name } = req.body;
   if (!filePath || !name) return res.status(400).json({ error: 'path and name required' });
   try {
+    const safeFilePath = nasPathPolicy.assertPath(filePath);
+    const safeName = nasPathPolicy.assertName(name);
     const sid = await getNasSid();
     const data = await nasApi('SYNO.FileStation.Rename', 2,
-      `rename&path=${encodeURIComponent(filePath)}&name=${encodeURIComponent(name)}`, sid);
+      `rename&path=${encodeURIComponent(safeFilePath)}&name=${encodeURIComponent(safeName)}`, sid);
     if (!data.success) throw new Error(`Failed: ${JSON.stringify(data.error)}`);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
 });
 
 // Delete
@@ -2218,12 +2269,13 @@ app.post('/api/nas/delete', async (req, res) => {
   const { path: filePath } = req.body;
   if (!filePath) return res.status(400).json({ error: 'path required' });
   try {
+    const safeFilePath = nasPathPolicy.assertPath(filePath);
     const sid = await getNasSid();
     const data = await nasApi('SYNO.FileStation.Delete', 2,
-      `delete&path=${encodeURIComponent(filePath)}`, sid);
+      `delete&path=${encodeURIComponent(safeFilePath)}`, sid);
     if (!data.success) throw new Error(`Failed: ${JSON.stringify(data.error)}`);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
 });
 
 // Move/Copy
@@ -2231,12 +2283,14 @@ app.post('/api/nas/move', async (req, res) => {
   const { path: filePath, destPath, overwrite } = req.body;
   if (!filePath || !destPath) return res.status(400).json({ error: 'path and destPath required' });
   try {
+    const safeFilePath = nasPathPolicy.assertPath(filePath);
+    const safeDestPath = nasPathPolicy.assertPath(destPath);
     const sid = await getNasSid();
     const data = await nasApi('SYNO.FileStation.CopyMove', 3,
-      `start&path=${encodeURIComponent(filePath)}&dest_folder_path=${encodeURIComponent(destPath)}&remove_src=true&overwrite=${overwrite ? 'true' : 'false'}`, sid);
+      `start&path=${encodeURIComponent(safeFilePath)}&dest_folder_path=${encodeURIComponent(safeDestPath)}&remove_src=true&overwrite=${overwrite ? 'true' : 'false'}`, sid);
     if (!data.success) throw new Error(`Failed: ${JSON.stringify(data.error)}`);
     res.json({ success: true, taskid: data.data?.taskid });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
 });
 
 // Download proxy
@@ -2244,90 +2298,146 @@ app.get('/api/nas/download', async (req, res) => {
   const filePath = req.query.path;
   if (!filePath) return res.status(400).json({ error: 'path required' });
   try {
+    const safeFilePath = nasPathPolicy.assertPath(filePath);
     const sid = await getNasSid();
-    const url = `https://${NAS_HOST}:${NAS_PORT}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodeURIComponent(filePath)}&mode=download&_sid=${sid}`;
-    const fileName = filePath.split('/').pop();
+    const url = `https://${NAS_HOST}:${NAS_PORT}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodeURIComponent(safeFilePath)}&mode=download&_sid=${sid}`;
+    const fileName = safeFilePath.split('/').pop();
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-    const proxyReq = https.request(url, { rejectUnauthorized: false, timeout: 600000 }, (proxyRes) => {
+    const proxyReq = https.request(url, { ...nasTlsOptions(), timeout: 600000 }, (proxyRes) => {
       if (proxyRes.headers['content-type']) res.setHeader('Content-Type', proxyRes.headers['content-type']);
       if (proxyRes.headers['content-length']) res.setHeader('Content-Length', proxyRes.headers['content-length']);
       proxyRes.pipe(res);
     });
     proxyReq.on('error', (e) => { res.status(500).json({ error: e.message }); });
     proxyReq.end();
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
 });
 
 // Upload (streaming to NAS)
 app.post('/api/nas/upload', async (req, res) => {
   const busboy = require('busboy');
-  let destPath = '';
-  let fileName = '';
+  let destPath = req.query.path || req.headers['x-upload-path'] || '';
   let uploadDone = false;
+  let fileSeen = false;
+  const abortController = new AbortController();
+  const uploadBoundary = createUploadBoundary({
+    target: destPath,
+    maxBytes: runtimeConfig.nas.maxUploadBytes,
+    maxFiles: runtimeConfig.nas.maxUploadFiles,
+  });
+
+  function respondError(status, message) {
+    if (uploadDone || res.headersSent) return;
+    uploadDone = true;
+    res.status(status).json({ error: message });
+  }
 
   try {
     const sid = await getNasSid();
-    const bb = busboy({ headers: req.headers, limits: { fileSize: 11 * 1024 * 1024 * 1024 } });
+    const bb = busboy({
+      headers: req.headers,
+      limits: { fileSize: runtimeConfig.nas.maxUploadBytes, files: runtimeConfig.nas.maxUploadFiles },
+    });
+    req.on('aborted', () => abortController.abort());
 
     bb.on('field', (name, val) => {
-      if (name === 'path') destPath = val;
+      if (name !== 'path') return;
+      try {
+        destPath = nasPathPolicy.assertPath(val);
+        uploadBoundary.setTarget(destPath);
+      } catch (error) {
+        respondError(400, error.message);
+      }
     });
 
     bb.on('file', (fieldname, fileStream, info) => {
-      fileName = info.filename;
-      if (!destPath) { fileStream.resume(); return; }
+      fileSeen = true;
+      let safePath;
+      let safeName;
+      try {
+        safePath = nasPathPolicy.assertPath(uploadBoundary.startFile(info));
+        safeName = nasPathPolicy.assertName(info.filename);
+      } catch (error) {
+        fileStream.resume();
+        respondError(400, error.message);
+        return;
+      }
 
-      const boundary = '----NASStream' + Date.now();
-      const parts = [];
-      parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="api"\r\n\r\nSYNO.FileStation.Upload`);
-      parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="version"\r\n\r\n2`);
-      parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="method"\r\n\r\nupload`);
-      parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="path"\r\n\r\n${destPath}`);
-      parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="create_parents"\r\n\r\ntrue`);
-      parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="overwrite"\r\n\r\ntrue`);
-      const fileHeader = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${fileName}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
-      const prefix = parts.join('\r\n') + '\r\n' + fileHeader;
-      const footer = `\r\n--${boundary}--\r\n`;
+      void (async () => {
+        const boundary = `----NASStream${Date.now()}`;
+        const parts = [
+          `--${boundary}\r\nContent-Disposition: form-data; name="api"\r\n\r\nSYNO.FileStation.Upload`,
+          `--${boundary}\r\nContent-Disposition: form-data; name="version"\r\n\r\n2`,
+          `--${boundary}\r\nContent-Disposition: form-data; name="method"\r\n\r\nupload`,
+          `--${boundary}\r\nContent-Disposition: form-data; name="path"\r\n\r\n${safePath}`,
+          `--${boundary}\r\nContent-Disposition: form-data; name="create_parents"\r\n\r\ntrue`,
+          `--${boundary}\r\nContent-Disposition: form-data; name="overwrite"\r\n\r\ntrue`,
+        ];
+        const prefix = `${parts.join('\r\n')}\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${safeName}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
+        const footer = `\r\n--${boundary}--\r\n`;
 
-      const nasReq = https.request({
-        hostname: NAS_HOST, port: NAS_PORT,
-        path: `/webapi/entry.cgi?_sid=${sid}`,
-        method: 'POST', rejectUnauthorized: false,
-        headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Transfer-Encoding': 'chunked' },
-        timeout: 600000,
-      }, (nasRes) => {
-        let body = '';
-        nasRes.on('data', c => body += c);
-        nasRes.on('end', () => {
-          uploadDone = true;
-          try {
-            const d = JSON.parse(body);
-            if (d.success) res.json({ success: true });
-            else res.status(500).json({ error: `Upload failed: ${JSON.stringify(d.error)}` });
-          } catch { res.status(500).json({ error: 'Invalid NAS response' }); }
+        let nasReq;
+        const response = new Promise((resolve, reject) => {
+          nasReq = https.request({
+            hostname: NAS_HOST,
+            port: NAS_PORT,
+            path: `/webapi/entry.cgi?_sid=${sid}`,
+            method: 'POST',
+            ...nasTlsOptions(),
+            headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Transfer-Encoding': 'chunked' },
+            timeout: 600000,
+            signal: abortController.signal,
+          }, nasRes => {
+            let body = '';
+            nasRes.on('data', chunk => { body += chunk; });
+            nasRes.on('end', () => resolve({ statusCode: nasRes.statusCode, body }));
+          });
+          nasReq.on('error', reject);
         });
-      });
-      nasReq.on('error', (e) => { if (!uploadDone) res.status(500).json({ error: e.message }); });
+        response.catch(() => {});
 
-      nasReq.write(prefix);
-      fileStream.on('data', (chunk) => nasReq.write(chunk));
-      fileStream.on('end', () => { nasReq.write(footer); nasReq.end(); });
-      fileStream.on('error', (e) => { nasReq.destroy(); if (!uploadDone) res.status(500).json({ error: e.message }); });
+        try {
+          await writeWithBackpressure(nasReq, prefix, abortController.signal);
+          for await (const chunk of fileStream) {
+            uploadBoundary.addBytes(chunk.length);
+            await writeWithBackpressure(nasReq, chunk, abortController.signal);
+          }
+          if (fileStream.truncated) throw new Error('Upload size limit exceeded');
+          await writeWithBackpressure(nasReq, footer, abortController.signal);
+          nasReq.end();
+          const upstream = await response;
+          if (upstream.statusCode < 200 || upstream.statusCode >= 300) {
+            throw new Error(`NAS upload failed with HTTP ${upstream.statusCode}`);
+          }
+          let data;
+          try { data = JSON.parse(upstream.body); } catch { throw new Error('Invalid NAS response'); }
+          if (!data.success) throw new Error('NAS upload failed');
+          if (!uploadDone) { uploadDone = true; res.json({ success: true }); }
+        } catch (error) {
+          nasReq.destroy();
+          respondError(error.name === 'AbortError' ? 499 : 502, error.message);
+        }
+      })();
     });
 
-    bb.on('error', (e) => { if (!uploadDone) res.status(500).json({ error: e.message }); });
+    bb.on('filesLimit', () => respondError(400, 'Upload file count limit exceeded'));
+    bb.on('close', () => { if (!fileSeen) respondError(400, 'Upload file is required'); });
+    bb.on('error', error => respondError(400, error.message));
     req.pipe(bb);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (error) { respondError(error.statusCode || 500, error.message); }
 });
 
 // Cloud Drive routes
-setupGoogleRoutes(app);
-setupMicrosoftRoutes(app);
+setupGoogleRoutes(app, dependencies.googleCloud);
+setupMicrosoftRoutes(app, dependencies.microsoftCloud);
 setupGithubCatalogRoutes(app);
 setupIconRoutes(app);
 setupJmaRoutes(app);
 
-module.exports = { app };
+return app;
+}
+
+module.exports = { createApp };
 
 if (require.main === module) {
   require('./server').start();
