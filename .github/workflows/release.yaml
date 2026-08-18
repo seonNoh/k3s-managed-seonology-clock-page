@@ -5,66 +5,111 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
-  release:
+  quality:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '20'
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run web unit tests
+        run: npm run test:unit
+
+      - name: Install and test API
+        run: |
+          npm ci --prefix api
+          npm run test:api
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        run: npm run test:e2e
+
+      - name: Build web
+        run: npm run build
+
+      - name: Build extension independently
+        run: |
+          npm ci --prefix toolkit-extension
+          npm run build --prefix toolkit-extension
+
+      - name: Audit production dependencies
+        run: |
+          npm audit --omit=dev --audit-level=high
+          npm audit --prefix api --omit=dev --audit-level=high
+          npm audit --prefix toolkit-extension --omit=dev --audit-level=high
+
+      - name: Container health smoke
+        run: npm run smoke:container
+
+  release:
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
 
       - name: Install dependencies
-        run: npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/exec
+        run: npm ci
 
-      - name: Release
+      - name: Create release only when semantic-release changes VERSION
+        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
-
-      - name: Pull latest changes
-        run: git pull origin main
-
-      - name: Get version
-        id: version
-        run: |
-          if [ -f VERSION ]; then
-            echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
-          else
-            echo "version=0.0.0" >> $GITHUB_OUTPUT
-          fi
+        run: npm run release:gate
 
       - name: Set lowercase owner
         id: lowercase
+        if: steps.release.outputs.released == 'true'
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
-        if: steps.version.outputs.version != '0.0.0'
-        uses: docker/setup-buildx-action@v3
+        if: steps.release.outputs.released == 'true'
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
       - name: Log in to GitHub Container Registry
-        if: steps.version.outputs.version != '0.0.0'
-        uses: docker/login-action@v3
+        if: steps.release.outputs.released == 'true'
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        if: steps.version.outputs.version != '0.0.0'
-        uses: docker/build-push-action@v5
+        if: steps.release.outputs.released == 'true'
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:v${{ steps.version.outputs.version }}
+            ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:v${{ steps.release.outputs.version }}
             ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:latest
           cache-from: type=gha
           # 캐시 export는 best-effort. gha 캐시 백엔드의 일시적 오류
