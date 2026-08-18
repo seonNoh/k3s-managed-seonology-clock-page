@@ -40,6 +40,11 @@ jobs:
           npm ci --prefix api
           npm run test:api
 
+      - name: Build extension for browser tests
+        run: |
+          npm ci --prefix toolkit-extension
+          npm run build --prefix toolkit-extension
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
@@ -48,11 +53,6 @@ jobs:
 
       - name: Build web
         run: npm run build
-
-      - name: Build extension independently
-        run: |
-          npm ci --prefix toolkit-extension
-          npm run build --prefix toolkit-extension
 
       - name: Audit production dependencies
         run: |

@@ -97,6 +97,16 @@ test('release workflow는 push 전에 load한 planned image를 동일 version으
   assert.match(workflow, /- name: Smoke planned image[\s\S]*?run: node scripts\/container-smoke\.mjs/)
 })
 
+test('release workflow는 extension popup E2E 전에 extension artifact를 만든다', () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/release.yaml', import.meta.url), 'utf8')
+  const extensionBuildIndex = workflow.indexOf('- name: Build extension for browser tests')
+  const browserTestIndex = workflow.indexOf('- name: Run browser tests')
+
+  assert.ok(extensionBuildIndex >= 0)
+  assert.ok(browserTestIndex > extensionBuildIndex)
+  assert.match(workflow, /- name: Build extension for browser tests[\s\S]*?npm ci --prefix toolkit-extension[\s\S]*?npm run build --prefix toolkit-extension/)
+})
+
 test('release workflow는 image push 직전에 remote main의 planned base SHA를 검증한다', () => {
   const workflow = readFileSync(new URL('../../.github/workflows/release.yaml', import.meta.url), 'utf8')
   const preflightIndex = workflow.indexOf('- name: Verify planned base SHA before image push')
