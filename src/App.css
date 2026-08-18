@@ -2379,6 +2379,17 @@
   max-height: 94vh;
 }
 
+.tool-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  background: rgba(9, 13, 20, 0.76);
+  backdrop-filter: blur(12px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   [class$="-overlay"] > *,
   .modal-overlay > .modal-content,

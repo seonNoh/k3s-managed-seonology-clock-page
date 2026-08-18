@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Sun, CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog, Square, CalendarDays } from 'lucide-react';
 import Clock from './components/Clock';
@@ -7,39 +7,19 @@ import Weather from './components/Weather';
 import TodoList from './components/TodoList';
 import Calendar from './components/Calendar';
 import ExchangeRate from './components/ExchangeRate';
-import NotesPanel from './components/NotesPanel';
-import ChatPanel from './components/ChatPanel';
-import MarkdownPreview from './components/MarkdownPreview';
-import UnitConverter from './components/UnitConverter';
-import Base64Tool from './components/Base64Tool';
-import JsonFormatter from './components/JsonFormatter';
-import IpLookup from './components/IpLookup';
-import PasswordGenerator from './components/PasswordGenerator';
-import ColorPicker from './components/ColorPicker';
-import CronEditor from './components/CronEditor';
-import SubnetVisualizer from './components/SubnetVisualizer';
-import SloCalculator from './components/SloCalculator';
-import CiCdVisualizer from './components/CiCdVisualizer';
-import ExcelToMarkdown from './components/ExcelToMarkdown';
-import RbacVisualizer from './components/RbacVisualizer';
-import TerraformParser from './components/TerraformParser';
-import GitlabToGithub from './components/GitlabToGithub';
-import ArchIconSearch from './components/ArchIconSearch';
 import BrowserStats from './components/BrowserStats';
-import SpeedTest, { SpeedTestMini } from './components/SpeedTest';
-import RegexTester from './components/RegexTester';
-import EpochConverter from './components/EpochConverter';
-import TextCounter from './components/TextCounter';
-import DnsLookup from './components/DnsLookup';
-import MermaidEditor from './components/MermaidEditor';
-import InfraDashboard from './components/InfraDashboard';
-import RepoCatalog from './components/RepoCatalog';
-import NasBrowser from './components/NasBrowser';
-import CloudBrowser from './components/CloudBrowser';
+import { SpeedTestMini } from './components/SpeedTest';
+import { closeTopDialog, filterToolCatalog, openToolDialog } from './features/tool-launcher/dialog-state';
+import { getWebTool, WEB_TOOL_CATALOG } from './features/tool-launcher/toolRegistry.web';
 import './App.css';
 
 // Import version from VERSION file (will be replaced at build time)
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
+const TOOL_GRID_IDS = new Set([
+  'notes', 'markdown', 'chat', 'unit', 'base64', 'json', 'ip', 'password',
+  'color', 'cron', 'subnet', 'slo', 'cicd', 'excel', 'rbac', 'terraform',
+  'gl2gh', 'archicon', 'regex', 'epoch', 'textcounter', 'dns', 'mermaid',
+]);
 
 // Services will be loaded from API
 
@@ -1074,35 +1054,7 @@ const ANIM_EFFECTS = [
 
 function App() {
   const [activeModal, setActiveModal] = useState(null);
-  const [showNotes, setShowNotes] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [showMarkdown, setShowMarkdown] = useState(false);
-  const [showUnitConverter, setShowUnitConverter] = useState(false);
-  const [showBase64, setShowBase64] = useState(false);
-  const [showJsonFormatter, setShowJsonFormatter] = useState(false);
-  const [showIpLookup, setShowIpLookup] = useState(false);
-  const [showPasswordGen, setShowPasswordGen] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showCronEditor, setShowCronEditor] = useState(false);
-  const [showSubnetViz, setShowSubnetViz] = useState(false);
-  const [showSloCalc, setShowSloCalc] = useState(false);
-  const [showCiCd, setShowCiCd] = useState(false);
-  const [showExcelMd, setShowExcelMd] = useState(false);
-  const [showRbac, setShowRbac] = useState(false);
-  const [showTfState, setShowTfState] = useState(false);
-  const [showGl2Gh, setShowGl2Gh] = useState(false);
-  const [showArchIcon, setShowArchIcon] = useState(false);
-  const [showSpeedTest, setShowSpeedTest] = useState(false);
-  const [showRegex, setShowRegex] = useState(false);
-  const [showEpoch, setShowEpoch] = useState(false);
-  const [showTextCounter, setShowTextCounter] = useState(false);
-  const [showDns, setShowDns] = useState(false);
-  const [showMermaid, setShowMermaid] = useState(false);
-  const [showInfra, setShowInfra] = useState(false);
-  const [showRepoCatalog, setShowRepoCatalog] = useState(false);
-  const [showNasBrowser, setShowNasBrowser] = useState(false);
-  const [showGdrive, setShowGdrive] = useState(false);
-  const [showOnedrive, setShowOnedrive] = useState(false);
+  const [activeToolId, setActiveToolId] = useState(null);
   const [showQuickLinks, setShowQuickLinks] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [mobileTopSheetOpen, setMobileTopSheetOpen] = useState(false);
@@ -1121,70 +1073,45 @@ function App() {
   const settingsBtnRef = useRef(null);
   const [toolsExpanded, setToolsExpanded] = useState(false);
   const [toolSearch, setToolSearch] = useState('');
-  const [toolMatchCount, setToolMatchCount] = useState(0);
-  const toolsGridRef = useRef(null);
+  const filteredTools = filterToolCatalog(WEB_TOOL_CATALOG, toolSearch);
+  const visibleToolIds = new Set(filteredTools.map((tool) => tool.id));
+  const calendarVisible = 'calendar'.includes(toolSearch.trim().toLowerCase());
+  const toolMatchCount = filteredTools.filter((tool) => TOOL_GRID_IDS.has(tool.id)).length + (calendarVisible ? 1 : 0);
+  const activeTool = getWebTool(activeToolId);
+  const ActiveToolComponent = activeTool?.component || null;
 
-  // Tools 모달 검색: 하드코딩된 도구 버튼들을 title/label 기준으로 실시간 필터한다.
-  useEffect(() => {
-    if (!toolsExpanded) return;
-    const grid = toolsGridRef.current;
-    if (!grid) return;
-    const q = toolSearch.trim().toLowerCase();
-    let count = 0;
-    grid.querySelectorAll('.app-icon-btn').forEach((btn) => {
-      const hay = `${btn.getAttribute('title') || ''} ${btn.textContent || ''}`.toLowerCase();
-      const match = !q || hay.includes(q);
-      btn.style.display = match ? '' : 'none';
-      if (match) count += 1;
-    });
-    setToolMatchCount(count);
-  }, [toolSearch, toolsExpanded]);
-
-  const openModal = (name) => { setActiveModal(name); setMobileDrawerOpen(false); };
+  const openModal = (name) => {
+    setActiveToolId(null);
+    setToolsExpanded(false);
+    setActiveModal(name);
+    setMobileDrawerOpen(false);
+  };
   const closeModal = () => setActiveModal(null);
 
-  // Close drawer when opening any panel
-  const openPanel = (setter) => { setter(true); setMobileDrawerOpen(false); };
+  const openTool = (toolId) => {
+    const next = openToolDialog({ toolsExpanded, activeToolId, activeModal }, toolId);
+    setToolsExpanded(next.toolsExpanded);
+    setActiveToolId(next.activeToolId);
+    setActiveModal(next.activeModal);
+    setMobileDrawerOpen(false);
+  };
 
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') {
-        if (showChat) setShowChat(false);
-        else if (showMarkdown) setShowMarkdown(false);
-        else if (showUnitConverter) setShowUnitConverter(false);
-        else if (showBase64) setShowBase64(false);
-        else if (showJsonFormatter) setShowJsonFormatter(false);
-        else if (showIpLookup) setShowIpLookup(false);
-        else if (showPasswordGen) setShowPasswordGen(false);
-        else if (showColorPicker) setShowColorPicker(false);
-        else if (showCronEditor) setShowCronEditor(false);
-        else if (showSubnetViz) setShowSubnetViz(false);
-        else if (showSloCalc) setShowSloCalc(false);
-        else if (showCiCd) setShowCiCd(false);
-        else if (showExcelMd) setShowExcelMd(false);
-        else if (showRbac) setShowRbac(false);
-        else if (showTfState) setShowTfState(false);
-        else if (showGl2Gh) setShowGl2Gh(false);
-        else if (showArchIcon) setShowArchIcon(false);
-        else if (showSpeedTest) setShowSpeedTest(false);
-        else if (showRegex) setShowRegex(false);
-        else if (showEpoch) setShowEpoch(false);
-        else if (showTextCounter) setShowTextCounter(false);
-        else if (showDns) setShowDns(false);
-        else if (showMermaid) setShowMermaid(false);
-        else if (showInfra) setShowInfra(false);
-        else if (showRepoCatalog) setShowRepoCatalog(false);
-        else if (showNasBrowser) setShowNasBrowser(false);
-        else if (showGdrive) setShowGdrive(false);
-        else if (showOnedrive) setShowOnedrive(false);
-        else if (showQuickLinks) setShowQuickLinks(false);
-        else if (showNotes) setShowNotes(false);
-        else closeModal();
+        if (activeToolId || toolsExpanded || activeModal) {
+          const next = closeTopDialog({ toolsExpanded, activeToolId, activeModal });
+          setToolsExpanded(next.toolsExpanded);
+          setActiveToolId(next.activeToolId);
+          setActiveModal(next.activeModal);
+        } else if (showQuickLinks) {
+          setShowQuickLinks(false);
+        }
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [showNotes, showChat, showMarkdown, showUnitConverter, showBase64, showJsonFormatter, showIpLookup, showPasswordGen, showColorPicker, showCronEditor, showSubnetViz, showSloCalc, showCiCd, showExcelMd, showRbac, showTfState, showGl2Gh, showArchIcon, showRepoCatalog]);
+  }, [activeModal, activeToolId, showQuickLinks, toolsExpanded]);
 
   useEffect(() => { localStorage.setItem('clock-cursor-effect', cursorEffect); }, [cursorEffect]);
   useEffect(() => { localStorage.setItem('clock-cursor-anim', cursorAnim); }, [cursorAnim]);
@@ -1350,7 +1277,7 @@ function App() {
       </div>
 
       {/* Infrastructure Dashboard Button */}
-      <button className={`tools-toggle-btn${showInfra ? ' expanded' : ''}`} onClick={() => openPanel(setShowInfra)}>
+      <button className={`tools-toggle-btn${activeToolId === 'infra' ? ' expanded' : ''}`} onClick={() => openTool('infra')}>
         <span className="tools-toggle-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2" y="3" width="20" height="4" rx="1" /><path d="M12 7v4" /><path d="M6 11h12" /><path d="M6 11v4" /><path d="M18 11v4" /><path d="M12 11v4" />
@@ -1361,7 +1288,7 @@ function App() {
       </button>
 
       {/* Repository Catalog Button */}
-      <button className={`tools-toggle-btn${showRepoCatalog ? ' expanded' : ''}`} onClick={() => openPanel(setShowRepoCatalog)}>
+      <button className={`tools-toggle-btn${activeToolId === 'repos' ? ' expanded' : ''}`} onClick={() => openTool('repos')}>
         <span className="tools-toggle-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 3h7v7H3z" /><path d="M14 3h7v7h-7z" /><path d="M14 14h7v7h-7z" /><path d="M3 14h7v7H3z" />
@@ -1371,7 +1298,7 @@ function App() {
       </button>
 
       {/* NAS File Browser Button */}
-      <button className={`tools-toggle-btn${showNasBrowser ? ' expanded' : ''}`} onClick={() => openPanel(setShowNasBrowser)}>
+      <button className={`tools-toggle-btn${activeToolId === 'nas' ? ' expanded' : ''}`} onClick={() => openTool('nas')}>
         <span className="tools-toggle-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
@@ -1381,7 +1308,7 @@ function App() {
       </button>
 
       {/* Google Drive Button */}
-      <button className={`tools-toggle-btn${showGdrive ? ' expanded' : ''}`} onClick={() => openPanel(setShowGdrive)}>
+      <button className={`tools-toggle-btn${activeToolId === 'gdrive' ? ' expanded' : ''}`} onClick={() => openTool('gdrive')}>
         <span className="tools-toggle-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4285f4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2L2 19.5h20L12 2z" /><path d="M12 2l8.5 17.5" /><path d="M2 19.5h17" />
@@ -1391,7 +1318,7 @@ function App() {
       </button>
 
       {/* OneDrive Button */}
-      <button className={`tools-toggle-btn${showOnedrive ? ' expanded' : ''}`} onClick={() => openPanel(setShowOnedrive)}>
+      <button className={`tools-toggle-btn${activeToolId === 'onedrive' ? ' expanded' : ''}`} onClick={() => openTool('onedrive')}>
         <span className="tools-toggle-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0078d4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
@@ -1494,8 +1421,8 @@ function App() {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
-          <div className="tools-modal-grid" ref={toolsGridRef}>
-        <button className="app-icon-btn" onClick={() => openModal('calendar')} title="Calendar">
+          <div className="tools-modal-grid">
+        <button className="app-icon-btn" hidden={!calendarVisible} onClick={() => openModal('calendar')} title="Calendar">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
@@ -1504,7 +1431,7 @@ function App() {
           <span className="app-icon-label">Calendar</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowNotes)} title="Notes">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('notes')} onClick={() => openTool('notes')} title="Notes">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -1515,7 +1442,7 @@ function App() {
           <span className="app-icon-label">Notes</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowMarkdown)} title="Markdown">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('markdown')} onClick={() => openTool('markdown')} title="Markdown">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -1525,7 +1452,7 @@ function App() {
           <span className="app-icon-label">Markdown</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowChat)} title="AI Chat">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('chat')} onClick={() => openTool('chat')} title="AI Chat">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -1534,7 +1461,7 @@ function App() {
           <span className="app-icon-label">AI Chat</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowUnitConverter)} title="Unit Converter">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('unit')} onClick={() => openTool('unit')} title="Unit Converter">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
@@ -1544,7 +1471,7 @@ function App() {
           <span className="app-icon-label">Converter</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowBase64)} title="Base64">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('base64')} onClick={() => openTool('base64')} title="Base64">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M7 15h0M2 9.5h20" />
@@ -1553,7 +1480,7 @@ function App() {
           <span className="app-icon-label">Base64</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowJsonFormatter)} title="JSON Formatter">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('json')} onClick={() => openTool('json')} title="JSON Formatter">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" />
@@ -1563,7 +1490,7 @@ function App() {
           <span className="app-icon-label">JSON</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowIpLookup)} title="IP Lookup">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('ip')} onClick={() => openTool('ip')} title="IP Lookup">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
@@ -1573,7 +1500,7 @@ function App() {
           <span className="app-icon-label">IP</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowPasswordGen)} title="Password Generator">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('password')} onClick={() => openTool('password')} title="Password Generator">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -1583,7 +1510,7 @@ function App() {
           <span className="app-icon-label">PW</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowColorPicker)} title="Color Picker">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('color')} onClick={() => openTool('color')} title="Color Picker">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="13.5" cy="6.5" r="2.5" />
@@ -1596,7 +1523,7 @@ function App() {
           <span className="app-icon-label">Color</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowCronEditor)} title="Cron Editor">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('cron')} onClick={() => openTool('cron')} title="Cron Editor">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -1606,7 +1533,7 @@ function App() {
           <span className="app-icon-label">Cron</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowSubnetViz)} title="CIDR / Subnet Visualizer">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('subnet')} onClick={() => openTool('subnet')} title="CIDR / Subnet Visualizer">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="3" width="20" height="4" rx="1" />
@@ -1623,7 +1550,7 @@ function App() {
           <span className="app-icon-label">CIDR</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowSloCalc)} title="SLO / SLI Calculator">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('slo')} onClick={() => openTool('slo')} title="SLO / SLI Calculator">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-4" />
@@ -1632,7 +1559,7 @@ function App() {
           <span className="app-icon-label">SLO</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowCiCd)} title="CI/CD Pipeline Visualizer">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('cicd')} onClick={() => openTool('cicd')} title="CI/CD Pipeline Visualizer">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
@@ -1643,7 +1570,7 @@ function App() {
           <span className="app-icon-label">CI/CD</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowExcelMd)} title="Excel → Markdown Table">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('excel')} onClick={() => openTool('excel')} title="Excel → Markdown Table">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -1653,7 +1580,7 @@ function App() {
           <span className="app-icon-label">Excel→MD</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowRbac)} title="RBAC Visualizer">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('rbac')} onClick={() => openTool('rbac')} title="RBAC Visualizer">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -1663,7 +1590,7 @@ function App() {
           <span className="app-icon-label">RBAC</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowTfState)} title="Terraform State Parser">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('terraform')} onClick={() => openTool('terraform')} title="Terraform State Parser">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -1674,7 +1601,7 @@ function App() {
           <span className="app-icon-label">Terraform</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowGl2Gh)} title="GitLab CI → GitHub Actions">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('gl2gh')} onClick={() => openTool('gl2gh')} title="GitLab CI → GitHub Actions">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
@@ -1685,7 +1612,7 @@ function App() {
           <span className="app-icon-label">GL→GH</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowArchIcon)} title="Architecture Icon Search">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('archicon')} onClick={() => openTool('archicon')} title="Architecture Icon Search">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -1697,7 +1624,7 @@ function App() {
           <span className="app-icon-label">Arch Icons</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowRegex)} title="Regex Tester">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('regex')} onClick={() => openTool('regex')} title="Regex Tester">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
@@ -1706,7 +1633,7 @@ function App() {
           <span className="app-icon-label">Regex</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowEpoch)} title="Epoch Converter">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('epoch')} onClick={() => openTool('epoch')} title="Epoch Converter">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -1716,7 +1643,7 @@ function App() {
           <span className="app-icon-label">Epoch</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowTextCounter)} title="Text Counter">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('textcounter')} onClick={() => openTool('textcounter')} title="Text Counter">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -1727,7 +1654,7 @@ function App() {
           <span className="app-icon-label">TextCnt</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowDns)} title="DNS Lookup">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('dns')} onClick={() => openTool('dns')} title="DNS Lookup">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
@@ -1738,7 +1665,7 @@ function App() {
           <span className="app-icon-label">DNS</span>
         </button>
 
-        <button className="app-icon-btn" onClick={() => openPanel(setShowMermaid)} title="Mermaid Editor">
+        <button className="app-icon-btn" hidden={!visibleToolIds.has('mermaid')} onClick={() => openTool('mermaid')} title="Mermaid Editor">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -1862,7 +1789,7 @@ function App() {
             </a>
           </div>
         </div>
-        <SpeedTestMini onClick={() => setShowSpeedTest(true)} />
+        <SpeedTestMini onClick={() => openTool('speedtest')} />
         <SearchBar />
       </main>
 
@@ -1871,92 +1798,15 @@ function App() {
 
 
 
-      {/* Notes Panel */}
-      <NotesPanel isOpen={showNotes} onClose={() => setShowNotes(false)} />
-
-      {/* Chat Panel */}
-      <ChatPanel isOpen={showChat} onClose={() => setShowChat(false)} />
-
-      {/* Markdown Preview */}
-      <MarkdownPreview isOpen={showMarkdown} onClose={() => setShowMarkdown(false)} />
-
-      {/* Unit Converter */}
-      <UnitConverter isOpen={showUnitConverter} onClose={() => setShowUnitConverter(false)} />
-
-      {/* Base64 Tool */}
-      <Base64Tool isOpen={showBase64} onClose={() => setShowBase64(false)} />
-
-      {/* JSON Formatter */}
-      <JsonFormatter isOpen={showJsonFormatter} onClose={() => setShowJsonFormatter(false)} />
-
-      {/* IP Lookup */}
-      <IpLookup isOpen={showIpLookup} onClose={() => setShowIpLookup(false)} />
-
-      {/* Password Generator */}
-      <PasswordGenerator isOpen={showPasswordGen} onClose={() => setShowPasswordGen(false)} />
-
-      {/* Color Picker */}
-      <ColorPicker isOpen={showColorPicker} onClose={() => setShowColorPicker(false)} />
-
-      {/* Cron Editor */}
-      <CronEditor isOpen={showCronEditor} onClose={() => setShowCronEditor(false)} />
-
-      {/* Subnet Visualizer */}
-      <SubnetVisualizer isOpen={showSubnetViz} onClose={() => setShowSubnetViz(false)} />
-
-      {/* SLO Calculator */}
-      <SloCalculator isOpen={showSloCalc} onClose={() => setShowSloCalc(false)} />
-
-      {/* CI/CD Visualizer */}
-      <CiCdVisualizer isOpen={showCiCd} onClose={() => setShowCiCd(false)} />
-
-      {/* Excel to Markdown */}
-      <ExcelToMarkdown isOpen={showExcelMd} onClose={() => setShowExcelMd(false)} />
-
-      {/* RBAC Visualizer */}
-      <RbacVisualizer isOpen={showRbac} onClose={() => setShowRbac(false)} />
-
-      {/* Terraform State Parser */}
-      <TerraformParser isOpen={showTfState} onClose={() => setShowTfState(false)} />
-
-      {/* GitLab CI → GitHub Actions */}
-      <GitlabToGithub isOpen={showGl2Gh} onClose={() => setShowGl2Gh(false)} />
-
-      {/* Architecture Icon Search */}
-      <ArchIconSearch isOpen={showArchIcon} onClose={() => setShowArchIcon(false)} />
-
-      {/* Speed Test */}
-      <SpeedTest isOpen={showSpeedTest} onClose={() => setShowSpeedTest(false)} />
-
-      {/* Regex Tester */}
-      <RegexTester isOpen={showRegex} onClose={() => setShowRegex(false)} />
-
-      {/* Epoch Converter */}
-      <EpochConverter isOpen={showEpoch} onClose={() => setShowEpoch(false)} />
-
-      {/* Text Counter */}
-      <TextCounter isOpen={showTextCounter} onClose={() => setShowTextCounter(false)} />
-
-      {/* DNS Lookup */}
-      <DnsLookup isOpen={showDns} onClose={() => setShowDns(false)} />
-
-      {/* Mermaid Editor */}
-      <MermaidEditor isOpen={showMermaid} onClose={() => setShowMermaid(false)} />
-
-      {/* Infrastructure Dashboard */}
-      <InfraDashboard isOpen={showInfra} onClose={() => setShowInfra(false)} />
-
-      {/* Repository Catalog */}
-      <RepoCatalog isOpen={showRepoCatalog} onClose={() => setShowRepoCatalog(false)} />
-
-      {/* NAS File Browser */}
-      <NasBrowser isOpen={showNasBrowser} onClose={() => setShowNasBrowser(false)} />
-
-      {/* Google Drive */}
-      <CloudBrowser isOpen={showGdrive} onClose={() => setShowGdrive(false)} provider="gdrive" />
-
-      {/* OneDrive */}
-      <CloudBrowser isOpen={showOnedrive} onClose={() => setShowOnedrive(false)} provider="onedrive" />
+      {ActiveToolComponent && (
+        <Suspense fallback={<div className="tool-loading-overlay" role="status">도구를 불러오는 중입니다.</div>}>
+          <ActiveToolComponent
+            isOpen
+            onClose={() => setActiveToolId(null)}
+            {...(activeTool.props || {})}
+          />
+        </Suspense>
+      )}
 
       {/* Modals */}
       <Modal isOpen={activeModal === 'services'} onClose={closeModal} title="SEONOLOGY">

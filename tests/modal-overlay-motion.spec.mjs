@@ -47,3 +47,18 @@ test('modal panels disable entry animation for reduced motion', async ({ page })
   await expect(page.locator('.modal-content')).toBeVisible();
   await expect(page.locator('.modal-content')).toHaveCSS('animation-name', 'none');
 });
+
+test('opening a tool replaces the launcher instead of stacking overlays', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Tools', exact: true }).click();
+  await expect(page.locator('.tools-modal-overlay')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Markdown', exact: true }).click();
+  await expect(page.locator('.tools-modal-overlay')).toHaveCount(0);
+  await expect(page.locator('.md-overlay')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.md-overlay')).toHaveCount(0);
+  await expect(page.locator('.tools-modal-overlay')).toHaveCount(0);
+});
