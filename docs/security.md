@@ -27,6 +27,8 @@
 
 nginx는 `/health`와 `/api/`를 loopback Express API로만 프록시합니다. `/health`가 API 연결 실패를 그대로 5xx로 반환하므로 readiness가 stale static asset으로 성공하지 않습니다. 일반 요청은 1 MiB, 승인된 업로드 route는 100 MiB로 제한합니다.
 
+컨테이너는 UID/GID `10001`로 실행하며 privilege escalation과 Linux capabilities를 허용하지 않고, RuntimeDefault seccomp profile을 사용합니다. root filesystem은 read-only이고 `/data` PVC 및 `/tmp`, `/var/cache/nginx`, `/var/run/nginx` emptyDir만 쓰기 가능하게 mount합니다. Docker smoke도 같은 read-only 조건과 tmpfs mount를 강제해 health endpoint를 검증합니다.
+
 응답에는 CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`를 적용합니다. CSP의 외부 이미지·연결 허용은 현 기능의 HTTPS provider 통신을 위한 것이며, provider를 추가할 때는 필요한 origin만으로 더 좁혀야 합니다.
 
 ## 검증과 대응

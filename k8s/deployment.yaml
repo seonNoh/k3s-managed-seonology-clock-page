@@ -23,6 +23,14 @@ spec:
         instrumentation.opentelemetry.io/inject-nodejs: "seonology-tracing/seonology-tracing"
     spec:
       serviceAccountName: seonology-clock-page
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       nodeSelector:
         node-type: lima
       tolerations:
@@ -34,7 +42,7 @@ spec:
       - name: seonology-clock-page
         image: ghcr.io/seonnoh/seonology-clock-page:v1.44.0
         ports:
-        - containerPort: 80
+        - containerPort: 8080
           name: http
         - containerPort: 3001
           name: api
@@ -85,7 +93,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: clock-page-secrets
-              key: grafana-pass
+              key: grafana-admin-pass
               optional: true
         - name: GOOGLE_CLIENT_ID
           valueFrom:
@@ -114,6 +122,20 @@ spec:
         volumeMounts:
         - name: bookmarks-data
           mountPath: /data
+        - name: tmp
+          mountPath: /tmp
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run/nginx
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
         resources:
           requests:
             memory: "128Mi"
@@ -124,22 +146,28 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 80
+            port: http
           initialDelaySeconds: 10
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
-            port: 80
+            port: http
           initialDelaySeconds: 5
           periodSeconds: 5
         startupProbe:
           httpGet:
             path: /health
-            port: 80
+            port: http
           failureThreshold: 30
           periodSeconds: 2
       volumes:
       - name: bookmarks-data
         persistentVolumeClaim:
           claimName: clock-bookmarks-pvc
+      - name: tmp
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}

@@ -10,6 +10,27 @@ export function parsePublishedPort(value) {
   return `http://${address}`
 }
 
+export function createReadonlyRuntimeArgs(name, image) {
+  return [
+    'run',
+    '-d',
+    '--read-only',
+    '--tmpfs',
+    '/tmp:rw,noexec,nosuid,mode=1777,size=16m',
+    '--tmpfs',
+    '/var/cache/nginx:rw,noexec,nosuid,mode=1777,size=16m',
+    '--tmpfs',
+    '/var/run/nginx:rw,noexec,nosuid,mode=1777,size=4m',
+    '--tmpfs',
+    '/data:rw,noexec,nosuid,mode=1777,size=16m',
+    '--name',
+    name,
+    '-p',
+    '127.0.0.1::8080',
+    image,
+  ]
+}
+
 async function waitForHealth(endpoint) {
   let lastError
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -41,10 +62,14 @@ async function main() {
 
   try {
     if (process.env.SMOKE_SKIP_BUILD !== '1') docker(['build', '-t', image, '.'], { stdio: 'inherit' })
-    docker(['run', '-d', '--name', name, '-p', '127.0.0.1::80', image])
+    docker(createReadonlyRuntimeArgs(name, image))
     started = true
-    const endpoint = parsePublishedPort(docker(['port', name, '80']))
+    const endpoint = parsePublishedPort(docker(['port', name, '8080']))
     await waitForHealth(endpoint)
+
+    if (docker(['exec', name, 'id', '-u']) !== '10001') {
+      throw new Error('Container did not run as UID 10001')
+    }
 
     docker(['exec', name, 'sh', '-c', 'kill -TERM "$(pidof node)"'])
     for (let attempt = 0; attempt < 10; attempt += 1) {

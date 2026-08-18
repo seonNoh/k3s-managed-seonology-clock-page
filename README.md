@@ -48,8 +48,8 @@ npm run build --prefix toolkit-extension
 
 ```sh
 docker build -t seonology-clock-page:local .
-docker run --rm -d --name seonology-clock-page-smoke -p 127.0.0.1::80 seonology-clock-page:local
-docker port seonology-clock-page-smoke 80
+docker run --rm -d --name seonology-clock-page-smoke -p 127.0.0.1::8080 seonology-clock-page:local
+docker port seonology-clock-page-smoke 8080
 curl --fail --silent --show-error http://127.0.0.1:<published-port>/health
 docker exec seonology-clock-page-smoke pkill -f 'node /app/api/server.js'
 curl --fail --silent --show-error http://127.0.0.1:<published-port>/health
