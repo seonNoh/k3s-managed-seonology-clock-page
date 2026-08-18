@@ -126,7 +126,10 @@ jobs:
           context: .
           load: true
           push: false
-          tags: seonology-clock-page:release-verify-${{ needs.plan.outputs.version }}
+          tags: |
+            seonology-clock-page:release-verify-${{ needs.plan.outputs.version }}
+            ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:v${{ needs.plan.outputs.version }}
+            ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:latest
           build-args: |
             APP_VERSION=${{ needs.plan.outputs.version }}
           cache-from: type=gha
@@ -138,21 +141,15 @@ jobs:
           SMOKE_APP_VERSION: ${{ needs.plan.outputs.version }}
         run: node scripts/container-smoke.mjs
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-        with:
-          context: .
-          push: true
-          tags: |
-            ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:v${{ needs.plan.outputs.version }}
-            ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:latest
-          build-args: |
-            APP_VERSION=${{ needs.plan.outputs.version }}
-          cache-from: type=gha
-          # 캐시 export는 best-effort. gha 캐시 백엔드의 일시적 오류
-          # (error writing layer blob: not_found)로 이미지 푸시 성공 후에도
-          # 빌드 스텝이 실패 처리되던 문제를 막는다.
-          cache-to: type=gha,mode=max,ignore-error=true
+      - name: Verify planned base SHA before image push
+        env:
+          RELEASE_BASE_SHA: ${{ needs.plan.outputs.base_sha }}
+        run: node scripts/release-image-gate.mjs
+
+      - name: Push verified Docker image
+        run: |
+          docker push ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:v${{ needs.plan.outputs.version }}
+          docker push ghcr.io/${{ steps.lowercase.outputs.owner }}/seonology-clock-page:latest
 
   publish:
     needs: [plan, image]

@@ -8,6 +8,7 @@ import test from 'node:test'
 import {
   GithubReleaseError,
   ReleasePlanError,
+  assertPlannedBaseSha,
   createGithubAdapter,
   createChangelogSection,
   createGitAdapter,
@@ -110,6 +111,11 @@ test('stale remote이면 publish는 파일 또는 git mutation 전에 중단한�
     github: { createRelease: async () => {} },
   }), /stale release plan/)
   assert.deepEqual(writes, [])
+})
+
+test('planned image preflight는 remote main SHA가 계획 base와 다르면 중단한다', () => {
+  assert.throws(() => assertPlannedBaseSha({ baseSha: 'planned', git: { remoteMainSha: () => 'newer' } }), /stale release plan/)
+  assert.doesNotThrow(() => assertPlannedBaseSha({ baseSha: 'planned', git: { remoteMainSha: () => 'planned' } }))
 })
 
 test('GitHub API 오류는 token과 response body를 노출하지 않는다', async () => {
@@ -236,10 +242,12 @@ test('API-only recovery는 annotated tag, parent, VERSION, changelog provenance�
       [`rev-parse refs/tags/v${version}`]: { status: 0, stdout: `${tagObjectSha}\n` },
       [`rev-parse refs/tags/v${version}^{commit}`]: { status: 0, stdout: `${releaseSha}\n` },
       [`ls-remote origin refs/tags/v${version} refs/tags/v${version}^{}`]: { status: 0, stdout: `${tagObjectSha}\trefs/tags/v${version}\n${releaseSha}\trefs/tags/v${version}^{}\n` },
-      [`rev-parse ${releaseSha}^`]: { status: 0, stdout: `${baseSha}\n` },
+      [`rev-list --parents -n 1 ${releaseSha}`]: { status: 0, stdout: `${releaseSha} ${baseSha}\n` },
       [`log -1 --format=%s refs/tags/v${version}`]: { status: 0, stdout: `chore(release): ${version} [skip ci]\n` },
       [`show ${releaseSha}:VERSION`]: { status: 0, stdout: `${version}\n` },
       [`show ${releaseSha}:CHANGELOG.md`]: { status: 0, stdout: `${notes}\n\n# Changelog\n` },
+      [`show ${baseSha}:CHANGELOG.md`]: { status: 0, stdout: '# Changelog\n' },
+      [`diff-tree --no-commit-id --name-only -r ${releaseSha}`]: { status: 0, stdout: 'CHANGELOG.md\nVERSION\n' },
       [`merge-base --is-ancestor ${releaseSha} ${releaseSha}`]: { status: 0, stdout: '' },
     }
     return overrides[key] ?? defaults[key] ?? { status: 1, stdout: '', stderr: 'unexpected command' }
@@ -247,10 +255,84 @@ test('API-only recovery는 annotated tag, parent, VERSION, changelog provenance�
   const input = { baseSha, version, notes }
   assert.equal(createGitAdapter({ run: runFor() }).isPublishedRelease(input), true)
   assert.equal(createGitAdapter({ run: runFor({ [`cat-file -t refs/tags/v${version}`]: { status: 0, stdout: 'commit\n' } }) }).isPublishedRelease(input), false)
-  assert.equal(createGitAdapter({ run: runFor({ [`rev-parse ${releaseSha}^`]: { status: 0, stdout: `${'d'.repeat(40)}\n` } }) }).isPublishedRelease(input), false)
+  assert.equal(createGitAdapter({ run: runFor({ [`rev-list --parents -n 1 ${releaseSha}`]: { status: 0, stdout: `${releaseSha} ${baseSha} ${'d'.repeat(40)}\n` } }) }).isPublishedRelease(input), false)
   assert.equal(createGitAdapter({ run: runFor({ [`show ${releaseSha}:VERSION`]: { status: 0, stdout: '9.9.9\n' } }) }).isPublishedRelease(input), false)
   assert.equal(createGitAdapter({ run: runFor({ [`show ${releaseSha}:CHANGELOG.md`]: { status: 0, stdout: '## [1.2.4] - 2026-08-18\n\n### Fixes\n\n- fake\n' } }) }).isPublishedRelease(input), false)
+  assert.equal(createGitAdapter({ run: runFor({ [`diff-tree --no-commit-id --name-only -r ${releaseSha}`]: { status: 0, stdout: 'CHANGELOG.md\nVERSION\nunexpected.js\n' } }) }).isPublishedRelease(input), false)
   assert.equal(createGitAdapter({ run: runFor({ [`ls-remote origin refs/tags/v${version} refs/tags/v${version}^{}`]: { status: 0, stdout: `${tagObjectSha}\trefs/tags/v${version}\n${'d'.repeat(40)}\trefs/tags/v${version}^{}\n` } }) }).isPublishedRelease(input), false)
+})
+
+test('API-only recovery는 실제 bare remote의 source 변경, 이전 changelog 변조, merge release를 거부한다', () => {
+  const createFixture = () => {
+    const remote = mkdtempSync(join(tmpdir(), 'release-provenance-remote-'))
+    const directory = mkdtempSync(join(tmpdir(), 'release-provenance-local-'))
+    const gitAt = (cwd, args) => execFileSync('git', args, { cwd, encoding: 'utf8' })
+    gitAt(remote, ['init', '--bare', '--quiet'])
+    gitAt(directory, ['init', '--quiet', '--initial-branch=main'])
+    gitAt(directory, ['config', 'user.name', 'Release Test'])
+    gitAt(directory, ['config', 'user.email', 'release-test@example.invalid'])
+    gitAt(directory, ['remote', 'add', 'origin', remote])
+    writeFileSync(join(directory, 'VERSION'), '1.2.3\n')
+    writeFileSync(join(directory, 'CHANGELOG.md'), '# Changelog\n')
+    gitAt(directory, ['add', 'VERSION', 'CHANGELOG.md'])
+    gitAt(directory, ['commit', '--quiet', '-m', 'chore: bootstrap'])
+    gitAt(directory, ['push', '--quiet', '--set-upstream', 'origin', 'main'])
+    const baseSha = gitAt(directory, ['rev-parse', 'HEAD']).trim()
+    const notes = createChangelogSection({ version: '1.2.4', date: '2026-08-18', commits: [{ type: 'fix', subject: 'fix: provenance', breaking: false }] }).trim()
+    const git = createGitAdapter({ run: (command, args) => {
+      const result = spawnSync(command, args, { cwd: directory, encoding: 'utf8' })
+      return { status: result.status ?? 1, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
+    } })
+    return { remote, directory, gitAt, baseSha, notes, git }
+  }
+  const cases = [
+    {
+      name: 'source change',
+      create: ({ directory, gitAt, notes }) => {
+        writeFileSync(join(directory, 'VERSION'), '1.2.4\n')
+        writeFileSync(join(directory, 'CHANGELOG.md'), `${notes}\n\n# Changelog\n`)
+        writeFileSync(join(directory, 'unexpected.js'), 'export default 1\n')
+        gitAt(directory, ['add', 'VERSION', 'CHANGELOG.md', 'unexpected.js'])
+        gitAt(directory, ['commit', '--quiet', '-m', 'chore(release): 1.2.4 [skip ci]'])
+      },
+    },
+    {
+      name: 'changed base changelog suffix',
+      create: ({ directory, gitAt, notes }) => {
+        writeFileSync(join(directory, 'VERSION'), '1.2.4\n')
+        writeFileSync(join(directory, 'CHANGELOG.md'), `${notes}\n\n# modified historical changelog\n`)
+        gitAt(directory, ['add', 'VERSION', 'CHANGELOG.md'])
+        gitAt(directory, ['commit', '--quiet', '-m', 'chore(release): 1.2.4 [skip ci]'])
+      },
+    },
+    {
+      name: 'merge release',
+      create: ({ directory, gitAt, notes, baseSha }) => {
+        gitAt(directory, ['checkout', '--quiet', '-b', 'side', baseSha])
+        writeFileSync(join(directory, 'side.txt'), 'side\n')
+        gitAt(directory, ['add', 'side.txt'])
+        gitAt(directory, ['commit', '--quiet', '-m', 'chore: side change'])
+        gitAt(directory, ['checkout', '--quiet', 'main'])
+        writeFileSync(join(directory, 'VERSION'), '1.2.4\n')
+        writeFileSync(join(directory, 'CHANGELOG.md'), `${notes}\n\n# Changelog\n`)
+        gitAt(directory, ['add', 'VERSION', 'CHANGELOG.md'])
+        gitAt(directory, ['commit', '--quiet', '-m', 'chore: prepare release'])
+        gitAt(directory, ['merge', '--quiet', '--no-ff', 'side', '-m', 'chore(release): 1.2.4 [skip ci]'])
+      },
+    },
+  ]
+  for (const scenario of cases) {
+    const fixture = createFixture()
+    try {
+      scenario.create(fixture)
+      fixture.gitAt(fixture.directory, ['tag', '-a', 'v1.2.4', '-m', 'Release v1.2.4'])
+      fixture.gitAt(fixture.directory, ['push', '--quiet', '--atomic', 'origin', 'HEAD:main', 'refs/tags/v1.2.4'])
+      assert.equal(fixture.git.isPublishedRelease({ baseSha: fixture.baseSha, version: '1.2.4', notes: fixture.notes }), false, scenario.name)
+    } finally {
+      rmSync(fixture.remote, { recursive: true, force: true })
+      rmSync(fixture.directory, { recursive: true, force: true })
+    }
+  }
 })
 
 test('no-release publish는 파일, git, network mutation을 수행하지 않는다', async () => {

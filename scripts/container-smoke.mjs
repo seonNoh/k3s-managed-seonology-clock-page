@@ -13,8 +13,21 @@ export function createBuildArgs(image, version) {
   return ['build', '--build-arg', `APP_VERSION=${version}`, '-t', image, '.']
 }
 
-export function createVersionProbeArgs(name, version) {
-  return ['exec', name, 'grep', '-R', '-F', '-q', version, '/usr/share/nginx/html']
+export async function verifyAppVersion(endpoint, version, { fetchImpl = fetch } = {}) {
+  let response
+  try {
+    response = await fetchImpl(`${endpoint}/app-version.json`)
+  } catch {
+    throw new Error('App version marker request failed')
+  }
+  if (!response.ok) throw new Error(`App version marker request failed (status ${response.status})`)
+  let marker
+  try {
+    marker = await response.json()
+  } catch {
+    throw new Error('App version marker response is invalid')
+  }
+  if (marker?.version !== version) throw new Error('App version marker mismatch')
 }
 
 export function parsePublishedPort(value) {
@@ -84,7 +97,7 @@ async function main() {
     if (docker(['exec', name, 'id', '-u']) !== '10001') {
       throw new Error('Container did not run as UID 10001')
     }
-    docker(createVersionProbeArgs(name, version || readFileSync('VERSION', 'utf8').trim()))
+    await verifyAppVersion(endpoint, version || readFileSync('VERSION', 'utf8').trim())
 
     docker(['exec', name, 'sh', '-c', 'kill -TERM "$(pidof node)"'])
     for (let attempt = 0; attempt < 10; attempt += 1) {

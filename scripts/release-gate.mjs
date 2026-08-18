@@ -76,6 +76,12 @@ function commandSucceeded(run, args) {
   return run('git', args).status === 0
 }
 
+export function assertPlannedBaseSha({ baseSha, git = createGitAdapter() } = {}) {
+  if (!baseSha || git.remoteMainSha() !== baseSha) {
+    throw new ReleasePlanError('stale release plan: origin/main no longer matches the planned base SHA')
+  }
+}
+
 function parseLog(output) {
   const fields = output.split('\0')
   const commits = []
@@ -112,17 +118,24 @@ export function createGitAdapter({ run = defaultRun } = {}) {
         const tagType = requireSuccess(run, ['cat-file', '-t', tag]).trim()
         const remoteRefs = requireSuccess(run, ['ls-remote', 'origin', tag, `${tag}^{}`]).trim().split('\n')
           .map((line) => line.split(/\s+/)).reduce((refs, [sha, name]) => ({ ...refs, [name]: sha }), {})
-        const parent = requireSuccess(run, ['rev-parse', `${tagCommit}^`]).trim()
+        const parents = requireSuccess(run, ['rev-list', '--parents', '-n', '1', tagCommit]).trim().split(/\s+/)
         const subject = requireSuccess(run, ['log', '-1', '--format=%s', tag]).trim()
         const taggedVersion = requireSuccess(run, ['show', `${tagCommit}:VERSION`]).trim()
         const changelog = requireSuccess(run, ['show', `${tagCommit}:CHANGELOG.md`])
+        const baseChangelog = requireSuccess(run, ['show', `${baseSha}:CHANGELOG.md`])
+        const changedFiles = requireSuccess(run, ['diff-tree', '--no-commit-id', '--name-only', '-r', tagCommit]).trim().split('\n').filter(Boolean).sort()
         return tagType === 'tag'
           && remoteRefs[tag] === localTagObject
           && remoteRefs[`${tag}^{}`] === tagCommit
-          && parent === baseSha
+          && parents.length === 2
+          && parents[0] === tagCommit
+          && parents[1] === baseSha
           && subject === `chore(release): ${version} [skip ci]`
           && taggedVersion === version
-          && changelog.startsWith(`${notes}\n\n`)
+          && changedFiles.length === 2
+          && changedFiles[0] === 'CHANGELOG.md'
+          && changedFiles[1] === 'VERSION'
+          && changelog === `${notes}\n\n${baseChangelog}`
           && commandSucceeded(run, ['merge-base', '--is-ancestor', tagCommit, remoteMain])
       } catch {
         return false
@@ -217,7 +230,7 @@ async function ensureGithubRelease(github, version, notes) {
 export async function publishRelease({ plan, git = createGitAdapter(), files = { read: (path) => readFileSync(path, 'utf8'), write: writeFileSync }, github, date } = {}) {
   if (!plan?.released) return plan
   const notes = createChangelogSection({ version: plan.nextVersion, date: plan.releaseDate ?? date ?? new Date().toISOString().slice(0, 10), commits: plan.commits }).trim()
-  if (git.remoteMainSha() !== plan.baseSha) {
+  try { assertPlannedBaseSha({ baseSha: plan.baseSha, git }) } catch {
     if (git.isPublishedRelease?.({ baseSha: plan.baseSha, version: plan.nextVersion, notes })) {
       try { await ensureGithubRelease(github, plan.nextVersion, notes) } catch (error) {
         const status = error instanceof GithubReleaseError ? /status \d+/.exec(error.message)?.[0] : ''

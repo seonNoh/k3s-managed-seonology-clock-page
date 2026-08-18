@@ -1,5 +1,5 @@
 # Build stage
-FROM node:24-alpine AS builder
+FROM node:24.15-alpine AS builder
 
 WORKDIR /app
 
@@ -9,10 +9,11 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN if [ -n "$APP_VERSION" ]; then printf '%s\n' "$APP_VERSION" > VERSION; fi && npm run build
+RUN if [ -n "$APP_VERSION" ]; then printf '%s\n' "$APP_VERSION" > VERSION; fi && npm run build && \
+    node -e 'const fs = require("node:fs"); const version = fs.readFileSync("VERSION", "utf8").trim(); if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) process.exit(1); fs.writeFileSync("dist/app-version.json", JSON.stringify({ version }) + "\n")'
 
 # Production stage
-FROM node:24-alpine
+FROM node:24.15-alpine
 
 WORKDIR /app
 
