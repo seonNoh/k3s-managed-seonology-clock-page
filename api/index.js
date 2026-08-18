@@ -5,13 +5,19 @@ const fs = require('fs');
 const { loadConfig } = require('./config');
 const { createNasPathPolicy } = require('./domains/nas/path-policy');
 const { createUploadBoundary, writeWithBackpressure } = require('./domains/nas/nas-uploader');
+const { createAtomicJsonStore } = require('./infrastructure/storage/atomic-json-store');
 
 function createApp(dependencies = {}) {
 const app = express();
 const runtimeConfig = dependencies.config || loadConfig();
 
 // Cloud Drives
-const { createCloudRouteDependencies, setupGoogleRoutes, setupMicrosoftRoutes } = require('./cloud-drives');
+const {
+  createCloudRouteDependencies,
+  setupGoogleRoutes,
+  setupMicrosoftRoutes,
+  spoolUploadToTemp,
+} = require('./cloud-drives');
 const { setupGithubCatalogRoutes } = require('./github-catalog');
 const { setupIconRoutes } = require('./icons');
 const { setupJmaRoutes } = require('./jma');
@@ -329,7 +335,7 @@ app.get('/api/services', async (req, res) => {
 
 // ===== BOOKMARKS API =====
 const path = require('path');
-const BOOKMARKS_DIR = process.env.BOOKMARKS_DIR || path.join(__dirname, '..', 'data');
+const BOOKMARKS_DIR = runtimeConfig.dataDirectory;
 const BOOKMARKS_FILE = path.join(BOOKMARKS_DIR, 'bookmarks.json');
 
 // Default bookmarks structure
@@ -344,35 +350,16 @@ const DEFAULT_BOOKMARKS = {
   ],
 };
 
-function ensureDir(dir) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-function readBookmarks() {
-  try {
-    ensureDir(BOOKMARKS_DIR);
-    if (!fs.existsSync(BOOKMARKS_FILE)) {
-      fs.writeFileSync(BOOKMARKS_FILE, JSON.stringify(DEFAULT_BOOKMARKS, null, 2));
-      return DEFAULT_BOOKMARKS;
-    }
-    return JSON.parse(fs.readFileSync(BOOKMARKS_FILE, 'utf8'));
-  } catch (err) {
-    console.error('Error reading bookmarks:', err);
-    return DEFAULT_BOOKMARKS;
-  }
-}
-
-function writeBookmarks(data) {
-  ensureDir(BOOKMARKS_DIR);
-  fs.writeFileSync(BOOKMARKS_FILE, JSON.stringify(data, null, 2));
-}
+const bookmarksStore = createAtomicJsonStore({
+  filePath: BOOKMARKS_FILE,
+  defaultValue: DEFAULT_BOOKMARKS,
+  validate: value => Boolean(value && Array.isArray(value.categories)),
+});
 
 // GET all bookmarks
-app.get('/api/bookmarks', (req, res) => {
+app.get('/api/bookmarks', async (req, res) => {
   try {
-    const data = readBookmarks();
+    const data = await bookmarksStore.read();
     res.json(data);
   } catch (err) {
     console.error('Error getting bookmarks:', err);
@@ -381,13 +368,13 @@ app.get('/api/bookmarks', (req, res) => {
 });
 
 // PUT replace all bookmarks (full save)
-app.put('/api/bookmarks', (req, res) => {
+app.put('/api/bookmarks', async (req, res) => {
   try {
     const data = req.body;
     if (!data || !Array.isArray(data.categories)) {
       return res.status(400).json({ error: 'Invalid bookmarks data' });
     }
-    writeBookmarks(data);
+    await bookmarksStore.update(() => data);
     res.json({ success: true });
   } catch (err) {
     console.error('Error saving bookmarks:', err);
@@ -396,16 +383,19 @@ app.put('/api/bookmarks', (req, res) => {
 });
 
 // POST add a category
-app.post('/api/bookmarks/categories', (req, res) => {
+app.post('/api/bookmarks/categories', async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Category name is required' });
-    const data = readBookmarks();
     const id = `cat-${Date.now()}`;
-    const order = data.categories.length;
-    data.categories.push({ id, name, order, bookmarks: [] });
-    writeBookmarks(data);
-    res.json({ success: true, category: { id, name, order, bookmarks: [] } });
+    let category;
+    await bookmarksStore.update(data => {
+      const order = data.categories.length;
+      category = { id, name, order, bookmarks: [] };
+      data.categories.push(category);
+      return data;
+    });
+    res.json({ success: true, category });
   } catch (err) {
     console.error('Error adding category:', err);
     res.status(500).json({ error: 'Failed to add category' });
@@ -413,11 +403,12 @@ app.post('/api/bookmarks/categories', (req, res) => {
 });
 
 // DELETE a category
-app.delete('/api/bookmarks/categories/:categoryId', (req, res) => {
+app.delete('/api/bookmarks/categories/:categoryId', async (req, res) => {
   try {
-    const data = readBookmarks();
-    data.categories = data.categories.filter(c => c.id !== req.params.categoryId);
-    writeBookmarks(data);
+    await bookmarksStore.update(data => {
+      data.categories = data.categories.filter(c => c.id !== req.params.categoryId);
+      return data;
+    });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting category:', err);
@@ -426,56 +417,76 @@ app.delete('/api/bookmarks/categories/:categoryId', (req, res) => {
 });
 
 // POST add a bookmark to a category
-app.post('/api/bookmarks/categories/:categoryId/bookmarks', (req, res) => {
+app.post('/api/bookmarks/categories/:categoryId/bookmarks', async (req, res) => {
   try {
     const { name, url, icon, color, quickLink } = req.body;
     if (!name || !url) return res.status(400).json({ error: 'Name and URL are required' });
-    const data = readBookmarks();
-    const cat = data.categories.find(c => c.id === req.params.categoryId);
-    if (!cat) return res.status(404).json({ error: 'Category not found' });
     const bookmark = { id: `bm-${Date.now()}`, name, url, icon: icon || 'default', color: color || '#6366f1', quickLink: !!quickLink };
-    cat.bookmarks.push(bookmark);
-    writeBookmarks(data);
+    await bookmarksStore.update(data => {
+      const cat = data.categories.find(c => c.id === req.params.categoryId);
+      if (!cat) {
+        const error = new Error('Category not found');
+        error.statusCode = 404;
+        throw error;
+      }
+      cat.bookmarks.push(bookmark);
+      return data;
+    });
     res.json({ success: true, bookmark });
   } catch (err) {
     console.error('Error adding bookmark:', err);
-    res.status(500).json({ error: 'Failed to add bookmark' });
+    res.status(err.statusCode || 500).json({ error: err.statusCode ? err.message : 'Failed to add bookmark' });
   }
 });
 
 // DELETE a bookmark
-app.delete('/api/bookmarks/categories/:categoryId/bookmarks/:bookmarkId', (req, res) => {
+app.delete('/api/bookmarks/categories/:categoryId/bookmarks/:bookmarkId', async (req, res) => {
   try {
-    const data = readBookmarks();
-    const cat = data.categories.find(c => c.id === req.params.categoryId);
-    if (!cat) return res.status(404).json({ error: 'Category not found' });
-    cat.bookmarks = cat.bookmarks.filter(b => b.id !== req.params.bookmarkId);
-    writeBookmarks(data);
+    await bookmarksStore.update(data => {
+      const cat = data.categories.find(c => c.id === req.params.categoryId);
+      if (!cat) {
+        const error = new Error('Category not found');
+        error.statusCode = 404;
+        throw error;
+      }
+      cat.bookmarks = cat.bookmarks.filter(b => b.id !== req.params.bookmarkId);
+      return data;
+    });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting bookmark:', err);
-    res.status(500).json({ error: 'Failed to delete bookmark' });
+    res.status(err.statusCode || 500).json({ error: err.statusCode ? err.message : 'Failed to delete bookmark' });
   }
 });
 
 // PATCH update a bookmark
-app.patch('/api/bookmarks/categories/:categoryId/bookmarks/:bookmarkId', (req, res) => {
+app.patch('/api/bookmarks/categories/:categoryId/bookmarks/:bookmarkId', async (req, res) => {
   try {
-    const data = readBookmarks();
-    const cat = data.categories.find(c => c.id === req.params.categoryId);
-    if (!cat) return res.status(404).json({ error: 'Category not found' });
-    const bm = cat.bookmarks.find(b => b.id === req.params.bookmarkId);
-    if (!bm) return res.status(404).json({ error: 'Bookmark not found' });
-    if (req.body.name) bm.name = req.body.name;
-    if (req.body.url) bm.url = req.body.url;
-    if (req.body.icon) bm.icon = req.body.icon;
-    if (req.body.color) bm.color = req.body.color;
-    if (req.body.quickLink !== undefined) bm.quickLink = !!req.body.quickLink;
-    writeBookmarks(data);
+    let bm;
+    await bookmarksStore.update(data => {
+      const cat = data.categories.find(c => c.id === req.params.categoryId);
+      if (!cat) {
+        const error = new Error('Category not found');
+        error.statusCode = 404;
+        throw error;
+      }
+      bm = cat.bookmarks.find(b => b.id === req.params.bookmarkId);
+      if (!bm) {
+        const error = new Error('Bookmark not found');
+        error.statusCode = 404;
+        throw error;
+      }
+      if (req.body.name) bm.name = req.body.name;
+      if (req.body.url) bm.url = req.body.url;
+      if (req.body.icon) bm.icon = req.body.icon;
+      if (req.body.color) bm.color = req.body.color;
+      if (req.body.quickLink !== undefined) bm.quickLink = !!req.body.quickLink;
+      return data;
+    });
     res.json({ success: true, bookmark: bm });
   } catch (err) {
     console.error('Error updating bookmark:', err);
-    res.status(500).json({ error: 'Failed to update bookmark' });
+    res.status(err.statusCode || 500).json({ error: err.statusCode ? err.message : 'Failed to update bookmark' });
   }
 });
 
@@ -554,90 +565,85 @@ app.get('/api/browser-stats', (req, res) => {
 const TODOS_FILE = path.join(BOOKMARKS_DIR, 'todos.json');
 
 const DEFAULT_TODOS = { todos: [] };
-
-function readTodos() {
-  try {
-    ensureDir(BOOKMARKS_DIR);
-    if (!fs.existsSync(TODOS_FILE)) {
-      fs.writeFileSync(TODOS_FILE, JSON.stringify(DEFAULT_TODOS, null, 2));
-      return DEFAULT_TODOS;
-    }
-    return JSON.parse(fs.readFileSync(TODOS_FILE, 'utf8'));
-  } catch (err) {
-    console.error('Error reading todos:', err);
-    return DEFAULT_TODOS;
-  }
-}
-
-function writeTodos(data) {
-  ensureDir(BOOKMARKS_DIR);
-  fs.writeFileSync(TODOS_FILE, JSON.stringify(data, null, 2));
-}
+const todosStore = createAtomicJsonStore({
+  filePath: TODOS_FILE,
+  defaultValue: DEFAULT_TODOS,
+  validate: value => Boolean(value && Array.isArray(value.todos)),
+});
 
 // GET all todos
-app.get('/api/todos', (req, res) => {
+app.get('/api/todos', async (req, res) => {
   try {
-    res.json(readTodos());
-  } catch (err) {
+    res.json(await todosStore.read());
+  } catch {
     res.status(500).json({ error: 'Failed to read todos' });
   }
 });
 
 // POST add todo
-app.post('/api/todos', (req, res) => {
+app.post('/api/todos', async (req, res) => {
   try {
     const { text } = req.body;
     if (!text || !text.trim()) return res.status(400).json({ error: 'text required' });
-    const data = readTodos();
     const todo = {
       id: `todo-${Date.now()}`,
       text: text.trim(),
       completed: false,
       createdAt: new Date().toISOString(),
     };
-    data.todos.push(todo);
-    writeTodos(data);
+    await todosStore.update(data => {
+      data.todos.push(todo);
+      return data;
+    });
     res.json({ success: true, todo });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to add todo' });
   }
 });
 
 // PATCH toggle/update todo
-app.patch('/api/todos/:id', (req, res) => {
+app.patch('/api/todos/:id', async (req, res) => {
   try {
-    const data = readTodos();
-    const todo = data.todos.find(t => t.id === req.params.id);
-    if (!todo) return res.status(404).json({ error: 'Todo not found' });
-    if (req.body.completed !== undefined) todo.completed = req.body.completed;
-    if (req.body.text !== undefined) todo.text = req.body.text;
-    writeTodos(data);
+    let todo;
+    await todosStore.update(data => {
+      todo = data.todos.find(t => t.id === req.params.id);
+      if (!todo) {
+        const error = new Error('Todo not found');
+        error.statusCode = 404;
+        throw error;
+      }
+      if (req.body.completed !== undefined) todo.completed = req.body.completed;
+      if (req.body.text !== undefined) todo.text = req.body.text;
+      return data;
+    });
     res.json({ success: true, todo });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to update todo' });
+    res.status(err.statusCode || 500).json({ error: err.statusCode ? err.message : 'Failed to update todo' });
   }
 });
 
 // DELETE todo
-app.delete('/api/todos/:id', (req, res) => {
+app.delete('/api/todos/:id', async (req, res) => {
   try {
-    const data = readTodos();
-    data.todos = data.todos.filter(t => t.id !== req.params.id);
-    writeTodos(data);
+    await todosStore.update(data => {
+      data.todos = data.todos.filter(t => t.id !== req.params.id);
+      return data;
+    });
     res.json({ success: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to delete todo' });
   }
 });
 
 // DELETE completed todos
-app.delete('/api/todos', (req, res) => {
+app.delete('/api/todos', async (req, res) => {
   try {
-    const data = readTodos();
-    data.todos = data.todos.filter(t => !t.completed);
-    writeTodos(data);
+    await todosStore.update(data => {
+      data.todos = data.todos.filter(t => !t.completed);
+      return data;
+    });
     res.json({ success: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to clear completed' });
   }
 });
@@ -646,76 +652,70 @@ app.delete('/api/todos', (req, res) => {
 const NOTES_FILE = path.join(BOOKMARKS_DIR, 'notes.json');
 
 const DEFAULT_NOTES = { notes: [] };
-
-function readNotes() {
-  try {
-    ensureDir(BOOKMARKS_DIR);
-    if (!fs.existsSync(NOTES_FILE)) {
-      fs.writeFileSync(NOTES_FILE, JSON.stringify(DEFAULT_NOTES, null, 2));
-      return DEFAULT_NOTES;
-    }
-    return JSON.parse(fs.readFileSync(NOTES_FILE, 'utf8'));
-  } catch (err) {
-    console.error('Error reading notes:', err);
-    return DEFAULT_NOTES;
-  }
-}
-
-function writeNotes(data) {
-  ensureDir(BOOKMARKS_DIR);
-  fs.writeFileSync(NOTES_FILE, JSON.stringify(data, null, 2));
-}
+const notesStore = createAtomicJsonStore({
+  filePath: NOTES_FILE,
+  defaultValue: DEFAULT_NOTES,
+  validate: value => Boolean(value && Array.isArray(value.notes)),
+});
 
 // GET all notes
-app.get('/api/notes', (req, res) => {
+app.get('/api/notes', async (req, res) => {
   try {
-    res.json(readNotes());
-  } catch (err) {
+    res.json(await notesStore.read());
+  } catch {
     res.status(500).json({ error: 'Failed to read notes' });
   }
 });
 
 // POST create note
-app.post('/api/notes', (req, res) => {
+app.post('/api/notes', async (req, res) => {
   try {
-    const data = readNotes();
     const note = {
       id: `note-${Date.now()}`,
       content: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    data.notes.unshift(note);
-    writeNotes(data);
+    await notesStore.update(data => {
+      data.notes.unshift(note);
+      return data;
+    });
     res.json({ success: true, note });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to create note' });
   }
 });
 
 // PATCH update note content
-app.patch('/api/notes/:id', (req, res) => {
+app.patch('/api/notes/:id', async (req, res) => {
   try {
-    const data = readNotes();
-    const note = data.notes.find(n => n.id === req.params.id);
-    if (!note) return res.status(404).json({ error: 'Note not found' });
-    if (req.body.content !== undefined) note.content = req.body.content;
-    note.updatedAt = new Date().toISOString();
-    writeNotes(data);
+    let note;
+    await notesStore.update(data => {
+      note = data.notes.find(n => n.id === req.params.id);
+      if (!note) {
+        const error = new Error('Note not found');
+        error.statusCode = 404;
+        throw error;
+      }
+      if (req.body.content !== undefined) note.content = req.body.content;
+      note.updatedAt = new Date().toISOString();
+      return data;
+    });
     res.json({ success: true, note });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to update note' });
+    res.status(err.statusCode || 500).json({ error: err.statusCode ? err.message : 'Failed to update note' });
   }
 });
 
 // DELETE note
-app.delete('/api/notes/:id', (req, res) => {
+app.delete('/api/notes/:id', async (req, res) => {
   try {
-    const data = readNotes();
-    data.notes = data.notes.filter(n => n.id !== req.params.id);
-    writeNotes(data);
+    await notesStore.update(data => {
+      data.notes = data.notes.filter(n => n.id !== req.params.id);
+      return data;
+    });
     res.json({ success: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to delete note' });
   }
 });
@@ -886,34 +886,16 @@ const CHAT_HISTORY_FILE = path.join(BOOKMARKS_DIR, 'chat-history.json');
 const MAX_CONVERSATIONS = 50;
 
 const DEFAULT_CHAT_HISTORY = { conversations: [] };
-
-function readChatHistory() {
-  try {
-    ensureDir(BOOKMARKS_DIR);
-    if (!fs.existsSync(CHAT_HISTORY_FILE)) {
-      fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(DEFAULT_CHAT_HISTORY, null, 2));
-      return DEFAULT_CHAT_HISTORY;
-    }
-    return JSON.parse(fs.readFileSync(CHAT_HISTORY_FILE, 'utf8'));
-  } catch (err) {
-    console.error('Error reading chat history:', err);
-    return DEFAULT_CHAT_HISTORY;
-  }
-}
-
-function writeChatHistory(data) {
-  ensureDir(BOOKMARKS_DIR);
-  // Trim to max conversations
-  if (data.conversations.length > MAX_CONVERSATIONS) {
-    data.conversations = data.conversations.slice(0, MAX_CONVERSATIONS);
-  }
-  fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(data, null, 2));
-}
+const chatHistoryStore = createAtomicJsonStore({
+  filePath: CHAT_HISTORY_FILE,
+  defaultValue: DEFAULT_CHAT_HISTORY,
+  validate: value => Boolean(value && Array.isArray(value.conversations)),
+});
 
 // GET chat history list (without messages for performance)
-app.get('/api/chat/history', (req, res) => {
+app.get('/api/chat/history', async (req, res) => {
   try {
-    const data = readChatHistory();
+    const data = await chatHistoryStore.read();
     const list = data.conversations.map(c => ({
       id: c.id,
       title: c.title,
@@ -923,63 +905,68 @@ app.get('/api/chat/history', (req, res) => {
       messageCount: c.messages.length,
     }));
     res.json({ conversations: list });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to read chat history' });
   }
 });
 
 // GET single conversation
-app.get('/api/chat/history/:id', (req, res) => {
+app.get('/api/chat/history/:id', async (req, res) => {
   try {
-    const data = readChatHistory();
+    const data = await chatHistoryStore.read();
     const conv = data.conversations.find(c => c.id === req.params.id);
     if (!conv) return res.status(404).json({ error: 'Conversation not found' });
     res.json(conv);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to read conversation' });
   }
 });
 
 // POST save/update conversation
-app.post('/api/chat/history', (req, res) => {
+app.post('/api/chat/history', async (req, res) => {
   try {
     const { id, title, model, messages } = req.body;
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages array required' });
     }
-    const data = readChatHistory();
-    const existing = data.conversations.find(c => c.id === id);
-    if (existing) {
-      existing.title = title || existing.title;
-      existing.model = model || existing.model;
-      existing.messages = messages;
-      existing.updatedAt = new Date().toISOString();
-    } else {
-      const conv = {
-        id: id || `chat-${Date.now()}`,
-        title: title || (messages[0]?.content?.slice(0, 40) || 'New Chat'),
-        model: model || '',
-        messages,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      data.conversations.unshift(conv);
-    }
-    writeChatHistory(data);
+    await chatHistoryStore.update(data => {
+      const existing = data.conversations.find(c => c.id === id);
+      if (existing) {
+        existing.title = title || existing.title;
+        existing.model = model || existing.model;
+        existing.messages = messages;
+        existing.updatedAt = new Date().toISOString();
+      } else {
+        const conv = {
+          id: id || `chat-${Date.now()}`,
+          title: title || (messages[0]?.content?.slice(0, 40) || 'New Chat'),
+          model: model || '',
+          messages,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        data.conversations.unshift(conv);
+      }
+      if (data.conversations.length > MAX_CONVERSATIONS) {
+        data.conversations = data.conversations.slice(0, MAX_CONVERSATIONS);
+      }
+      return data;
+    });
     res.json({ success: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to save chat history' });
   }
 });
 
 // DELETE conversation
-app.delete('/api/chat/history/:id', (req, res) => {
+app.delete('/api/chat/history/:id', async (req, res) => {
   try {
-    const data = readChatHistory();
-    data.conversations = data.conversations.filter(c => c.id !== req.params.id);
-    writeChatHistory(data);
+    await chatHistoryStore.update(data => {
+      data.conversations = data.conversations.filter(c => c.id !== req.params.id);
+      return data;
+    });
     res.json({ success: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to delete conversation' });
   }
 });
@@ -2319,6 +2306,9 @@ app.post('/api/nas/upload', async (req, res) => {
   let destPath = req.query.path || req.headers['x-upload-path'] || '';
   let uploadDone = false;
   let fileSeen = false;
+  let deferredUpload = null;
+  let deferredInfo = null;
+  let lateTargetAccepted = false;
   const abortController = new AbortController();
   const activeRequests = new Set();
   const activeStreams = new Set();
@@ -2343,6 +2333,81 @@ app.post('/api/nas/upload', async (req, res) => {
     abortActiveUpload();
   }
 
+  function startNasUpload(fileStream, info, sid, cleanup = async () => {}) {
+    let safePath;
+    let safeName;
+    try {
+      safePath = nasPathPolicy.assertPath(uploadBoundary.startFile(info));
+      safeName = nasPathPolicy.assertName(info.filename);
+    } catch (error) {
+      fileStream.resume();
+      void cleanup().then(
+        () => respondError(400, error.message),
+        () => respondError(400, error.message),
+      );
+      return;
+    }
+
+    void (async () => {
+      const boundary = `----NASStream${Date.now()}`;
+      const parts = [
+        `--${boundary}\r\nContent-Disposition: form-data; name="api"\r\n\r\nSYNO.FileStation.Upload`,
+        `--${boundary}\r\nContent-Disposition: form-data; name="version"\r\n\r\n2`,
+        `--${boundary}\r\nContent-Disposition: form-data; name="method"\r\n\r\nupload`,
+        `--${boundary}\r\nContent-Disposition: form-data; name="path"\r\n\r\n${safePath}`,
+        `--${boundary}\r\nContent-Disposition: form-data; name="create_parents"\r\n\r\ntrue`,
+        `--${boundary}\r\nContent-Disposition: form-data; name="overwrite"\r\n\r\ntrue`,
+      ];
+      const prefix = `${parts.join('\r\n')}\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${safeName}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
+      const footer = `\r\n--${boundary}--\r\n`;
+
+      let nasReq;
+      const response = new Promise((resolve, reject) => {
+        nasReq = https.request({
+          hostname: NAS_HOST,
+          port: NAS_PORT,
+          path: `/webapi/entry.cgi?_sid=${sid}`,
+          method: 'POST',
+          ...nasTlsOptions(),
+          headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Transfer-Encoding': 'chunked' },
+          timeout: 600000,
+          signal: abortController.signal,
+        }, nasRes => {
+          let body = '';
+          nasRes.on('data', chunk => { body += chunk; });
+          nasRes.on('end', () => resolve({ statusCode: nasRes.statusCode, body }));
+        });
+        activeRequests.add(nasReq);
+        nasReq.on('error', reject);
+      });
+      response.catch(() => {});
+
+      try {
+        await writeWithBackpressure(nasReq, prefix, abortController.signal);
+        for await (const chunk of fileStream) {
+          uploadBoundary.addBytes(chunk.length);
+          await writeWithBackpressure(nasReq, chunk, abortController.signal);
+        }
+        if (fileStream.truncated) throw new Error('Upload size limit exceeded');
+        await writeWithBackpressure(nasReq, footer, abortController.signal);
+        nasReq.end();
+        const upstream = await response;
+        if (upstream.statusCode < 200 || upstream.statusCode >= 300) {
+          throw new Error(`NAS upload failed with HTTP ${upstream.statusCode}`);
+        }
+        let data;
+        try { data = JSON.parse(upstream.body); } catch { throw new Error('Invalid NAS response'); }
+        if (!data.success) throw new Error('NAS upload failed');
+        await cleanup();
+        if (!uploadDone) { uploadDone = true; res.json({ success: true }); }
+      } catch (error) {
+        nasReq.destroy();
+        await cleanup();
+        respondError(error.name === 'AbortError' ? 499 : 502, error.message);
+      }
+    })();
+  }
+
   try {
     const sid = await getNasSid();
     const bb = busboy({
@@ -2354,8 +2419,12 @@ app.post('/api/nas/upload', async (req, res) => {
     bb.on('field', (name, val) => {
       if (name !== 'path') return;
       try {
+        if (fileSeen && (!deferredUpload || destPath || lateTargetAccepted)) {
+          throw new Error('Target must be provided before file data');
+        }
         destPath = nasPathPolicy.assertPath(val);
         uploadBoundary.setTarget(destPath);
+        if (fileSeen) lateTargetAccepted = true;
       } catch (error) {
         respondError(400, error.message);
       }
@@ -2364,77 +2433,37 @@ app.post('/api/nas/upload', async (req, res) => {
     bb.on('file', (fieldname, fileStream, info) => {
       fileSeen = true;
       activeStreams.add(fileStream);
-      let safePath;
-      let safeName;
-      try {
-        safePath = nasPathPolicy.assertPath(uploadBoundary.startFile(info));
-        safeName = nasPathPolicy.assertName(info.filename);
-      } catch (error) {
-        fileStream.resume();
-        respondError(400, error.message);
+      if (destPath) {
+        startNasUpload(fileStream, info, sid);
         return;
       }
-
-      void (async () => {
-        const boundary = `----NASStream${Date.now()}`;
-        const parts = [
-          `--${boundary}\r\nContent-Disposition: form-data; name="api"\r\n\r\nSYNO.FileStation.Upload`,
-          `--${boundary}\r\nContent-Disposition: form-data; name="version"\r\n\r\n2`,
-          `--${boundary}\r\nContent-Disposition: form-data; name="method"\r\n\r\nupload`,
-          `--${boundary}\r\nContent-Disposition: form-data; name="path"\r\n\r\n${safePath}`,
-          `--${boundary}\r\nContent-Disposition: form-data; name="create_parents"\r\n\r\ntrue`,
-          `--${boundary}\r\nContent-Disposition: form-data; name="overwrite"\r\n\r\ntrue`,
-        ];
-        const prefix = `${parts.join('\r\n')}\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${safeName}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
-        const footer = `\r\n--${boundary}--\r\n`;
-
-        let nasReq;
-        const response = new Promise((resolve, reject) => {
-          nasReq = https.request({
-            hostname: NAS_HOST,
-            port: NAS_PORT,
-            path: `/webapi/entry.cgi?_sid=${sid}`,
-            method: 'POST',
-            ...nasTlsOptions(),
-            headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Transfer-Encoding': 'chunked' },
-            timeout: 600000,
-            signal: abortController.signal,
-          }, nasRes => {
-            let body = '';
-            nasRes.on('data', chunk => { body += chunk; });
-            nasRes.on('end', () => resolve({ statusCode: nasRes.statusCode, body }));
-          });
-          activeRequests.add(nasReq);
-          nasReq.on('error', reject);
-        });
-        response.catch(() => {});
-
-        try {
-          await writeWithBackpressure(nasReq, prefix, abortController.signal);
-          for await (const chunk of fileStream) {
-            uploadBoundary.addBytes(chunk.length);
-            await writeWithBackpressure(nasReq, chunk, abortController.signal);
-          }
-          if (fileStream.truncated) throw new Error('Upload size limit exceeded');
-          await writeWithBackpressure(nasReq, footer, abortController.signal);
-          nasReq.end();
-          const upstream = await response;
-          if (upstream.statusCode < 200 || upstream.statusCode >= 300) {
-            throw new Error(`NAS upload failed with HTTP ${upstream.statusCode}`);
-          }
-          let data;
-          try { data = JSON.parse(upstream.body); } catch { throw new Error('Invalid NAS response'); }
-          if (!data.success) throw new Error('NAS upload failed');
-          if (!uploadDone) { uploadDone = true; res.json({ success: true }); }
-        } catch (error) {
-          nasReq.destroy();
-          respondError(error.name === 'AbortError' ? 499 : 502, error.message);
-        }
-      })();
+      deferredInfo = info;
+      deferredUpload = spoolUploadToTemp(fileStream, {
+        maxBytes: runtimeConfig.nas.maxUploadBytes,
+        signal: abortController.signal,
+      }).catch(error => {
+        respondError(error.name === 'AbortError' ? 499 : 413, error.message);
+        return null;
+      });
     });
 
     bb.on('filesLimit', () => respondError(400, 'Upload file count limit exceeded'));
-    bb.on('close', () => { if (!fileSeen) respondError(400, 'Upload file is required'); });
+    bb.on('close', () => {
+      if (!fileSeen) return respondError(400, 'Upload file is required');
+      if (!deferredUpload) return;
+      void (async () => {
+        const spool = await deferredUpload;
+        if (!spool) return;
+        if (uploadDone || !destPath) {
+          await spool.cleanup();
+          if (!uploadDone) respondError(400, 'Target must be provided before file data');
+          return;
+        }
+        const stream = spool.createReadStream();
+        activeStreams.add(stream);
+        startNasUpload(stream, deferredInfo, sid, spool.cleanup);
+      })();
+    });
     bb.on('error', error => respondError(400, error.message));
     req.pipe(bb);
   } catch (error) { respondError(error.statusCode || 500, error.message); }

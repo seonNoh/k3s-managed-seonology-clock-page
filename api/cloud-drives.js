@@ -1,4 +1,10 @@
 const https = require('https');
+const { createReadStream, createWriteStream } = require('node:fs');
+const { mkdtemp, rm } = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
+const { Transform } = require('node:stream');
+const { pipeline } = require('node:stream/promises');
 const { createOAuthTransactionStore } = require('./domains/cloud/oauth-transaction');
 const { uploadOneDriveChunks } = require('./domains/cloud/onedrive-uploader');
 const { createEncryptedTokenStore } = require('./infrastructure/storage/encrypted-token-store');
@@ -66,6 +72,43 @@ function createUploadAbortScope() {
       requests.clear();
     },
   };
+}
+
+async function spoolUploadToTemp(stream, { maxBytes, signal }) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) throw new TypeError('maxBytes must be positive');
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'clock-upload-'));
+  const filePath = path.join(directory, 'payload');
+  let bytes = 0;
+  let cleaned = false;
+  const meter = new Transform({
+    transform(chunk, encoding, callback) {
+      bytes += chunk.length;
+      if (bytes > maxBytes) callback(new Error('Upload size limit exceeded'));
+      else callback(null, chunk);
+    },
+  });
+  const cleanup = async () => {
+    if (cleaned) return;
+    cleaned = true;
+    await rm(directory, { recursive: true, force: true });
+  };
+  try {
+    await pipeline(
+      stream,
+      meter,
+      createWriteStream(filePath, { flags: 'wx', mode: 0o600 }),
+      { signal },
+    );
+    if (stream.truncated) throw new Error('Upload size limit exceeded');
+    return {
+      size: bytes,
+      createReadStream() { return createReadStream(filePath); },
+      cleanup,
+    };
+  } catch (error) {
+    await cleanup();
+    throw error;
+  }
 }
 
 function httpsPost(hostname, path, body, headers = {}) {
@@ -283,6 +326,8 @@ function setupGoogleRoutes(app, dependencies) {
     let uploadDone = false;
     let fileCount = 0;
     let fileStarted = false;
+    let deferredUpload = null;
+    let deferredInfo = null;
     const abortScope = createUploadAbortScope();
     const fail = (status, message) => {
       if (uploadDone) return;
@@ -291,56 +336,107 @@ function setupGoogleRoutes(app, dependencies) {
       abortScope.abort();
     };
     req.on('aborted', () => { uploadDone = true; abortScope.abort(); });
+
+    const startUpload = (fileStream, info, cleanup = async () => {}) => {
+      const failAfterCleanup = (status, message) => {
+        void cleanup().then(
+          () => fail(status, message),
+          () => fail(status, message),
+        );
+      };
+      const metadata = JSON.stringify({ name: info.filename, parents: [parentId] });
+      const initReq = abortScope.trackRequest(https.request({
+        hostname: 'www.googleapis.com', path: '/upload/drive/v3/files?uploadType=resumable', method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8', 'Content-Length': Buffer.byteLength(metadata) },
+      }, (initRes) => {
+        const uploadUrl = initRes.headers.location;
+        if (initRes.statusCode < 200 || initRes.statusCode >= 300 || !uploadUrl) {
+          fileStream.resume();
+          failAfterCleanup(502, 'Google Drive upload session failed');
+          return;
+        }
+        const urlObj = new URL(uploadUrl);
+        let sizeLimitExceeded = false;
+        const upReq = abortScope.trackRequest(https.request({ hostname: urlObj.hostname, path: urlObj.pathname + urlObj.search, method: 'PUT',
+          headers: { 'Content-Type': 'application/octet-stream', 'Transfer-Encoding': 'chunked' }, timeout: 600000,
+        }, (upRes) => {
+          let body = ''; upRes.on('data', c => body += c);
+          upRes.on('end', async () => {
+            try {
+              await cleanup();
+            } catch (error) {
+              fail(500, error.message);
+              return;
+            }
+            if (uploadDone) return;
+            uploadDone = true;
+            if (sizeLimitExceeded) res.status(413).json({ error: 'Upload size limit exceeded' });
+            else if (upRes.statusCode >= 200 && upRes.statusCode < 300) res.json({ success: true });
+            else res.status(502).json({ error: `Google Drive upload failed with HTTP ${upRes.statusCode}` });
+          });
+        }));
+        fileStream.on('limit', () => {
+          sizeLimitExceeded = true;
+          failAfterCleanup(413, 'Upload size limit exceeded');
+        });
+        upReq.on('error', e => {
+          failAfterCleanup(sizeLimitExceeded ? 413 : 500, e.message);
+        });
+        fileStream.pipe(upReq);
+      }));
+      initReq.on('error', e => {
+        fileStream.resume();
+        failAfterCleanup(500, e.message);
+      });
+      initReq.write(metadata); initReq.end();
+    };
+
     try {
       const bb = busboy({ headers: req.headers, limits: { files: 1, fileSize: 11 * 1024 * 1024 * 1024 } });
       bb.on('field', (name, val) => {
         if (name !== 'parentId') return;
-        if (fileStarted) return fail(400, 'Upload target must be provided before file data');
-        parentId = val;
+        if (!fileStarted) parentId = val;
+        else if (deferredUpload && !parentId) parentId = val;
+        else fail(400, 'Upload target must be provided before file data');
       });
       bb.on('file', (fieldname, fileStream, info) => {
         fileStarted = true;
         fileCount += 1;
         abortScope.trackStream(fileStream);
-        if (fileCount > 1 || !parentId) {
+        if (fileCount > 1) {
           fileStream.resume();
-          fail(400, 'Upload target must be provided before file data');
+          fail(400, 'Upload file count limit exceeded');
           return;
         }
-        const metadata = JSON.stringify({ name: info.filename, parents: [parentId] });
-        const initReq = abortScope.trackRequest(https.request({
-          hostname: 'www.googleapis.com', path: '/upload/drive/v3/files?uploadType=resumable', method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8', 'Content-Length': Buffer.byteLength(metadata) },
-        }, (initRes) => {
-          const uploadUrl = initRes.headers.location;
-          if (initRes.statusCode < 200 || initRes.statusCode >= 300 || !uploadUrl) { fileStream.resume(); fail(502, 'Google Drive upload session failed'); return; }
-          const urlObj = new URL(uploadUrl);
-          let sizeLimitExceeded = false;
-          const upReq = abortScope.trackRequest(https.request({ hostname: urlObj.hostname, path: urlObj.pathname + urlObj.search, method: 'PUT',
-            headers: { 'Content-Type': 'application/octet-stream', 'Transfer-Encoding': 'chunked' }, timeout: 600000,
-          }, (upRes) => {
-            let body = ''; upRes.on('data', c => body += c);
-            upRes.on('end', () => {
-              if (uploadDone) return;
-              uploadDone = true;
-              if (sizeLimitExceeded) res.status(413).json({ error: 'Upload size limit exceeded' });
-              else if (upRes.statusCode >= 200 && upRes.statusCode < 300) res.json({ success: true });
-              else res.status(502).json({ error: `Google Drive upload failed with HTTP ${upRes.statusCode}` });
-            });
-          }));
-          fileStream.on('limit', () => {
-            sizeLimitExceeded = true;
-            fail(413, 'Upload size limit exceeded');
-          });
-          upReq.on('error', e => {
-            fail(sizeLimitExceeded ? 413 : 500, e.message);
-          });
-          fileStream.pipe(upReq);
-        }));
-        initReq.on('error', e => { fileStream.resume(); fail(500, e.message); });
-        initReq.write(metadata); initReq.end();
+        if (parentId) {
+          startUpload(fileStream, info);
+          return;
+        }
+        deferredInfo = info;
+        deferredUpload = spoolUploadToTemp(fileStream, {
+          maxBytes: 11 * 1024 * 1024 * 1024,
+          signal: abortScope.signal,
+        }).catch(error => {
+          fail(error.name === 'AbortError' ? 499 : 413, error.message);
+          return null;
+        });
       });
       bb.on('filesLimit', () => fail(400, 'Upload file count limit exceeded'));
+      bb.on('close', () => {
+        if (!fileStarted) return fail(400, 'Upload file is required');
+        if (!deferredUpload) return;
+        void (async () => {
+          const spool = await deferredUpload;
+          if (!spool) return;
+          if (uploadDone || !parentId) {
+            await spool.cleanup();
+            if (!uploadDone) fail(400, 'Upload target must be provided before file data');
+            return;
+          }
+          const stream = abortScope.trackStream(spool.createReadStream());
+          startUpload(stream, deferredInfo, spool.cleanup);
+        })();
+      });
       bb.on('error', e => fail(500, e.message));
       req.pipe(bb);
     } catch (e) { fail(500, e.message); }
@@ -533,6 +629,8 @@ function setupMicrosoftRoutes(app, dependencies) {
     let uploadDone = false;
     let fileCount = 0;
     let fileStarted = false;
+    let deferredUpload = null;
+    let deferredInfo = null;
     const abortScope = createUploadAbortScope();
     const fail = (status, message) => {
       if (uploadDone) return;
@@ -541,82 +639,138 @@ function setupMicrosoftRoutes(app, dependencies) {
       abortScope.abort();
     };
     req.on('aborted', () => { uploadDone = true; abortScope.abort(); });
+
+    const startUpload = (fileStream, info, uploadSize, cleanup = async () => {}) => {
+      const failAfterCleanup = (status, message) => {
+        void cleanup().then(
+          () => fail(status, message),
+          () => fail(status, message),
+        );
+      };
+      const fileName = info.filename;
+      const apiPath = (!parentId || parentId === 'root')
+        ? `/v1.0/me/drive/root:/${encodeURIComponent(fileName)}:/createUploadSession`
+        : `/v1.0/me/drive/items/${parentId}:/${encodeURIComponent(fileName)}:/createUploadSession`;
+      const body = JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'rename', name: fileName } });
+      const initReq = abortScope.trackRequest(https.request({
+        hostname: 'graph.microsoft.com', path: apiPath, method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+      }, (initRes) => {
+        let initBody = ''; initRes.on('data', c => initBody += c);
+        initRes.on('end', async () => {
+          let sessionData;
+          try { sessionData = JSON.parse(initBody); } catch { sessionData = {}; }
+          if (initRes.statusCode < 200 || initRes.statusCode >= 300 || !sessionData.uploadUrl) {
+            fileStream.resume();
+            await cleanup();
+            fail(502, 'OneDrive upload session failed');
+            return;
+          }
+          const uploadUrl = new URL(sessionData.uploadUrl);
+          const session = {
+            uploadChunk: ({ chunk, start, end, total, signal }) => new Promise((resolve, reject) => {
+              const upReq = abortScope.trackRequest(https.request({
+                hostname: uploadUrl.hostname,
+                path: uploadUrl.pathname + uploadUrl.search,
+                method: 'PUT',
+                headers: { 'Content-Length': chunk.length, 'Content-Range': `bytes ${start}-${end}/${total}` },
+                timeout: 600000,
+                signal,
+              }, upRes => {
+                upRes.resume();
+                upRes.on('end', () => resolve({ statusCode: upRes.statusCode }));
+              }));
+              upReq.on('error', reject);
+              upReq.end(chunk);
+            }),
+          };
+          try {
+            await uploadOneDriveChunks({
+              stream: fileStream,
+              size: uploadSize,
+              session,
+              chunkSize: 10 * 320 * 1024,
+              signal: abortScope.signal,
+            });
+            await cleanup();
+            if (!uploadDone) { uploadDone = true; res.json({ success: true }); }
+          } catch (error) {
+            await cleanup();
+            fail(error.name === 'AbortError' ? 499 : 502, error.message);
+          }
+        });
+      }));
+      initReq.on('error', e => {
+        fileStream.resume();
+        failAfterCleanup(500, e.message);
+      });
+      initReq.write(body); initReq.end();
+    };
+
     try {
       const bb = busboy({ headers: req.headers, limits: { files: 1, fileSize: 11 * 1024 * 1024 * 1024 } });
       bb.on('field', (name, val) => {
         if (name !== 'parentId' && name !== 'size') return;
-        if (fileStarted) return fail(400, 'Upload target and size must be provided before file data');
-        if (name === 'parentId') parentId = val;
-        else declaredSize = Number.parseInt(val, 10);
+        if (!fileStarted) {
+          if (name === 'parentId') parentId = val;
+          else declaredSize = Number.parseInt(val, 10);
+        } else if (deferredUpload && name === 'parentId' && !parentId) {
+          parentId = val;
+        } else if (deferredUpload && name === 'size' && !Number.isSafeInteger(declaredSize)) {
+          declaredSize = Number.parseInt(val, 10);
+        } else {
+          fail(400, 'Upload target and size must be provided before file data');
+        }
       });
       bb.on('file', (fieldname, fileStream, info) => {
         fileStarted = true;
         fileCount += 1;
         abortScope.trackStream(fileStream);
-        if (fileCount > 1 || !parentId || !Number.isSafeInteger(declaredSize) || declaredSize <= 0
-          || declaredSize > 11 * 1024 * 1024 * 1024) {
+        if (fileCount > 1) {
           fileStream.resume();
-          fail(400, 'Upload target and size must be provided before file data');
+          fail(400, 'Upload file count limit exceeded');
           return;
         }
-        const fileName = info.filename;
-        const apiPath = (!parentId || parentId === 'root')
-          ? `/v1.0/me/drive/root:/${encodeURIComponent(fileName)}:/createUploadSession`
-          : `/v1.0/me/drive/items/${parentId}:/${encodeURIComponent(fileName)}:/createUploadSession`;
-        const body = JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'rename', name: fileName } });
-        const initReq = abortScope.trackRequest(https.request({
-          hostname: 'graph.microsoft.com', path: apiPath, method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-        }, (initRes) => {
-          let initBody = ''; initRes.on('data', c => initBody += c);
-          initRes.on('end', async () => {
-            let sessionData;
-            try { sessionData = JSON.parse(initBody); } catch { sessionData = {}; }
-            if (initRes.statusCode < 200 || initRes.statusCode >= 300 || !sessionData.uploadUrl) {
-              fileStream.resume();
-              fail(502, 'OneDrive upload session failed');
-              return;
-            }
-            const uploadUrl = new URL(sessionData.uploadUrl);
-            const session = {
-              uploadChunk: ({ chunk, start, end, total, signal }) => new Promise((resolve, reject) => {
-                const upReq = abortScope.trackRequest(https.request({
-                  hostname: uploadUrl.hostname,
-                  path: uploadUrl.pathname + uploadUrl.search,
-                  method: 'PUT',
-                  headers: { 'Content-Length': chunk.length, 'Content-Range': `bytes ${start}-${end}/${total}` },
-                  timeout: 600000,
-                  signal,
-                }, upRes => {
-                  upRes.resume();
-                  upRes.on('end', () => resolve({ statusCode: upRes.statusCode }));
-                }));
-                upReq.on('error', reject);
-                upReq.end(chunk);
-              }),
-            };
-            try {
-              await uploadOneDriveChunks({
-                stream: fileStream,
-                size: declaredSize,
-                session,
-                chunkSize: 10 * 320 * 1024,
-                signal: abortScope.signal,
-              });
-              if (!uploadDone) { uploadDone = true; res.json({ success: true }); }
-            } catch (error) {
-              fail(error.name === 'AbortError' ? 499 : 502, error.message);
-            }
-          });
-        }));
-        initReq.on('error', e => { fileStream.resume(); fail(500, e.message); });
-        initReq.write(body); initReq.end();
+        if (parentId && Number.isSafeInteger(declaredSize) && declaredSize > 0
+          && declaredSize <= 11 * 1024 * 1024 * 1024) {
+          startUpload(fileStream, info, declaredSize);
+          return;
+        }
+        deferredInfo = info;
+        deferredUpload = spoolUploadToTemp(fileStream, {
+          maxBytes: 11 * 1024 * 1024 * 1024,
+          signal: abortScope.signal,
+        }).catch(error => {
+          fail(error.name === 'AbortError' ? 499 : 413, error.message);
+          return null;
+        });
       });
       bb.on('filesLimit', () => fail(400, 'Upload file count limit exceeded'));
+      bb.on('close', () => {
+        if (!fileStarted) return fail(400, 'Upload file is required');
+        if (!deferredUpload) return;
+        void (async () => {
+          const spool = await deferredUpload;
+          if (!spool) return;
+          if (!Number.isSafeInteger(declaredSize)) declaredSize = spool.size;
+          if (uploadDone || !parentId || declaredSize <= 0 || declaredSize > 11 * 1024 * 1024 * 1024) {
+            await spool.cleanup();
+            if (!uploadDone) fail(400, 'Upload target and size must be provided before file data');
+            return;
+          }
+          const stream = abortScope.trackStream(spool.createReadStream());
+          startUpload(stream, deferredInfo, declaredSize, spool.cleanup);
+        })();
+      });
       bb.on('error', e => fail(500, e.message));
       req.pipe(bb);
     } catch (e) { fail(500, e.message); }
   });
 }
 
-module.exports = { createCloudRouteDependencies, setupGoogleRoutes, setupMicrosoftRoutes };
+module.exports = {
+  createCloudRouteDependencies,
+  setupGoogleRoutes,
+  setupMicrosoftRoutes,
+  spoolUploadToTemp,
+};
