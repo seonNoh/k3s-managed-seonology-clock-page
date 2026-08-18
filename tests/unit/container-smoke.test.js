@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-import { createApiShutdownCommand, createBuildArgs, createReadonlyRuntimeArgs, normalizeCommandOutput, parsePublishedPort, verifyAppVersion } from '../../scripts/container-smoke.mjs'
+import { createApiShutdownCommand, createBuildArgs, createReadonlyRuntimeArgs, createRecoveryCliImageCheckCommand, normalizeCommandOutput, parsePublishedPort, verifyAppVersion } from '../../scripts/container-smoke.mjs'
 
 test('Docker의 loopback port 출력을 HTTP endpoint로 변환한다', () => {
   assert.equal(
@@ -61,6 +61,26 @@ test('Dockerfile과 release workflow가 APP_VERSION을 build artifact에 연결�
   assert.match(workflow, /build-args: \|\n\s+APP_VERSION=\$\{\{ needs\.plan\.outputs\.version \}\}/)
   assert.match(workflow, /git config user\.name "github-actions\[bot\]"/)
   assert.match(workflow, /git config user\.email "41898282\+github-actions\[bot\]@users\.noreply\.github\.com"/)
+})
+
+test('production image는 recovery CLI만 maintenance 경로에 포함한다', () => {
+  const dockerfile = readFileSync(new URL('../../Dockerfile', import.meta.url), 'utf8')
+
+  assert.match(dockerfile, /^COPY scripts\/recover-cloud-token-backup\.mjs \.\/scripts\/recover-cloud-token-backup\.mjs$/m)
+  assert.doesNotMatch(dockerfile, /^COPY scripts\/? /m)
+  assert.doesNotMatch(dockerfile, /release-gate\.mjs \.\/scripts/)
+  assert.doesNotMatch(dockerfile, /container-smoke\.mjs \.\/scripts/)
+})
+
+test('container smoke는 recovery CLI의 usage와 fail-closed image 계약을 실행한다', () => {
+  const command = createRecoveryCliImageCheckCommand()
+
+  assert.match(command, /\/app\/scripts\/recover-cloud-token-backup\.mjs/)
+  assert.match(command, /Cloud token backup recovery failed: Usage:/)
+  assert.match(command, /Encryption key is required/)
+  assert.match(command, /release-gate\.mjs/)
+  assert.match(command, /container-smoke\.mjs/)
+  assert.match(command, /test ! -e \/data\/recovery-smoke-output\.json/)
 })
 
 test('release workflow는 push 전에 load한 planned image를 동일 version으로 smoke한다', () => {

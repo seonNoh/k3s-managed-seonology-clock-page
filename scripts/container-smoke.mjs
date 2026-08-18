@@ -61,6 +61,25 @@ export function createApiShutdownCommand() {
   return 'for pid in $(pidof node); do if grep -F -q \'/app/api/server.js\' "/proc/$pid/cmdline" 2>/dev/null; then kill -TERM "$pid"; exit 0; fi; done; exit 1'
 }
 
+export function createRecoveryCliImageCheckCommand() {
+  return [
+    'set -eu',
+    'cli=/app/scripts/recover-cloud-token-backup.mjs',
+    'target=/data/recovery-smoke-output.json',
+    'test -f "$cli"',
+    'test ! -e /app/scripts/release-gate.mjs',
+    'test ! -e /app/scripts/release-image-gate.mjs',
+    'test ! -e /app/scripts/release-publish.mjs',
+    'test ! -e /app/scripts/container-smoke.mjs',
+    'unset CLOUD_TOKEN_ENCRYPTION_KEY',
+    'if usage_output="$(node "$cli" 2>&1)"; then exit 1; fi',
+    'test "$usage_output" = "Cloud token backup recovery failed: Usage: recover-cloud-token-backup --backup <path> --target <new-path>"',
+    'if key_output="$(node "$cli" --backup /data/missing-backup.json --target "$target" 2>&1)"; then exit 1; fi',
+    'test "$key_output" = "Cloud token backup recovery failed: Encryption key is required"',
+    'test ! -e /data/recovery-smoke-output.json',
+  ].join('; ')
+}
+
 async function waitForHealth(endpoint) {
   let lastError
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -102,6 +121,7 @@ async function main() {
       throw new Error('Container did not run as UID 10001')
     }
     await verifyAppVersion(endpoint, version || readFileSync('VERSION', 'utf8').trim())
+    docker(['exec', name, 'sh', '-c', createRecoveryCliImageCheckCommand()])
 
     docker(['exec', name, 'sh', '-c', createApiShutdownCommand()])
     for (let attempt = 0; attempt < 10; attempt += 1) {

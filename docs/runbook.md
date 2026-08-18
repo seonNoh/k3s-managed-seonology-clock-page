@@ -81,7 +81,7 @@ publish 직전에는 origin의 `main` SHA가 planner의 `base_sha`와 같은지 
 평문에서 암호화 저장소로 최초 마이그레이션한 원문은 `/data/cloud-tokens.json.migration-backup.json`에 별도 AAD를 가진 AES-256-GCM envelope로 보존됩니다. 평문을 출력하거나 backup 파일을 직접 편집하지 말고, 현재 배포의 `CLOUD_TOKEN_ENCRYPTION_KEY`가 주입된 제한된 운영 환경에서 다음 CLI를 사용합니다.
 
 ```sh
-node scripts/recover-cloud-token-backup.mjs \
+node /app/scripts/recover-cloud-token-backup.mjs \
   --backup /data/cloud-tokens.json.migration-backup.json \
   --target /data/cloud-tokens.recovered.json
 ```
