@@ -22,7 +22,7 @@ API는 `api/server.js`가 HTTP 서버 수명주기를 소유하고, `api/app.js`
 
 컨테이너는 Node 24 Alpine build/runtime image를 사용합니다. UID/GID `10001`의 전용 사용자로 실행하며 root filesystem은 read-only입니다. 쓰기가 필요한 곳은 `/data` PVC, `/tmp`, `/var/cache/nginx`, `/var/run/nginx` volume으로 한정합니다. `tini`가 PID 1로 종료 신호를 shell supervisor에 전달하고, supervisor는 Node와 foreground nginx에 `TERM`을 전파합니다. 어느 프로세스든 비정상 종료하면 다른 프로세스를 종료한 뒤 컨테이너가 실패 코드로 끝납니다.
 
-nginx는 비특권 포트 `8080`에서 일반 API 요청을 작은 기본 요청 크기로 제한하고, NAS·Google Drive·OneDrive 업로드 route에만 100 MiB 상한과 streaming proxy 설정을 둡니다. API는 이 상한과 별개로 provider별 파일 수, 파일 크기, 경로 및 stream lifecycle을 다시 검증합니다. Kubernetes Service는 port name `http`로 이 내부 포트를 참조하므로 외부 Service port `80` 계약은 유지합니다.
+nginx는 비특권 포트 `8080`에서 일반 요청을 1 MiB로 제한하고, NAS·Google Drive·OneDrive 업로드 route만 전체 client request 12 GiB와 `proxy_request_buffering off`를 사용합니다. API는 단일 파일을 최대 11 GiB까지 스트리밍하면서 provider별 파일 수, 파일 크기, 대상 경로, abort와 upstream 오류를 검증합니다. 두 상한의 1 GiB 차이는 multipart field·part header·boundary envelope를 수용하므로 유효한 11 GiB 파일이 프록시에서 먼저 거부되지 않게 하며, nginx 12 GiB 상한은 API의 streaming validation과 backpressure 처리를 우회하지 않습니다. Kubernetes Service는 port name `http`로 이 내부 포트를 참조하므로 외부 Service port `80` 계약은 유지합니다.
 
 ## 배포 권한
 
@@ -35,3 +35,5 @@ nginx는 비특권 포트 `8080`에서 일반 API 요청을 작은 기본 요청
 - [Node.js 릴리스 일정](https://nodejs.org/en/about/previous-releases)
 - [Dockerfile ENTRYPOINT 참고](https://docs.docker.com/reference/dockerfile/#entrypoint)
 - [nginx proxy_pass 지시어](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass)
+- [nginx request body 크기 제한](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size)
+- [nginx request buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering)

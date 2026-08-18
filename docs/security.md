@@ -25,7 +25,7 @@
 
 ## 전송 및 브라우저 경계
 
-nginx는 `/health`와 `/api/`를 loopback Express API로만 프록시합니다. `/health`가 API 연결 실패를 그대로 5xx로 반환하므로 readiness가 stale static asset으로 성공하지 않습니다. 일반 요청은 1 MiB, 승인된 업로드 route는 100 MiB로 제한합니다.
+nginx는 `/health`와 `/api/`를 loopback Express API로만 프록시합니다. `/health`가 API 연결 실패를 그대로 5xx로 반환하므로 readiness가 stale static asset으로 성공하지 않습니다. 일반 요청은 1 MiB로 제한하고, NAS·Google Drive·OneDrive 업로드 route의 전체 client request는 12 GiB로 제한합니다. API는 provider별 단일 파일을 최대 11 GiB까지 스트리밍하며 파일 크기·개수·대상 경로·abort·upstream 오류를 검증합니다. nginx의 추가 1 GiB는 multipart field, part header, boundary를 포함하는 envelope 여유이고, `proxy_request_buffering off`를 유지하므로 전체 요청을 nginx 임시 파일에 먼저 모으지 않습니다. nginx 상한은 API 검증을 대체하지 않고 과도한 전체 요청을 앞단에서 제한합니다.
 
 컨테이너는 UID/GID `10001`로 실행하며 privilege escalation과 Linux capabilities를 허용하지 않고, RuntimeDefault seccomp profile을 사용합니다. root filesystem은 read-only이고 `/data` PVC 및 `/tmp`, `/var/cache/nginx`, `/var/run/nginx` emptyDir만 쓰기 가능하게 mount합니다. Docker smoke도 같은 read-only 조건과 tmpfs mount를 강제해 health endpoint를 검증합니다.
 
@@ -40,3 +40,5 @@ CI는 root·API·extension의 production dependency audit에서 High 이상을 �
 - [OWASP 입력 검증 치트 시트](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)
 - [OWASP HTML sanitization 치트 시트](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
 - [nginx request body 크기 제한](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size)
+- [nginx request buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering)
+- [Busboy multipart limits](https://github.com/mscdex/busboy#exports)

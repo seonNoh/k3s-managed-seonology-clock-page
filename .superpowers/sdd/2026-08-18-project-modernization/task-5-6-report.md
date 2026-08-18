@@ -1,6 +1,6 @@
 # 2026-08-18 Task 5·6 품질 게이트·런타임·운영 문서
 
-> 현재 통합 상태(2026-08-18): 아래 초기 기록의 semantic-release 전제, root High 2/API High 5 audit 수치, `api/server.js` 통합 대기는 모두 해소된 과거 기준선입니다. 현재 release는 Node 표준 라이브러리·git·GitHub REST native planner/publisher를 사용하며 root·API·extension production audit High 0을 quality gate로 검사합니다. planned image는 단일 loaded artifact를 HTTP `app-version.json` marker로 smoke하고, remote `main`이 plan base SHA와 일치할 때만 같은 artifact를 GHCR `v<version>`과 `latest`로 push합니다.
+> 현재 통합 상태(2026-08-18): 아래 초기 기록의 semantic-release 전제, root High 2/API High 5 audit 수치, `api/server.js` 통합 대기와 upload route 100 MiB 상한은 모두 해소된 과거 기준선입니다. 현재 release는 Node 표준 라이브러리·git·GitHub REST native planner/publisher를 사용하며 root·API·extension production audit High 0을 quality gate로 검사합니다. planned image는 단일 loaded artifact를 HTTP `app-version.json` marker로 smoke하고, remote `main`이 plan base SHA와 일치할 때만 같은 artifact를 GHCR `v<version>`과 `latest`로 push합니다. 현재 upload 계약은 nginx 전체 request 12 GiB, API 단일 파일 11 GiB와 streaming validation이며 1 GiB는 multipart envelope 여유입니다.
 
 ## 배경/목적
 
@@ -14,7 +14,7 @@
 - `/health`를 SPA fallback으로 처리하면 정적 파일만 살아 있어도 Kubernetes readiness가 성공한다. nginx의 exact location으로 loopback API `/health`를 프록시하면 API 연결 실패가 5xx 또는 연결 종료로 드러난다.
 - `tini`는 PID 1에서 종료 신호를 자식 supervisor로 전달한다. supervisor는 Node와 foreground nginx를 함께 종료해 컨테이너가 orphan process 없이 끝나게 한다.
 - GitHub Actions action tag는 이동할 수 있으므로 확인한 commit SHA로 고정했다. quality job은 read-only 권한, release job만 `contents: write`와 `packages: write`를 가진다.
-- [Node.js 릴리스 일정](https://nodejs.org/en/about/previous-releases), [Docker ENTRYPOINT](https://docs.docker.com/reference/dockerfile/#entrypoint), [nginx proxy_pass](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass), [nginx request body limit](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size)를 설계 근거로 사용했다.
+- [Node.js 릴리스 일정](https://nodejs.org/en/about/previous-releases), [Docker ENTRYPOINT](https://docs.docker.com/reference/dockerfile/#entrypoint), [nginx proxy_pass](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass), [nginx request body limit](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size), [nginx request buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering), [Busboy multipart limits](https://github.com/mscdex/busboy#exports)를 설계 근거로 사용했다.
 
 ## 수행 내역(작업 내역·상태)
 
@@ -22,7 +22,7 @@
 2. 성공 — `eslint.config.js`를 web, Node/CommonJS, test, extension 경계로 나누고 generated/worktree 경로를 ignore했다. 최종 lint는 0 error/105 warning이다.
 3. 성공 — `vitest.config.js`, `api/vitest.config.js`, release gate와 container smoke script 및 Node test를 추가했다. 먼저 두 script module이 없는 상태에서 테스트가 실패하는 것을 확인한 뒤 구현했고, 최종 4개 test가 통과했다.
 4. 성공 — release workflow에 quality job, Node 24, immutable action SHA, least privilege, release 여부 조건부 GHCR push를 적용했다. 초기 semantic-release 전제는 bundled npm 취약점 때문에 폐기했고, 현재 native release gate가 마지막 stable `vX.Y.Z`과 Conventional Commit을 읽어 `released`, `version`, `base_sha`, `release_date`를 기록한다.
-5. 성공 — Node 24 Docker build/runtime, `tini`+supervisor, nginx `/health` API proxy, upload route별 100 MiB ceiling, 보안 header, Kubernetes probe를 적용했다. 참고 deployment의 Grafana password literal도 Secret 참조로 바꿨다.
+5. 성공 — Node 24 Docker build/runtime, `tini`+supervisor, nginx `/health` API proxy, upload route별 명시적 요청 상한, 보안 header, Kubernetes probe를 적용했다. 초기 상한은 100 MiB였지만 이는 API의 11 GiB 파일 지원 범위를 선차단하는 값으로 후속 재리뷰에서 확인되어, 현재는 전체 request 12 GiB와 streaming proxy 계약으로 교정했다. 참고 deployment의 Grafana password literal도 Secret 참조로 바꿨다.
 6. 성공 — README, architecture, security, runbook을 작성했다. `k8s/`가 non-authoritative이며 라이브 SSOT가 `seonology-k3s`의 Argo CD Application/Kustomization임을 명시했다.
 7. 성공 — Task 2 worktree의 이미 구현된 `api/server.js`를 임시 Docker overlay로만 주입해 repository를 수정하지 않고 런타임 smoke를 수행했다. `/health`는 `200 application/json`이었고 Node를 종료하면 health 연결이 실패하며 container가 exit 1로 끝났다.
 
@@ -151,11 +151,26 @@ kubectl apply --dry-run=client -f k8s/deployment.yaml -f k8s/service.yaml
 
 ## 재리뷰 후속 수정: BusyBox smoke 명령
 
-재리뷰 Minor에서 runbook의 `pkill` 명령이 production Alpine image에 보장되지 않는다는 지적을 받았다. 자동 smoke와 동일하게 BusyBox가 제공하는 `pidof`로 Node PID를 찾고 `kill -TERM`을 보내도록 `docs/runbook.md`를 수정했다.
+재리뷰 Minor에서 runbook의 `pkill` 명령이 production Alpine image에 보장되지 않는다는 지적을 받았다. 자동 smoke와 동일하게 BusyBox가 제공하는 `pidof`의 후보 PID를 순회하고 `/proc/$pid/cmdline`에서 실제 `/app/api/server.js` 프로세스만 선택해 `kill -TERM`을 보내도록 `README.md`와 `docs/runbook.md`를 수정했다.
 
 ```sh
-rg -n "pkill|pidof|kill -TERM" docs/runbook.md README.md scripts/container-smoke.mjs
-docker exec seonology-clock-page-smoke sh -c 'kill -TERM "$(pidof node)"'
+rg -n "pkill|pidof|kill -TERM|/proc/\$pid/cmdline" docs/runbook.md README.md scripts/container-smoke.mjs
+docker exec seonology-clock-page-smoke sh -c 'for pid in $(pidof node); do if grep -F -q "/app/api/server.js" "/proc/$pid/cmdline" 2>/dev/null; then kill -TERM "$pid"; exit 0; fi; done; exit 1'
 ```
 
-문서 명령은 `scripts/container-smoke.mjs`의 실제 자동 smoke 구현과 일치한다. 후속 커밋은 `e69deeb docs: correct container smoke command`이다.
+문서 명령은 `scripts/container-smoke.mjs`의 실제 자동 smoke 구현과 일치한다. 최초 `pidof` 문서 교정 뒤 다중 PID 선택을 보강한 커밋은 `6c2463e fix: target api process in container smoke`, 문서를 동기화한 커밋은 `e1fc600 fix: align upload proxy limits`이다.
+
+## 최종 재리뷰 후속 수정: 업로드 프록시 계약
+
+재리뷰 Important에서 nginx upload route의 초기 100 MiB 전체 요청 상한이 API의 최대 11 GiB 파일 streaming validation보다 먼저 413을 반환한다는 계층 간 불일치를 확인했다. `client_max_body_size`는 파일이 아니라 multipart envelope를 포함한 전체 client request에 적용되므로 API와 같은 11 GiB로 설정해도 최대 크기 파일을 선차단할 수 있다.
+
+세 upload exact location은 전체 request를 12 GiB로 제한하고 `proxy_request_buffering off`를 유지한다. API는 단일 파일 11 GiB, 파일 수, 대상 경로, abort, upstream 오류와 backpressure를 계속 검증한다. 추가 1 GiB는 multipart field·part header·boundary를 위한 envelope 여유이며 nginx의 명시적 상한을 비활성화하지 않는다.
+
+```sh
+rg -n -i "100 MiB|100m|100MB|100 MB" docs README.md .superpowers/sdd/2026-08-18-project-modernization/task-5-6-report.md
+node --test tests/unit/container-smoke.test.js
+docker run --rm --entrypoint nginx -v "$PWD/nginx.conf:/etc/nginx/http.d/default.conf:ro" ghcr.io/seonnoh/seonology-clock-page:candidate-6c2463e670f7 -p /tmp/nginx -g 'error_log stderr warn;' -t
+git diff --check
+```
+
+실제 컨테이너에서 100 MiB를 1바이트 넘는 요청은 더 이상 nginx 413으로 선차단되지 않고 API까지 도달했으며, 12 GiB를 1바이트 넘는 요청은 nginx 413으로 거부됐다. `proxy_request_buffering off`와 API upload 관련 테스트 7개도 유지됐다. 구현 커밋은 `e1fc600 fix: align upload proxy limits`이다.
