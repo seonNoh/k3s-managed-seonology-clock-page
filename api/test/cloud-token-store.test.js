@@ -1,11 +1,16 @@
 const assert = require('node:assert/strict');
-const { mkdtemp, readFile, stat, symlink, writeFile } = require('node:fs/promises');
+const { execFile } = require('node:child_process');
+const { mkdtemp, readFile, readdir, stat, symlink, writeFile } = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const { promisify } = require('node:util');
 
 const { createEncryptedTokenStore } = require('../infrastructure/storage/encrypted-token-store');
 const { createAtomicJsonStore } = require('../infrastructure/storage/atomic-json-store');
+
+const execFileAsync = promisify(execFile);
+const recoveryScript = path.resolve(__dirname, '../../scripts/recover-cloud-token-backup.mjs');
 
 async function fixture(key = Buffer.alloc(32, 0x11), options = {}) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'clock-token-store-'));
@@ -13,9 +18,17 @@ async function fixture(key = Buffer.alloc(32, 0x11), options = {}) {
   return {
     directory,
     filePath,
-    backupPath: `${filePath}.plaintext-backup`,
+    backupPath: `${filePath}.migration-backup.json`,
+    legacyBackupPath: `${filePath}.plaintext-backup`,
+    key,
     store: createEncryptedTokenStore({ filePath, key, ...options }),
   };
+}
+
+async function assertDirectoryDoesNotContain(directory, pattern) {
+  for (const entry of await readdir(directory)) {
+    assert.doesNotMatch(await readFile(path.join(directory, entry), 'utf8'), pattern);
+  }
 }
 
 test('tokens round-trip through an AES-256-GCM envelope without plaintext leakage', async () => {
@@ -39,7 +52,7 @@ test('a wrong encryption key fails closed', async () => {
 });
 
 test('legacy plaintext tokens are migrated to the encrypted envelope on read', async () => {
-  const { backupPath, filePath, store } = await fixture();
+  const { backupPath, directory, filePath, legacyBackupPath, store } = await fixture();
   const legacy = { google: { refresh_token: 'legacy-fixture-refresh' } };
   const original = `${JSON.stringify(legacy, null, 2)}\n`;
   await writeFile(filePath, original, { mode: 0o644 });
@@ -48,9 +61,13 @@ test('legacy plaintext tokens are migrated to the encrypted envelope on read', a
   const migrated = await readFile(filePath, 'utf8');
   assert.doesNotMatch(migrated, /legacy-fixture-refresh/);
   assert.equal(JSON.parse(migrated).algorithm, 'aes-256-gcm');
-  assert.equal(await readFile(backupPath, 'utf8'), original);
+  const backup = JSON.parse(await readFile(backupPath, 'utf8'));
+  assert.equal(backup.kind, 'cloud-token-migration-backup');
+  assert.equal(backup.aad, 'seonology-clock/cloud-token-migration-backup/v1');
   assert.equal((await stat(backupPath)).mode & 0o777, 0o600);
   assert.equal((await stat(filePath)).mode & 0o777, 0o600);
+  await assert.rejects(readFile(legacyBackupPath, 'utf8'), { code: 'ENOENT' });
+  await assertDirectoryDoesNotContain(directory, /legacy-fixture-refresh/);
 });
 
 test('malformed legacy plaintext is rejected without changing the original file', async () => {
@@ -82,7 +99,7 @@ test('a failed encrypted write leaves the plaintext and its backup recoverable f
 
   await assert.rejects(store.read(), /forced encrypted write failure/);
   assert.equal(await readFile(filePath, 'utf8'), original);
-  assert.equal(await readFile(backupPath, 'utf8'), original);
+  assert.doesNotMatch(await readFile(backupPath, 'utf8'), /retry-fixture/);
 
   failWrites = false;
   assert.deepEqual(await store.read(), {
@@ -91,7 +108,7 @@ test('a failed encrypted write leaves the plaintext and its backup recoverable f
   assert.equal(JSON.parse(await readFile(filePath, 'utf8')).algorithm, 'aes-256-gcm');
 });
 
-test('migration is idempotent and does not replace the original plaintext backup', async () => {
+test('migration is idempotent and does not replace the encrypted original backup', async () => {
   const { backupPath, filePath, store } = await fixture();
   const original = '{"google":{"access_token":"once-fixture"}}\n';
   await writeFile(filePath, original);
@@ -103,22 +120,36 @@ test('migration is idempotent and does not replace the original plaintext backup
 
   assert.equal(await readFile(filePath, 'utf8'), firstEnvelope);
   assert.equal(await readFile(backupPath, 'utf8'), firstBackup);
-  assert.equal(firstBackup, original);
+  assert.doesNotMatch(firstBackup, /once-fixture/);
 });
 
-test('the preserved plaintext backup can restore and remigrate the original state', async () => {
-  const { backupPath, filePath, store } = await fixture();
+test('the recovery CLI restores an exact 0600 plaintext only to an explicit new target', async () => {
+  const { backupPath, directory, key, filePath, store } = await fixture();
   const original = '{"google":{"refresh_token":"rollback-fixture"}}\n';
   await writeFile(filePath, original);
   await store.read();
+  const targetPath = path.join(directory, 'explicit-recovery.json');
 
-  await writeFile(filePath, await readFile(backupPath, 'utf8'));
-
-  assert.deepEqual(await store.read(), {
-    google: { refresh_token: 'rollback-fixture' },
+  const { stdout, stderr } = await execFileAsync(process.execPath, [
+    recoveryScript,
+    '--backup', backupPath,
+    '--target', targetPath,
+  ], {
+    env: { ...process.env, CLOUD_TOKEN_ENCRYPTION_KEY: key.toString('base64') },
   });
-  assert.equal(await readFile(backupPath, 'utf8'), original);
-  assert.doesNotMatch(await readFile(filePath, 'utf8'), /rollback-fixture/);
+
+  assert.equal(await readFile(targetPath, 'utf8'), original);
+  assert.equal((await stat(targetPath)).mode & 0o777, 0o600);
+  assert.doesNotMatch(`${stdout}${stderr}`, /rollback-fixture/);
+
+  await assert.rejects(execFileAsync(process.execPath, [
+    recoveryScript,
+    '--backup', backupPath,
+    '--target', targetPath,
+  ], {
+    env: { ...process.env, CLOUD_TOKEN_ENCRYPTION_KEY: key.toString('base64') },
+  }), /already exists/i);
+  assert.equal(await readFile(targetPath, 'utf8'), original);
 });
 
 test('migration fails closed when the backup path is a symlink', async () => {
@@ -149,6 +180,61 @@ test('update validates and backs up legacy plaintext before replacing provider t
     google: { refresh_token: 'keep-fixture' },
     microsoft: { refresh_token: 'add-fixture' },
   });
-  assert.equal(await readFile(backupPath, 'utf8'), original);
+  assert.doesNotMatch(await readFile(backupPath, 'utf8'), /keep-fixture/);
   assert.doesNotMatch(await readFile(filePath, 'utf8'), /keep-fixture|add-fixture/);
+});
+
+test('an existing plaintext backup is encrypted and removed on the next read', async () => {
+  const { backupPath, directory, legacyBackupPath, store } = await fixture();
+  const tokens = { google: { refresh_token: 'upgrade-fixture' } };
+  const original = `${JSON.stringify(tokens, null, 2)}\n`;
+  await store.write(tokens);
+  await writeFile(legacyBackupPath, original, { mode: 0o600 });
+
+  assert.deepEqual(await store.read(), tokens);
+
+  await assert.rejects(readFile(legacyBackupPath, 'utf8'), { code: 'ENOENT' });
+  assert.equal(JSON.parse(await readFile(backupPath, 'utf8')).kind, 'cloud-token-migration-backup');
+  await assertDirectoryDoesNotContain(directory, /upgrade-fixture/);
+  assert.deepEqual(await store.read(), tokens);
+});
+
+test('a corrupt encrypted backup fails closed and leaves the legacy backup untouched', async () => {
+  const { backupPath, filePath, legacyBackupPath, store } = await fixture();
+  const tokens = { microsoft: { refresh_token: 'corruption-fixture' } };
+  const original = `${JSON.stringify(tokens)}\n`;
+  await store.write(tokens);
+  await writeFile(backupPath, '{"kind":"cloud-token-migration-backup","ciphertext":"corrupt"}\n');
+  await writeFile(legacyBackupPath, original);
+
+  await assert.rejects(store.read(), /backup|decrypt/i);
+
+  assert.equal(await readFile(legacyBackupPath, 'utf8'), original);
+  assert.doesNotMatch(await readFile(filePath, 'utf8'), /corruption-fixture/);
+});
+
+test('recovery with the wrong key fails without creating the target or logging secrets', async () => {
+  const { backupPath, directory, filePath, store } = await fixture();
+  const original = '{"google":{"refresh_token":"wrong-key-fixture"}}\n';
+  await writeFile(filePath, original);
+  await store.read();
+  const targetPath = path.join(directory, 'wrong-key-target.json');
+
+  let failure;
+  try {
+    await execFileAsync(process.execPath, [
+      recoveryScript,
+      '--backup', backupPath,
+      '--target', targetPath,
+    ], {
+      env: { ...process.env, CLOUD_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 0x22).toString('base64') },
+    });
+  } catch (error) {
+    failure = error;
+  }
+
+  assert.ok(failure);
+  assert.match(`${failure.stdout || ''}${failure.stderr || ''}`, /recovery failed|decrypt/i);
+  assert.doesNotMatch(`${failure.stdout || ''}${failure.stderr || ''}`, /wrong-key-fixture/);
+  await assert.rejects(readFile(targetPath, 'utf8'), { code: 'ENOENT' });
 });

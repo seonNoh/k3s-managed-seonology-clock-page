@@ -13,7 +13,7 @@
 | NAS | `NAS_HOST`, `NAS_PORT`, `NAS_ACCOUNT`, `NAS_PASSWORD`, `NAS_ALLOWED_ROOTS`, `NAS_CA_PATH`, `NAS_TLS_SERVERNAME`, `NAS_MAX_UPLOAD_BYTES`, `NAS_MAX_UPLOAD_FILES` |
 | 외부 도구 | `GEMINI_API_KEY`, `CONNPASS_API_KEY`, `DOORKEEPER_TOKEN`, `TAILSCALE_OAUTH_CLIENT_ID`, `TAILSCALE_OAUTH_CLIENT_SECRET`, `GRAFANA_URL`, `GRAFANA_USER`, `GRAFANA_PASS` |
 
-`CLOUD_TOKEN_ENCRYPTION_KEY`는 AES-256-GCM에 맞는 배포 전용 키여야 하며 다른 용도로 재사용하지 않습니다. 기존 `cloud-tokens.json` 평문은 Google/Microsoft token schema를 검증한 뒤에만 마이그레이션합니다. 마이그레이션 전에 같은 디렉터리의 `cloud-tokens.json.plaintext-backup`에 원문을 `0600`으로 원자 보존하며, 암호화 쓰기가 실패하면 평문 원본과 백업을 모두 유지해 재시도 또는 롤백할 수 있게 합니다. 백업 경로가 symlink이거나 기존 백업의 내용이 원본과 다르면 덮어쓰지 않고 fail-closed합니다. NAS TLS는 CA와 hostname을 구성해 기본 검증을 유지합니다.
+`CLOUD_TOKEN_ENCRYPTION_KEY`는 AES-256-GCM에 맞는 배포 전용 키여야 하며 다른 용도로 재사용하지 않습니다. 기존 `cloud-tokens.json` 평문은 Google/Microsoft token schema를 검증한 뒤에만 마이그레이션합니다. 원문은 별도 AAD를 사용하는 `cloud-tokens.json.migration-backup.json` AES-256-GCM envelope에 `0600`으로 원자 보존한 뒤 primary를 암호화하며, 성공 후 디스크에 token 평문을 남기지 않습니다. 암호화 쓰기가 실패하면 primary 원본은 유지합니다. 이전 버전의 `cloud-tokens.json.plaintext-backup`이 있으면 schema와 새 암호화 백업의 exact round-trip을 검증한 뒤에만 제거합니다. backup의 symlink, 기존 파일 불일치, 손상, key mismatch는 덮어쓰지 않고 fail-closed합니다. 복구는 `CLOUD_TOKEN_ENCRYPTION_KEY`와 명시적인 새 target을 요구하는 CLI만 사용하며 기존 파일을 덮어쓰지 않습니다. NAS TLS는 CA와 hostname을 구성해 기본 검증을 유지합니다.
 
 ## 입력 및 출력 경계
 

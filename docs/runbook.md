@@ -75,3 +75,15 @@ publish 직전에는 origin의 `main` SHA가 planner의 `base_sha`와 같은지 
 4. `/health`와 read-only API를 재검증합니다.
 
 `kubectl rollout undo`는 GitOps 경로가 복구 불가능한 긴급 상황에서만 사용합니다. 사용했다면 GitOps desired state를 즉시 같은 revision으로 정정해 drift를 제거합니다.
+
+### Cloud token 마이그레이션 복구
+
+평문에서 암호화 저장소로 최초 마이그레이션한 원문은 `/data/cloud-tokens.json.migration-backup.json`에 별도 AAD를 가진 AES-256-GCM envelope로 보존됩니다. 평문을 출력하거나 backup 파일을 직접 편집하지 말고, 현재 배포의 `CLOUD_TOKEN_ENCRYPTION_KEY`가 주입된 제한된 운영 환경에서 다음 CLI를 사용합니다.
+
+```sh
+node scripts/recover-cloud-token-backup.mjs \
+  --backup /data/cloud-tokens.json.migration-backup.json \
+  --target /data/cloud-tokens.recovered.json
+```
+
+`--backup`과 `--target`은 모두 필수이며 target은 backup과 다른 명시적 새 경로여야 합니다. CLI는 backup 형식, AAD, AES-GCM 인증 tag, 복호화된 token schema를 검증한 뒤 exact 원문을 `0600`으로 원자 생성합니다. target이 이미 있거나 symlink이면 덮어쓰지 않고 실패하며 token 내용은 stdout/stderr에 출력하지 않습니다. 복원 파일을 primary로 적용하는 작업은 애플리케이션을 중지하고 PVC snapshot을 확보한 유지보수 창에서 별도로 수행합니다. 다음 시작 시 정상 마이그레이션이 완료되어 primary와 migration backup 모두 평문을 포함하지 않는지 확인한 뒤 복원 파일을 안전하게 폐기합니다.
