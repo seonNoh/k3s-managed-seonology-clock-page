@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { WEB_TOOL_CATALOG, getWebTool } from '../../src/features/tool-launcher/toolRegistry.web.js';
+import {
+  WEB_TOOL_CATALOG,
+  WEB_TOOL_REGISTRY,
+  getWebTool,
+} from '../../src/features/tool-launcher/toolRegistry.web.js';
 
 const EXPECTED_TOOL_IDS = [
   'notes', 'chat', 'markdown', 'unit', 'base64', 'json', 'ip', 'password',
@@ -27,4 +31,9 @@ test('web tool lookup returns the stable registry object', () => {
   const markdown = getWebTool('markdown');
   assert.equal(markdown, WEB_TOOL_CATALOG.find((tool) => tool.id === 'markdown'));
   assert.equal(getWebTool('missing'), null);
+});
+
+test('web tool registry export remains the canonical catalog contract', () => {
+  assert.equal(WEB_TOOL_REGISTRY, WEB_TOOL_CATALOG);
+  assert.equal(getWebTool('markdown'), WEB_TOOL_REGISTRY.find((tool) => tool.id === 'markdown'));
 });

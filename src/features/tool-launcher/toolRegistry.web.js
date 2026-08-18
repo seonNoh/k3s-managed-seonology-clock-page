@@ -33,12 +33,14 @@ const WEB_TOOL_LOADERS = {
   onedrive: () => import('../../components/CloudBrowser.jsx'),
 };
 
-export const WEB_TOOL_CATALOG = Object.freeze(createToolRegistry({
+export const WEB_TOOL_REGISTRY = Object.freeze(createToolRegistry({
   catalog: toolsForSurface('web'),
   loaders: WEB_TOOL_LOADERS,
 }).map((tool) => Object.freeze({ ...tool, component: lazy(tool.load) })));
 
-const WEB_TOOLS_BY_ID = new Map(WEB_TOOL_CATALOG.map((tool) => [tool.id, tool]));
+export const WEB_TOOL_CATALOG = WEB_TOOL_REGISTRY;
+
+const WEB_TOOLS_BY_ID = new Map(WEB_TOOL_REGISTRY.map((tool) => [tool.id, tool]));
 
 export function getWebTool(id) {
   return WEB_TOOLS_BY_ID.get(id) || null;

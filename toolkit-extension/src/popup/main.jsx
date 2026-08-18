@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { StrictMode, useState, useEffect, useMemo, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../shared/theme.css';
 import './popup.css';
@@ -167,7 +167,7 @@ function PopupApp() {
 }
 
 createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  <StrictMode>
     <PopupApp />
-  </React.StrictMode>
+  </StrictMode>
 );

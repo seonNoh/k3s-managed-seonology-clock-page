@@ -4,12 +4,13 @@ import assert from 'node:assert/strict';
 import {
   closeTopDialog,
   filterToolCatalog,
+  openTool,
   openToolLauncher,
   openToolDialog,
 } from '../../src/features/tool-launcher/dialog-state.js';
 
 test('opening a tool closes the launcher and replaces the active tool', () => {
-  const next = openToolDialog(
+  const next = openTool(
     { toolsExpanded: true, activeToolId: 'base64', activeModal: null },
     'markdown',
   );
@@ -19,6 +20,7 @@ test('opening a tool closes the launcher and replaces the active tool', () => {
     activeToolId: 'markdown',
     activeModal: null,
   });
+  assert.equal(openToolDialog, openTool);
 });
 
 test('opening the launcher closes an active tool and modal before showing the launcher', () => {

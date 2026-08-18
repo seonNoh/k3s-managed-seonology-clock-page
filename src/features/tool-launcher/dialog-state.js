@@ -1,4 +1,4 @@
-export function openToolDialog(state, toolId) {
+export function openTool(state, toolId) {
   return {
     ...state,
     toolsExpanded: false,
@@ -6,6 +6,8 @@ export function openToolDialog(state, toolId) {
     activeModal: null,
   };
 }
+
+export const openToolDialog = openTool;
 
 export function openToolLauncher(state) {
   return {
