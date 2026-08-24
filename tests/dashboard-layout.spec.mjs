@@ -97,6 +97,8 @@ test('Split Console의 상태·도구·효과 진입점이 실제 기능 화면�
   await page.getByRole('button', { name: 'CA Calendar' }).click();
   await expect(page.getByRole('dialog', { name: 'Calendar' })).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
+  await expect(page.getByRole('dialog', { name: 'Tools' })).toBeVisible();
+  await page.getByRole('button', { name: '도구 모음 닫기' }).click();
 
   await page.getByRole('button', { name: '효과 설정 열기' }).click();
   const snowToggle = page.getByRole('button', { name: 'On', exact: true });

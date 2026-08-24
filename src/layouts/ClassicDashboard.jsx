@@ -647,18 +647,23 @@ function ClassicDashboard({ colorMode }) {
   const backgroundEffectsPaused = Boolean(toolsExpanded || settingsOpen || activeModal || activeToolId || pendingToolId);
   const transitionSurface = (update) => update();
 
-  const openModal = (name) => {
+  const openModal = (name, origin) => {
+    const returnTarget = origin || (toolsExpanded ? 'launcher' : 'dashboard');
     transitionSurface(() => {
       toolLoadRequest.current += 1;
       setActiveToolId(null);
-      setToolReturnTarget(null);
+      setToolReturnTarget(returnTarget);
       setPendingToolId(null);
       setToolsExpanded(false);
       setActiveModal(name);
       setMobileDrawerOpen(false);
     });
   };
-  const closeModal = () => transitionSurface(() => setActiveModal(null));
+  const closeModal = () => transitionSurface(() => {
+    setActiveModal(null);
+    setToolsExpanded(toolReturnTarget === 'launcher');
+    setToolReturnTarget(null);
+  });
 
   const openTool = async (toolId, origin) => {
     const returnTarget = origin || (toolsExpanded ? 'launcher' : 'dashboard');
@@ -1018,7 +1023,7 @@ function ClassicDashboard({ colorMode }) {
             </div>
           )}
           <div className="tools-modal-grid">
-        <button className="app-icon-btn" hidden={!calendarVisible} onClick={() => openModal('calendar')} title="Calendar">
+        <button className="app-icon-btn" hidden={!calendarVisible} onClick={() => openModal('calendar', 'launcher')} title="Calendar">
           <span className="app-icon-visual">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />

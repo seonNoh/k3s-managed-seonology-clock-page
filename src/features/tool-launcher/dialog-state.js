@@ -30,7 +30,14 @@ export function closeTopDialog(state) {
     };
   }
   if (state.toolsExpanded) return { ...state, toolsExpanded: false };
-  if (state.activeModal) return { ...state, activeModal: null };
+  if (state.activeModal) {
+    return {
+      ...state,
+      toolsExpanded: state.toolReturnTarget === 'launcher',
+      activeModal: null,
+      toolReturnTarget: null,
+    };
+  }
   return state;
 }
 

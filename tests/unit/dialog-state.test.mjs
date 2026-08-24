@@ -107,6 +107,21 @@ test('closing the top dialog keeps non-tool surfaces mutually exclusive', () => 
   });
 });
 
+test('Escape from a launcher modal returns to the launcher before the dashboard', () => {
+  const launcherRestored = closeTopDialog({
+    toolsExpanded: false,
+    activeToolId: null,
+    activeModal: 'calendar',
+    toolReturnTarget: 'launcher',
+  });
+  assert.deepEqual(launcherRestored, {
+    toolsExpanded: true,
+    activeToolId: null,
+    activeModal: null,
+    toolReturnTarget: null,
+  });
+});
+
 test('tool filtering derives matches without mutating the catalog', () => {
   const tools = [
     { id: 'json', name: 'JSON Formatter', aliases: ['pretty'] },

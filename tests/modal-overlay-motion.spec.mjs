@@ -472,6 +472,35 @@ test('Split Tools에서 연 도구도 Escape로 Tools와 대시보드를 차례�
   await expect(page.locator('.split-tools-dialog')).toHaveCount(0);
 });
 
+test('Classic Tools의 Calendar도 Escape로 Tools와 대시보드를 차례로 복원한다', async ({ page }) => {
+  await openClassicDashboard(page);
+
+  await page.getByRole('button', { name: 'Tools', exact: true }).click();
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+  await expect(page.locator('.modal-content')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.modal-content')).toHaveCount(0);
+  await expect(page.locator('.tools-modal-overlay')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.tools-modal-overlay')).toHaveCount(0);
+});
+
+test('Split Tools의 Calendar도 Escape로 Tools와 대시보드를 차례로 복원한다', async ({ page }) => {
+  await openSplitDashboard(page);
+
+  await page.getByRole('button', { name: '도구 모음 열기' }).click();
+  await page.getByRole('button', { name: 'CA Calendar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Calendar', exact: true })).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.split-tools-dialog')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.split-tools-dialog')).toHaveCount(0);
+});
+
 test('도구 모듈을 불러오는 동안 현재 Tools 셸을 유지한다', async ({ page }) => {
   let releaseModule;
   await page.route('**/src/components/JsonFormatter.jsx*', async (route) => {

@@ -106,11 +106,18 @@ function SplitConsoleDashboard({
     }
   };
 
-  const openModal = (id) => {
+  const openModal = (id, returnTarget = toolsOpen ? 'launcher' : 'dashboard') => {
     transitionSurface(() => {
       closeSurfaces();
       setActiveModal(id);
+      setToolReturnTarget(returnTarget);
     });
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    setToolReturnTarget(null);
+    setToolsOpen(toolReturnTarget === 'launcher');
   };
 
   const closeToolsLauncher = () => {
@@ -134,6 +141,8 @@ function SplitConsoleDashboard({
     }
     if (activeModal) {
       setActiveModal(null);
+      setToolReturnTarget(null);
+      setToolsOpen(toolReturnTarget === 'launcher');
       return;
     }
     if (effectsOpen) setEffectsOpen(false);
@@ -223,7 +232,7 @@ function SplitConsoleDashboard({
         onQueryChange={setToolQuery}
         onClose={() => transitionSurface(closeToolsLauncher)}
         onOpenTool={openTool}
-        onOpenCalendar={() => openModal('calendar')}
+        onOpenCalendar={() => openModal('calendar', 'launcher')}
         pendingToolId={pendingToolId}
       />
 
@@ -237,12 +246,12 @@ function SplitConsoleDashboard({
         </DashboardDialog>
       )}
 
-      {activeModal === 'services' && <DashboardDialog title="Services" eyebrow="SEONOLOGY" onClose={() => transitionSurface(() => setActiveModal(null))}><ServiceHub initialTab="services" /></DashboardDialog>}
-      {activeModal === 'bookmarks' && <DashboardDialog title="Bookmarks" eyebrow="SEONOLOGY" onClose={() => transitionSurface(() => setActiveModal(null))}><ServiceHub initialTab="bookmarks" /></DashboardDialog>}
-      {activeModal === 'weather' && <DashboardDialog title="Weather" eyebrow="LIVE STATUS" onClose={() => transitionSurface(() => setActiveModal(null))}><Weather /></DashboardDialog>}
-      {activeModal === 'exchange' && <DashboardDialog title="Exchange Rate" eyebrow="LIVE STATUS" onClose={() => transitionSurface(() => setActiveModal(null))}><ExchangeRate /></DashboardDialog>}
-      {activeModal === 'todo' && <DashboardDialog title="Todo" eyebrow="WORKSPACE" onClose={() => transitionSurface(() => setActiveModal(null))}><TodoList /></DashboardDialog>}
-      {activeModal === 'calendar' && <DashboardDialog title="Calendar" eyebrow="WORKSPACE" onClose={() => transitionSurface(() => setActiveModal(null))}><Calendar /></DashboardDialog>}
+      {activeModal === 'services' && <DashboardDialog title="Services" eyebrow="SEONOLOGY" onClose={() => transitionSurface(closeModal)}><ServiceHub initialTab="services" /></DashboardDialog>}
+      {activeModal === 'bookmarks' && <DashboardDialog title="Bookmarks" eyebrow="SEONOLOGY" onClose={() => transitionSurface(closeModal)}><ServiceHub initialTab="bookmarks" /></DashboardDialog>}
+      {activeModal === 'weather' && <DashboardDialog title="Weather" eyebrow="LIVE STATUS" onClose={() => transitionSurface(closeModal)}><Weather /></DashboardDialog>}
+      {activeModal === 'exchange' && <DashboardDialog title="Exchange Rate" eyebrow="LIVE STATUS" onClose={() => transitionSurface(closeModal)}><ExchangeRate /></DashboardDialog>}
+      {activeModal === 'todo' && <DashboardDialog title="Todo" eyebrow="WORKSPACE" onClose={() => transitionSurface(closeModal)}><TodoList /></DashboardDialog>}
+      {activeModal === 'calendar' && <DashboardDialog title="Calendar" eyebrow="WORKSPACE" onClose={() => transitionSurface(closeModal)}><Calendar /></DashboardDialog>}
 
       {ActiveToolComponent && (
         <Suspense fallback={<div className="tool-loading-overlay"><LoadingProgress label="도구를 불러오는 중입니다." detail="작업 공간을 준비하고 있습니다." /></div>}>
