@@ -1,3 +1,9 @@
+## [1.56.1] - 2026-08-24
+
+### Fixes
+
+- fix: stabilize tool modal navigation
+
 ## [1.56.0] - 2026-08-24
 
 ### Features
