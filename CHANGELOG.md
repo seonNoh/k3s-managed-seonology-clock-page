@@ -1,3 +1,13 @@
+## [1.54.0] - 2026-08-24
+
+### Features
+
+- feat: enlarge modal workspace and add restrained motion
+
+### Documentation
+
+- docs: define modal workspace and motion design
+
 ## [1.53.0] - 2026-08-24
 
 ### Features
