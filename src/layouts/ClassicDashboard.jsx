@@ -12,6 +12,7 @@ import { SpeedTestMini } from '../components/SpeedTestMini';
 import { API_BASE, getSafeExternalUrl, requestJson } from '../api/client';
 import { closeTopDialog, filterToolCatalog, openToolDialog, openToolLauncher } from '../features/tool-launcher/dialog-state';
 import { getWebTool, WEB_TOOL_CATALOG } from '../features/tool-launcher/toolRegistry.web';
+import { startUiTransition } from '../ui/startUiTransition';
 import '../App.css';
 
 // Import version from VERSION file (will be replaced at build time)
@@ -1074,30 +1075,37 @@ function ClassicDashboard({ colorMode }) {
   const toolMatchCount = filteredTools.filter((tool) => TOOL_GRID_IDS.has(tool.id)).length + (calendarVisible ? 1 : 0);
   const activeTool = getWebTool(activeToolId);
   const ActiveToolComponent = activeTool?.component || null;
+  const transitionSurface = (update) => startUiTransition(update);
 
   const openModal = (name) => {
-    setActiveToolId(null);
-    setToolsExpanded(false);
-    setActiveModal(name);
-    setMobileDrawerOpen(false);
+    transitionSurface(() => {
+      setActiveToolId(null);
+      setToolsExpanded(false);
+      setActiveModal(name);
+      setMobileDrawerOpen(false);
+    });
   };
-  const closeModal = () => setActiveModal(null);
+  const closeModal = () => transitionSurface(() => setActiveModal(null));
 
   const openTool = (toolId) => {
     const next = openToolDialog({ toolsExpanded, activeToolId, activeModal }, toolId);
-    setToolsExpanded(next.toolsExpanded);
-    setActiveToolId(next.activeToolId);
-    setActiveModal(next.activeModal);
-    setMobileDrawerOpen(false);
+    transitionSurface(() => {
+      setToolsExpanded(next.toolsExpanded);
+      setActiveToolId(next.activeToolId);
+      setActiveModal(next.activeModal);
+      setMobileDrawerOpen(false);
+    });
   };
 
   const openToolsLauncher = () => {
     const next = openToolLauncher({ toolsExpanded, activeToolId, activeModal });
-    setToolSearch('');
-    setToolsExpanded(next.toolsExpanded);
-    setActiveToolId(next.activeToolId);
-    setActiveModal(next.activeModal);
-    setMobileDrawerOpen(false);
+    transitionSurface(() => {
+      setToolSearch('');
+      setToolsExpanded(next.toolsExpanded);
+      setActiveToolId(next.activeToolId);
+      setActiveModal(next.activeModal);
+      setMobileDrawerOpen(false);
+    });
   };
 
   useEffect(() => {
@@ -1105,9 +1113,11 @@ function ClassicDashboard({ colorMode }) {
       if (e.key === 'Escape') {
         if (activeToolId || toolsExpanded || activeModal) {
           const next = closeTopDialog({ toolsExpanded, activeToolId, activeModal });
-          setToolsExpanded(next.toolsExpanded);
-          setActiveToolId(next.activeToolId);
-          setActiveModal(next.activeModal);
+          transitionSurface(() => {
+            setToolsExpanded(next.toolsExpanded);
+            setActiveToolId(next.activeToolId);
+            setActiveModal(next.activeModal);
+          });
         } else if (showQuickLinks) {
           setShowQuickLinks(false);
         }
@@ -1399,7 +1409,7 @@ function ClassicDashboard({ colorMode }) {
 
       {/* Tools full-screen modal (portal: bottom-right-stack의 transform 영향에서 벗어나기 위해 body로 렌더) */}
       {toolsExpanded && createPortal((
-      <div className="tools-modal-overlay" onClick={() => setToolsExpanded(false)}>
+      <div className="tools-modal-overlay" onClick={() => transitionSurface(() => setToolsExpanded(false))}>
         <div className="tools-modal" onClick={(e) => e.stopPropagation()}>
           <div className="tools-modal-header">
             <span className="tools-modal-title">Tools</span>
@@ -1422,7 +1432,7 @@ function ClassicDashboard({ colorMode }) {
                 </button>
               )}
             </div>
-            <button className="tools-modal-close" onClick={() => setToolsExpanded(false)} aria-label="닫기">
+            <button className="tools-modal-close" onClick={() => transitionSurface(() => setToolsExpanded(false))} aria-label="닫기">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
@@ -1807,7 +1817,7 @@ function ClassicDashboard({ colorMode }) {
         <Suspense fallback={<div className="tool-loading-overlay" role="status">도구를 불러오는 중입니다.</div>}>
           <ActiveToolComponent
             isOpen
-            onClose={() => setActiveToolId(null)}
+            onClose={() => transitionSurface(() => setActiveToolId(null))}
             {...(activeTool.props || {})}
           />
         </Suspense>

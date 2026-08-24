@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { X } from 'lucide-react';
 import './TerraformParser.css';
 
 /* ═══════════════════════════════════════════════

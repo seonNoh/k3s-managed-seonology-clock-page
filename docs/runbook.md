@@ -66,7 +66,7 @@ publish 직전에는 origin의 `main` SHA가 planner의 `base_sha`와 같은지 
 
 1. GitOps SSOT에서 Image Updater write-back commit과 Argo CD Application의 `Synced`, `Healthy` 상태를 확인합니다.
 2. 외부 endpoint의 `/health`와 read-only API를 확인합니다.
-3. 인증된 브라우저에서 Split과 Classic 선택·새로고침 유지, light/dark, 눈 효과, 12개 시계, Google 검색, 날씨·환율, Quick Links, 오른쪽 도구를 확인합니다.
+3. 인증된 브라우저에서 Split과 Classic 선택·새로고침 유지, light/dark, 눈 효과, 12개 시계, Google 검색, 날씨·환율, Quick Links, 오른쪽 도구를 확인합니다. 작업형 대화상자는 데스크톱·태블릿에서 화면 대부분을 사용하고 모바일에서 전체 화면으로 열리며, 제목과 닫기 버튼이 화면 설정 컨트롤에 가려지지 않아야 합니다.
 4. 390px 모바일, 768px 태블릿, 1440px PC에서 수평 스크롤과 가려진 고정 요소가 없는지 확인합니다.
 5. NAS·Drive의 삭제·이동·업로드는 자동 smoke에서 실행하지 않습니다.
 

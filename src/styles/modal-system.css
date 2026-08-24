@@ -1,0 +1,387 @@
+:root {
+  --modal-workspace-width: min(1600px, 92dvw);
+  --modal-workspace-height: 88dvh;
+  --modal-motion-duration: 220ms;
+  --modal-motion-easing: cubic-bezier(.2, .7, .2, 1);
+}
+
+body :is(
+  .modal-overlay,
+  .tools-modal-overlay,
+  .split-overlay,
+  .notes-overlay,
+  .md-overlay,
+  .chat-overlay,
+  .uc-overlay,
+  .b64-overlay,
+  .jf-overlay,
+  .ip-overlay,
+  .pwgen-overlay,
+  .cpick-overlay,
+  .cron-overlay,
+  .subnet-overlay,
+  .slo-overlay,
+  .cicd-overlay,
+  .e2m-overlay,
+  .rbac-overlay,
+  .tfp-overlay,
+  .gl2gh-overlay,
+  .archi-overlay,
+  .speed-overlay,
+  .rx-overlay,
+  .ep-overlay,
+  .tc-overlay,
+  .dns-overlay,
+  .mm-overlay,
+  .infra-overlay,
+  .repocat-overlay,
+  .nb-overlay
+) {
+  padding: 6dvh 4dvw;
+}
+
+body :is(.modal-overlay, .tools-modal-overlay, .split-overlay) {
+  z-index: 1300;
+}
+
+.view-controls {
+  transition: opacity 160ms ease, transform 180ms var(--modal-motion-easing);
+}
+
+body:has([class$="-overlay"]) .view-controls {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+}
+
+body :is(
+  .modal-overlay > .modal-content,
+  .tools-modal-overlay > .tools-modal,
+  .split-overlay > .split-dialog:not(.split-dialog--compact),
+  .notes-overlay > .notes-panel,
+  .md-overlay > .md-modal,
+  .chat-overlay > .chat-panel,
+  .uc-overlay > .uc-modal,
+  .b64-overlay > .b64-modal,
+  .jf-overlay > .jf-modal,
+  .ip-overlay > .ip-modal,
+  .pwgen-overlay > .pwgen-modal,
+  .cpick-overlay > .cpick-modal,
+  .cron-overlay > .cron-modal,
+  .subnet-overlay > .subnet-modal,
+  .slo-overlay > .slo-modal,
+  .cicd-overlay > .cicd-container,
+  .e2m-overlay > .e2m-container,
+  .rbac-overlay > .rbac-container,
+  .tfp-overlay > .tfp-container,
+  .gl2gh-overlay > .gl2gh-container,
+  .archi-overlay > .archi-container,
+  .speed-overlay > .speed-modal,
+  .rx-overlay > .rx-modal,
+  .ep-overlay > .ep-modal,
+  .tc-overlay > .tc-modal,
+  .dns-overlay > .dns-modal,
+  .mm-overlay > .mm-modal,
+  .infra-overlay > .infra-modal,
+  .repocat-overlay > .repocat-modal,
+  .nb-overlay > .nb-modal
+) {
+  width: var(--modal-workspace-width) !important;
+  max-width: 1600px !important;
+  height: var(--modal-workspace-height) !important;
+  max-height: var(--modal-workspace-height) !important;
+  min-width: 0;
+  min-height: 0;
+  font-size: 1rem;
+  animation: modal-workspace-enter var(--modal-motion-duration) var(--modal-motion-easing) both !important;
+  transform-origin: 50% 52%;
+}
+
+body .split-overlay > .split-dialog--compact {
+  animation: modal-workspace-enter var(--modal-motion-duration) var(--modal-motion-easing) both;
+  transform-origin: 50% 52%;
+}
+
+body :is(.modal-overlay > .modal-content) {
+  display: flex;
+  flex-direction: column;
+}
+
+body .modal-overlay > .modal-content > .modal-body {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+
+:root[data-color-mode="light"] body :is(
+  .modal-content,
+  .tools-modal,
+  .notes-panel,
+  .md-modal,
+  .chat-panel,
+  .uc-modal,
+  .b64-modal,
+  .jf-modal,
+  .ip-modal,
+  .pwgen-modal,
+  .cpick-modal,
+  .cron-modal,
+  .subnet-modal,
+  .slo-modal,
+  .cicd-container,
+  .e2m-container,
+  .rbac-container,
+  .tfp-container,
+  .gl2gh-container,
+  .archi-container,
+  .speed-modal,
+  .rx-modal,
+  .ep-modal,
+  .tc-modal,
+  .dns-modal,
+  .mm-modal,
+  .infra-modal,
+  .repocat-modal,
+  .nb-modal
+) {
+  --bg-primary: #edf1f8;
+  --bg-card: #f8faff;
+  --text-primary: #20283a;
+  --text-secondary: #4f5d78;
+  --text-muted: #6b7690;
+  --accent-primary: #526fd1;
+  --accent-secondary: #405db8;
+  --border-color: rgba(71, 89, 126, 0.24);
+  background: #f8faff !important;
+  color: var(--text-primary);
+  color-scheme: light;
+}
+
+body :is(
+  .modal-overlay > .modal-content,
+  .tools-modal-overlay > .tools-modal,
+  .split-overlay > .split-dialog,
+  [class$="-overlay"] > [class$="-modal"],
+  [class$="-overlay"] > [class$="-panel"],
+  [class$="-overlay"] > [class$="-container"]
+) :is(button, input, select, textarea) {
+  font-size: max(1rem, 18px) !important;
+}
+
+body :is(
+  .modal-overlay > .modal-content,
+  .tools-modal-overlay > .tools-modal,
+  .split-overlay > .split-dialog,
+  [class$="-overlay"] > [class$="-modal"],
+  [class$="-overlay"] > [class$="-panel"],
+  [class$="-overlay"] > [class$="-container"]
+) :is(h1, h2, .modal-title, .tools-modal-title, [class$="-header-title"]) {
+  font-size: clamp(1.4rem, 2vw, 1.75rem) !important;
+  line-height: 1.2;
+}
+
+body :is(
+  .modal-overlay > .modal-content,
+  .tools-modal-overlay > .tools-modal,
+  .split-overlay > .split-dialog,
+  [class$="-overlay"] > [class$="-modal"],
+  [class$="-overlay"] > [class$="-panel"],
+  [class$="-overlay"] > [class$="-container"]
+) :is(small, [class$="-label"], [class$="-hint"], [class$="-status"], [class$="-server"]) {
+  font-size: max(.88rem, 16px) !important;
+}
+
+@keyframes modal-workspace-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--modal-motion-duration);
+  animation-timing-function: var(--modal-motion-easing);
+}
+
+::view-transition-old(root) {
+  animation-name: modal-view-old;
+}
+
+::view-transition-new(root) {
+  animation-name: modal-view-new;
+}
+
+@keyframes modal-view-old {
+  to { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes modal-view-new {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (min-width: 720px) and (max-width: 1099px) {
+  :root {
+    --modal-workspace-width: 94dvw;
+    --modal-workspace-height: 90dvh;
+  }
+
+  :root body :is(
+    .modal-overlay,
+    .tools-modal-overlay,
+    .split-overlay,
+    [class$="-overlay"]:has(> [class$="-modal"]),
+    [class$="-overlay"]:has(> [class$="-panel"]),
+    [class$="-overlay"]:has(> [class$="-container"])
+  ) {
+    padding: 5dvh 3dvw;
+  }
+}
+
+@media (max-width: 719px) {
+  :root {
+    --modal-workspace-width: 100vw;
+    --modal-workspace-width: 100dvw;
+    --modal-workspace-height: 100vh;
+    --modal-workspace-height: 100dvh;
+  }
+
+  body :is(
+    .modal-overlay,
+    .tools-modal-overlay,
+    .split-overlay,
+    .notes-overlay,
+    .md-overlay,
+    .chat-overlay,
+    .uc-overlay,
+    .b64-overlay,
+    .jf-overlay,
+    .ip-overlay,
+    .pwgen-overlay,
+    .cpick-overlay,
+    .cron-overlay,
+    .subnet-overlay,
+    .slo-overlay,
+    .cicd-overlay,
+    .e2m-overlay,
+    .rbac-overlay,
+    .tfp-overlay,
+    .gl2gh-overlay,
+    .archi-overlay,
+    .speed-overlay,
+    .rx-overlay,
+    .ep-overlay,
+    .tc-overlay,
+    .dns-overlay,
+    .mm-overlay,
+    .infra-overlay,
+    .repocat-overlay,
+    .nb-overlay
+  ) {
+    align-items: stretch;
+    place-items: stretch;
+    padding: 0;
+  }
+
+  body :is(
+    .modal-overlay > .modal-content,
+    .tools-modal-overlay > .tools-modal,
+    .split-overlay > .split-dialog:not(.split-dialog--compact),
+    .notes-overlay > .notes-panel,
+    .md-overlay > .md-modal,
+    .chat-overlay > .chat-panel,
+    .uc-overlay > .uc-modal,
+    .b64-overlay > .b64-modal,
+    .jf-overlay > .jf-modal,
+    .ip-overlay > .ip-modal,
+    .pwgen-overlay > .pwgen-modal,
+    .cpick-overlay > .cpick-modal,
+    .cron-overlay > .cron-modal,
+    .subnet-overlay > .subnet-modal,
+    .slo-overlay > .slo-modal,
+    .cicd-overlay > .cicd-container,
+    .e2m-overlay > .e2m-container,
+    .rbac-overlay > .rbac-container,
+    .tfp-overlay > .tfp-container,
+    .gl2gh-overlay > .gl2gh-container,
+    .archi-overlay > .archi-container,
+    .speed-overlay > .speed-modal,
+    .rx-overlay > .rx-modal,
+    .ep-overlay > .ep-modal,
+    .tc-overlay > .tc-modal,
+    .dns-overlay > .dns-modal,
+    .mm-overlay > .mm-modal,
+    .infra-overlay > .infra-modal,
+    .repocat-overlay > .repocat-modal,
+    .nb-overlay > .nb-modal
+  ) {
+    max-width: 100dvw !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  body :is(.modal-header, .tools-modal-header, .split-dialog > header) {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  body :is(.modal-body, .split-dialog-body) {
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  body :is(
+    .modal-overlay > .modal-content,
+    .tools-modal-overlay > .tools-modal,
+    .split-overlay > .split-dialog,
+    [class$="-overlay"] > [class$="-modal"],
+    [class$="-overlay"] > [class$="-panel"],
+    [class$="-overlay"] > [class$="-container"]
+  ) :is(button, input, select, textarea) {
+    font-size: max(1rem, 17px) !important;
+  }
+
+  body .split-overlay:has(> .split-dialog--compact) {
+    place-items: center;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+
+  body .split-overlay > .split-dialog--compact {
+    width: min(620px, calc(100dvw - 32px));
+    height: auto;
+    max-height: calc(100dvh - 32px);
+    border: 1px solid var(--split-line-strong);
+    border-radius: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-controls {
+    transition: none !important;
+  }
+
+  :root body :is(
+    .modal-overlay > .modal-content,
+    .tools-modal-overlay > .tools-modal,
+    .split-overlay > .split-dialog,
+    [class$="-overlay"] > [class$="-modal"],
+    [class$="-overlay"] > [class$="-panel"],
+    [class$="-overlay"] > [class$="-container"]
+  ) {
+    animation: none !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

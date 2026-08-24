@@ -44,8 +44,15 @@ html, body, #root {
   overflow-x: clip;
 }
 
-html { background: var(--bg-primary); }
+html {
+  background: var(--bg-primary);
+  font-size: 18px;
+}
 body { min-height: 100dvh; overflow-y: auto; }
+
+@media (max-width: 719px) {
+  html { font-size: 17px; }
+}
 
 @media (pointer: coarse) {
   html, body, #root { touch-action: manipulation; }

@@ -17,6 +17,7 @@ import {
 import ToolDock from '../features/tool-launcher/ToolDock.jsx';
 import ToolsLauncher from '../features/tool-launcher/ToolsLauncher.jsx';
 import { getWebTool } from '../features/tool-launcher/toolRegistry.web.js';
+import { startUiTransition } from '../ui/startUiTransition.js';
 import './split-console.css';
 
 const Calendar = lazy(() => import('../components/Calendar.jsx'));
@@ -32,10 +33,10 @@ const CURSOR_ANIMATIONS = Object.freeze([
   ['constellation', 'Constellation'], ['wave', 'Wave'], ['spotlight', 'Spotlight'],
 ]);
 
-function DashboardDialog({ title, eyebrow, onClose, children }) {
+function DashboardDialog({ title, eyebrow, onClose, children, compact = false }) {
   return (
     <div className="split-overlay" onMouseDown={onClose}>
-      <section className="split-dialog" role="dialog" aria-modal="true" aria-labelledby="split-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
+      <section className={`split-dialog${compact ? ' split-dialog--compact' : ''}`} role="dialog" aria-modal="true" aria-labelledby="split-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
         <header>
           <div><span>{eyebrow}</span><h2 id="split-dialog-title">{title}</h2></div>
           <button type="button" className="split-dialog-close" onClick={onClose}>Close</button>
@@ -79,19 +80,25 @@ function SplitConsoleDashboard({
     setQuickLinksOpen(false);
   };
 
+  const transitionSurface = (update) => startUiTransition(update);
+
   const openTool = (id) => {
-    closeSurfaces();
-    setActiveToolId(id);
+    transitionSurface(() => {
+      closeSurfaces();
+      setActiveToolId(id);
+    });
   };
 
   const openModal = (id) => {
-    closeSurfaces();
-    setActiveModal(id);
+    transitionSurface(() => {
+      closeSurfaces();
+      setActiveModal(id);
+    });
   };
 
   useEffect(() => {
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') closeSurfaces();
+      if (event.key === 'Escape') transitionSurface(closeSurfaces);
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         document.querySelector('[aria-label="Google 검색"]')?.focus();
@@ -154,8 +161,8 @@ function SplitConsoleDashboard({
       <ToolDock
         activeToolId={activeToolId}
         onOpenTool={openTool}
-        onOpenTools={() => { closeSurfaces(); setToolQuery(''); setToolsOpen(true); }}
-        onOpenEffects={() => { closeSurfaces(); setEffectsOpen(true); }}
+        onOpenTools={() => transitionSurface(() => { closeSurfaces(); setToolQuery(''); setToolsOpen(true); })}
+        onOpenEffects={() => transitionSurface(() => { closeSurfaces(); setEffectsOpen(true); })}
       />
 
       <footer className="split-footer"><span>Craft by seon</span><span>React + Vite</span><span>v{APP_VERSION}</span></footer>
@@ -164,7 +171,7 @@ function SplitConsoleDashboard({
         open={toolsOpen}
         query={toolQuery}
         onQueryChange={setToolQuery}
-        onClose={() => setToolsOpen(false)}
+        onClose={() => transitionSurface(() => setToolsOpen(false))}
         onOpenTool={openTool}
         onOpenCalendar={() => openModal('calendar')}
       />
@@ -172,7 +179,7 @@ function SplitConsoleDashboard({
       <QuickLinksDrawer open={quickLinksOpen} onClose={() => setQuickLinksOpen(false)} />
 
       {effectsOpen && (
-        <DashboardDialog title="Effects" eyebrow="DISPLAY" onClose={() => setEffectsOpen(false)}>
+        <DashboardDialog compact title="Effects" eyebrow="DISPLAY" onClose={() => transitionSurface(() => setEffectsOpen(false))}>
           <div className="split-effect-settings">
             <div><span>Snow field</span><button type="button" aria-pressed={snowEnabled} onClick={() => onSnowEnabledChange(!snowEnabled)}>{snowEnabled ? 'On' : 'Off'}</button></div>
             <label><span>Cursor animation</span><select value={cursorAnimation} onChange={(event) => setCursorAnimation(event.target.value)}>{CURSOR_ANIMATIONS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
@@ -180,15 +187,15 @@ function SplitConsoleDashboard({
         </DashboardDialog>
       )}
 
-      {activeModal === 'services' && <DashboardDialog title="Services" eyebrow="SEONOLOGY" onClose={() => setActiveModal(null)}><ServiceDirectory /></DashboardDialog>}
-      {activeModal === 'weather' && <DashboardDialog title="Weather" eyebrow="LIVE STATUS" onClose={() => setActiveModal(null)}><Weather /></DashboardDialog>}
-      {activeModal === 'exchange' && <DashboardDialog title="Exchange Rate" eyebrow="LIVE STATUS" onClose={() => setActiveModal(null)}><ExchangeRate /></DashboardDialog>}
-      {activeModal === 'todo' && <DashboardDialog title="Todo" eyebrow="WORKSPACE" onClose={() => setActiveModal(null)}><TodoList /></DashboardDialog>}
-      {activeModal === 'calendar' && <DashboardDialog title="Calendar" eyebrow="WORKSPACE" onClose={() => setActiveModal(null)}><Calendar /></DashboardDialog>}
+      {activeModal === 'services' && <DashboardDialog title="Services" eyebrow="SEONOLOGY" onClose={() => transitionSurface(() => setActiveModal(null))}><ServiceDirectory /></DashboardDialog>}
+      {activeModal === 'weather' && <DashboardDialog title="Weather" eyebrow="LIVE STATUS" onClose={() => transitionSurface(() => setActiveModal(null))}><Weather /></DashboardDialog>}
+      {activeModal === 'exchange' && <DashboardDialog title="Exchange Rate" eyebrow="LIVE STATUS" onClose={() => transitionSurface(() => setActiveModal(null))}><ExchangeRate /></DashboardDialog>}
+      {activeModal === 'todo' && <DashboardDialog title="Todo" eyebrow="WORKSPACE" onClose={() => transitionSurface(() => setActiveModal(null))}><TodoList /></DashboardDialog>}
+      {activeModal === 'calendar' && <DashboardDialog title="Calendar" eyebrow="WORKSPACE" onClose={() => transitionSurface(() => setActiveModal(null))}><Calendar /></DashboardDialog>}
 
       {ActiveToolComponent && (
         <Suspense fallback={<div className="tool-loading-overlay" role="status">도구를 불러오는 중입니다.</div>}>
-          <ActiveToolComponent isOpen onClose={() => setActiveToolId(null)} {...(activeTool.props ?? {})} />
+          <ActiveToolComponent isOpen onClose={() => transitionSurface(() => setActiveToolId(null))} {...(activeTool.props ?? {})} />
         </Suspense>
       )}
     </main>

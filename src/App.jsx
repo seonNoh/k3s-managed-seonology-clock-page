@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect } from 'react';
 import SplitConsoleDashboard from './layouts/SplitConsoleDashboard.jsx';
 import { usePersistentPreference } from './hooks/usePersistentPreference.js';
+import { startUiTransition } from './ui/startUiTransition.js';
 import './app-shell.css';
+import './styles/modal-system.css';
 
 const ClassicDashboard = lazy(() => import('./layouts/ClassicDashboard.jsx'));
 
@@ -15,6 +17,10 @@ function App() {
     document.documentElement.dataset.colorMode = colorMode;
   }, [colorMode]);
 
+  const updateViewPreference = (update, value) => {
+    startUiTransition(() => update(value));
+  };
+
   return (
     <div className="app-shell" data-color-mode={colorMode}>
       <nav className="view-controls" aria-label="화면 설정">
@@ -23,7 +29,7 @@ function App() {
             type="button"
             aria-label="Split Console 레이아웃"
             aria-pressed={layout === 'split'}
-            onClick={() => setLayout('split')}
+            onClick={() => updateViewPreference(setLayout, 'split')}
           >
             Split
           </button>
@@ -31,7 +37,7 @@ function App() {
             type="button"
             aria-label="Classic 레이아웃"
             aria-pressed={layout === 'classic'}
-            onClick={() => setLayout('classic')}
+            onClick={() => updateViewPreference(setLayout, 'classic')}
           >
             Classic
           </button>
@@ -41,7 +47,7 @@ function App() {
             type="button"
             aria-label="Light mode"
             aria-pressed={colorMode === 'light'}
-            onClick={() => setColorMode('light')}
+            onClick={() => updateViewPreference(setColorMode, 'light')}
           >
             Light
           </button>
@@ -49,7 +55,7 @@ function App() {
             type="button"
             aria-label="Dark mode"
             aria-pressed={colorMode === 'dark'}
-            onClick={() => setColorMode('dark')}
+            onClick={() => updateViewPreference(setColorMode, 'dark')}
           >
             Dark
           </button>
