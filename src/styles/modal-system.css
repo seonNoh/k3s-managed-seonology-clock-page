@@ -68,7 +68,7 @@ body :is(.modal-overlay, .tools-modal-overlay, .split-overlay) {
 }
 
 .view-controls {
-  transition: opacity 160ms ease, transform 180ms var(--modal-motion-easing);
+  transition: none;
 }
 
 body:has([class$="-overlay"]) .view-controls {
@@ -268,35 +268,11 @@ body :is(
 
 @keyframes modal-workspace-enter {
   from {
-    opacity: 0;
-    transform: translateY(10px) scale(.992);
+    transform: translateY(6px);
   }
   to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
-}
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: var(--modal-motion-duration);
-  animation-timing-function: var(--modal-motion-easing);
-}
-
-::view-transition-old(root) {
-  animation-name: modal-view-old;
-}
-
-::view-transition-new(root) {
-  animation-name: modal-view-new;
-}
-
-@keyframes modal-view-old {
-  to { opacity: 0; transform: translateY(-4px); }
-}
-
-@keyframes modal-view-new {
-  from { opacity: 0; transform: translateY(6px); }
 }
 
 @media (min-width: 720px) and (max-width: 1099px) {
@@ -454,9 +430,4 @@ body :is(
     animation: none !important;
   }
 
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
 }

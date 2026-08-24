@@ -1,9 +1,10 @@
-export function openTool(state, toolId) {
+export function openTool(state, toolId, returnTarget = 'dashboard') {
   return {
     ...state,
     toolsExpanded: false,
     activeToolId: toolId,
     activeModal: null,
+    toolReturnTarget: returnTarget,
   };
 }
 
@@ -15,11 +16,19 @@ export function openToolLauncher(state) {
     toolsExpanded: true,
     activeToolId: null,
     activeModal: null,
+    toolReturnTarget: null,
   };
 }
 
 export function closeTopDialog(state) {
-  if (state.activeToolId) return { ...state, activeToolId: null };
+  if (state.activeToolId) {
+    return {
+      ...state,
+      toolsExpanded: state.toolReturnTarget === 'launcher',
+      activeToolId: null,
+      toolReturnTarget: null,
+    };
+  }
   if (state.toolsExpanded) return { ...state, toolsExpanded: false };
   if (state.activeModal) return { ...state, activeModal: null };
   return state;

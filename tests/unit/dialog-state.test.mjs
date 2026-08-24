@@ -9,16 +9,18 @@ import {
   openToolDialog,
 } from '../../src/features/tool-launcher/dialog-state.js';
 
-test('opening a tool closes the launcher and replaces the active tool', () => {
+test('opening a tool records where Escape should return', () => {
   const next = openTool(
-    { toolsExpanded: true, activeToolId: 'base64', activeModal: null },
+    { toolsExpanded: true, activeToolId: 'base64', activeModal: null, toolReturnTarget: null },
     'markdown',
+    'launcher',
   );
 
   assert.deepEqual(next, {
     toolsExpanded: false,
     activeToolId: 'markdown',
     activeModal: null,
+    toolReturnTarget: 'launcher',
   });
   assert.equal(openToolDialog, openTool);
 });
@@ -28,36 +30,80 @@ test('opening the launcher closes an active tool and modal before showing the la
     toolsExpanded: false,
     activeToolId: 'markdown',
     activeModal: 'services',
+    toolReturnTarget: 'dashboard',
   });
 
   assert.deepEqual(next, {
     toolsExpanded: true,
     activeToolId: null,
     activeModal: null,
+    toolReturnTarget: null,
   });
 });
 
-test('closing the top dialog follows states that keep dialog surfaces mutually exclusive', () => {
+test('Escape from a launcher tool returns to the launcher before the dashboard', () => {
+  const launcherRestored = closeTopDialog({
+    toolsExpanded: false,
+    activeToolId: 'markdown',
+    activeModal: null,
+    toolReturnTarget: 'launcher',
+  });
+  assert.deepEqual(launcherRestored, {
+    toolsExpanded: true,
+    activeToolId: null,
+    activeModal: null,
+    toolReturnTarget: null,
+  });
+
+  const launcherClosed = closeTopDialog(launcherRestored);
+  assert.deepEqual(launcherClosed, {
+    toolsExpanded: false,
+    activeToolId: null,
+    activeModal: null,
+    toolReturnTarget: null,
+  });
+});
+
+test('Escape from a directly opened tool returns to the dashboard', () => {
+  const toolClosed = closeTopDialog({
+    toolsExpanded: false,
+    activeToolId: 'infra',
+    activeModal: null,
+    toolReturnTarget: 'dashboard',
+  });
+  assert.deepEqual(toolClosed, {
+    toolsExpanded: false,
+    activeToolId: null,
+    activeModal: null,
+    toolReturnTarget: null,
+  });
+});
+
+test('closing the top dialog keeps non-tool surfaces mutually exclusive', () => {
   const launcherClosed = closeTopDialog({
     toolsExpanded: true,
     activeToolId: null,
     activeModal: null,
+    toolReturnTarget: null,
   });
   assert.deepEqual(launcherClosed, {
     toolsExpanded: false,
     activeToolId: null,
     activeModal: null,
+    toolReturnTarget: null,
   });
 
   const modalClosed = closeTopDialog({
     toolsExpanded: false,
     activeToolId: null,
     activeModal: 'services',
+    toolReturnTarget: null,
   });
   assert.deepEqual(modalClosed, {
     toolsExpanded: false,
     activeToolId: null,
     activeModal: null,
+    toolReturnTarget: null,
   });
 });
 

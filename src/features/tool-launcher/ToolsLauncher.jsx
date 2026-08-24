@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 
+import LoadingProgress from '../../components/LoadingProgress.jsx';
 import { filterToolCatalog } from './dialog-state.js';
 import { WEB_TOOL_CATALOG } from './toolRegistry.web.js';
 
@@ -7,11 +8,12 @@ function toolCode(name) {
   return name.split(/\s+/).map((word) => word[0]).join('').slice(0, 3).toUpperCase();
 }
 
-function ToolsLauncher({ open, query, onQueryChange, onClose, onOpenTool, onOpenCalendar }) {
+function ToolsLauncher({ open, query, onQueryChange, onClose, onOpenTool, onOpenCalendar, pendingToolId }) {
   const tools = useMemo(() => filterToolCatalog(WEB_TOOL_CATALOG, query), [query]);
   if (!open) return null;
 
   const calendarVisible = 'calendar'.includes(query.trim().toLowerCase());
+  const pendingTool = WEB_TOOL_CATALOG.find((tool) => tool.id === pendingToolId);
 
   return (
     <div className="split-overlay" onMouseDown={onClose}>
@@ -25,6 +27,15 @@ function ToolsLauncher({ open, query, onQueryChange, onClose, onOpenTool, onOpen
           <input autoFocus type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="도구 검색" />
           <small>{tools.length + (calendarVisible ? 1 : 0)} results</small>
         </label>
+        {pendingTool && (
+          <div className="split-tool-pending">
+            <LoadingProgress
+              label={`${pendingTool.name} 도구를 불러오는 중입니다.`}
+              detail="현재 도구 화면을 유지하면서 작업 공간을 준비하고 있습니다."
+              compact
+            />
+          </div>
+        )}
         <div className="split-tool-grid">
           {calendarVisible && <button type="button" onClick={onOpenCalendar}><b>CA</b><span>Calendar</span></button>}
           {tools.map((tool) => (

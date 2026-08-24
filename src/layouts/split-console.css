@@ -399,6 +399,7 @@
 .split-tool-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; margin: 16px 18px 0; padding: 6px 12px; border: 1px solid var(--split-line); border-radius: 9px; background: var(--split-raised); }
 .split-tool-search input { min-width: 0; min-height: 42px; border: 0; outline: 0; background: transparent; color: inherit; }
 .split-tool-search small { color: var(--split-muted); font-size: 0.78rem; }
+.split-tool-pending { padding: 12px 18px 0; }
 .split-tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 9px; min-height: 0; overflow: auto; padding: 18px; }
 .split-tool-grid button { display: grid; min-height: 94px; place-items: center; padding: 12px 8px; border: 1px solid var(--split-line); border-radius: 9px; background: var(--split-raised); color: var(--split-text); cursor: pointer; }
 .split-tool-grid button b { color: var(--split-hour); }

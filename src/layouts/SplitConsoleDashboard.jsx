@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
 import BrowserStats from '../components/BrowserStats.jsx';
 import Clock from '../components/Clock.jsx';
@@ -18,7 +18,11 @@ import {
 import ServiceHub from '../features/dashboard/ServiceHub.jsx';
 import ToolDock from '../features/tool-launcher/ToolDock.jsx';
 import ToolsLauncher from '../features/tool-launcher/ToolsLauncher.jsx';
-import { getWebTool } from '../features/tool-launcher/toolRegistry.web.js';
+import {
+  getLoadedWebToolComponent,
+  getWebTool,
+  preloadWebTool,
+} from '../features/tool-launcher/toolRegistry.web.js';
 import './split-console.css';
 
 const Calendar = lazy(() => import('../components/Calendar.jsx'));
@@ -54,32 +58,51 @@ function SplitConsoleDashboard({
 }) {
   const [activeModal, setActiveModal] = useState(null);
   const [activeToolId, setActiveToolId] = useState(null);
+  const [toolReturnTarget, setToolReturnTarget] = useState(null);
+  const [pendingToolId, setPendingToolId] = useState(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [effectsOpen, setEffectsOpen] = useState(false);
   const [toolQuery, setToolQuery] = useState('');
   const [cursorGlow, setCursorGlow] = usePersistentPreference('cursorGlow');
   const [cursorAnimation, setCursorAnimation] = usePersistentPreference('cursorAnimation');
+  const toolLoadRequest = useRef(0);
   const template = getClockTemplate(clockTheme);
   const activeTool = getWebTool(activeToolId);
-  const ActiveToolComponent = activeTool?.component ?? null;
+  const ActiveToolComponent = getLoadedWebToolComponent(activeToolId) ?? activeTool?.component ?? null;
   const dateLabel = useMemo(() => new Intl.DateTimeFormat('en-CA', {
     year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
   }).format(new Date()).toUpperCase(), []);
 
   const closeSurfaces = () => {
+    toolLoadRequest.current += 1;
     setActiveModal(null);
     setActiveToolId(null);
+    setToolReturnTarget(null);
+    setPendingToolId(null);
     setToolsOpen(false);
     setEffectsOpen(false);
   };
 
   const transitionSurface = (update) => update();
 
-  const openTool = (id) => {
-    transitionSurface(() => {
-      closeSurfaces();
-      setActiveToolId(id);
-    });
+  const openTool = async (id, returnTarget = toolsOpen ? 'launcher' : 'dashboard') => {
+    const requestId = ++toolLoadRequest.current;
+    setPendingToolId(id);
+
+    try {
+      await preloadWebTool(id);
+      if (requestId !== toolLoadRequest.current) return;
+      transitionSurface(() => {
+        setActiveModal(null);
+        setActiveToolId(id);
+        setToolReturnTarget(returnTarget);
+        setPendingToolId(null);
+        setToolsOpen(false);
+        setEffectsOpen(false);
+      });
+    } catch {
+      if (requestId === toolLoadRequest.current) setPendingToolId(null);
+    }
   };
 
   const openModal = (id) => {
@@ -89,9 +112,35 @@ function SplitConsoleDashboard({
     });
   };
 
+  const closeToolsLauncher = () => {
+    toolLoadRequest.current += 1;
+    setPendingToolId(null);
+    setToolsOpen(false);
+  };
+
+  const closeTopSurface = () => {
+    toolLoadRequest.current += 1;
+    setPendingToolId(null);
+    if (activeToolId) {
+      setActiveToolId(null);
+      setToolReturnTarget(null);
+      setToolsOpen(toolReturnTarget === 'launcher');
+      return;
+    }
+    if (toolsOpen) {
+      setToolsOpen(false);
+      return;
+    }
+    if (activeModal) {
+      setActiveModal(null);
+      return;
+    }
+    if (effectsOpen) setEffectsOpen(false);
+  };
+
   useEffect(() => {
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') transitionSurface(closeSurfaces);
+      if (event.key === 'Escape') transitionSurface(closeTopSurface);
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         document.querySelector('[aria-label="Google 검색"]')?.focus();
@@ -159,15 +208,22 @@ function SplitConsoleDashboard({
         onOpenEffects={() => transitionSurface(() => { closeSurfaces(); setEffectsOpen(true); })}
       />
 
+      {pendingToolId && !toolsOpen && (
+        <div className="tool-preload-status">
+          <LoadingProgress label="도구를 불러오는 중입니다." detail="현재 화면을 유지하면서 작업 공간을 준비하고 있습니다." compact />
+        </div>
+      )}
+
       <footer className="split-footer"><span>Craft by seon</span><span>React + Vite</span><span>v{APP_VERSION}</span></footer>
 
       <ToolsLauncher
         open={toolsOpen}
         query={toolQuery}
         onQueryChange={setToolQuery}
-        onClose={() => transitionSurface(() => setToolsOpen(false))}
+        onClose={() => transitionSurface(closeToolsLauncher)}
         onOpenTool={openTool}
         onOpenCalendar={() => openModal('calendar')}
+        pendingToolId={pendingToolId}
       />
 
       {effectsOpen && (
@@ -189,7 +245,14 @@ function SplitConsoleDashboard({
 
       {ActiveToolComponent && (
         <Suspense fallback={<div className="tool-loading-overlay"><LoadingProgress label="도구를 불러오는 중입니다." detail="작업 공간을 준비하고 있습니다." /></div>}>
-          <ActiveToolComponent isOpen onClose={() => transitionSurface(() => setActiveToolId(null))} {...(activeTool.props ?? {})} />
+          <ActiveToolComponent
+            isOpen
+            onClose={() => transitionSurface(() => {
+              setActiveToolId(null);
+              setToolReturnTarget(null);
+            })}
+            {...(activeTool.props ?? {})}
+          />
         </Suspense>
       )}
     </main>

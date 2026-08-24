@@ -2299,6 +2299,18 @@
   align-content: start;
 }
 
+.tools-modal-pending {
+  padding: 14px 1.4rem 0;
+}
+
+.tool-preload-status {
+  position: fixed;
+  z-index: 1190;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: min(560px, calc(100dvw - 36px));
+}
+
 /* 모달 내부에서 아이콘/라벨을 크게 (가독성) */
 .tools-modal-grid .app-icon-btn {
   gap: 10px;

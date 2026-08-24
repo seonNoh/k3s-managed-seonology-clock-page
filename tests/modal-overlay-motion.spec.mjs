@@ -111,6 +111,8 @@ test('Split의 개별 도구와 Classic 일반 모달도 큰 작업 공간을 �
   await page.getByRole('button', { name: /Markdown Preview/ }).click();
   await expectWorkspaceBounds(page.locator('.md-modal'), viewport, 'desktop');
   await page.keyboard.press('Escape');
+  await expect(page.locator('.split-tools-dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
 
   await page.getByRole('button', { name: /네트워크 측정/ }).click();
   await expectWorkspaceBounds(page.locator('.speed-modal'), viewport, 'desktop');
@@ -129,9 +131,9 @@ test('Split의 모든 웹 도구가 같은 데스크톱 작업 공간 크기를 
   const viewport = { width: 1440, height: 1000 };
   await page.setViewportSize(viewport);
   await openSplitDashboard(page);
+  await page.getByRole('button', { name: '도구 모음 열기' }).click();
 
   for (const [name, panelSelector] of toolWorkspaces) {
-    await page.getByRole('button', { name: '도구 모음 열기' }).click();
     const search = page.getByRole('searchbox', { name: '도구 검색' });
     await search.fill(name);
     await page.locator('.split-tool-grid button').filter({ hasText: name }).first().click();
@@ -140,7 +142,10 @@ test('Split의 모든 웹 도구가 같은 데스크톱 작업 공간 크기를 
     await expectWorkspaceBounds(panel, viewport, 'desktop');
     await page.keyboard.press('Escape');
     await expect(panel, `${name} close`).toHaveCount(0);
+    await expect(page.locator('.split-tools-dialog'), `${name} launcher return`).toBeVisible();
   }
+
+  await page.keyboard.press('Escape');
 });
 
 test('대화상자 제목과 조작 글자는 크게 읽을 수 있다', async ({ page }) => {
@@ -224,6 +229,8 @@ test('light 모드의 개별 도구와 Classic 모달은 읽을 수 있는 텍�
   await expect(textContrastRatio(page.locator('.md-modal'), '.md-header-title')).resolves.toBeGreaterThanOrEqual(4.5);
 
   await page.keyboard.press('Escape');
+  await expect(page.locator('.split-tools-dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Classic 레이아웃' }).click();
   await expect(page.locator('[data-dashboard-layout="classic"]')).toBeVisible();
   await page.locator('.bottom-right-stack .mobile-drawer-handle').click();
@@ -233,14 +240,32 @@ test('light 모드의 개별 도구와 Classic 모달은 읽을 수 있는 텍�
   await expect(textContrastRatio(page.locator('.modal-content'), '.modal-title')).resolves.toBeGreaterThanOrEqual(4.5);
 });
 
-test('일반 모션에서는 패널만 절제된 진입 애니메이션을 사용한다', async ({ page }) => {
+test('일반 모션에서도 패널 밝기와 크기는 변하지 않는다', async ({ page }) => {
   await openSplitDashboard(page);
   await page.getByRole('button', { name: '도구 모음 열기' }).click();
 
   const dialog = page.locator('.split-tools-dialog');
   await expect(dialog).not.toHaveCSS('animation-name', 'none');
   await expect(dialog).toHaveCSS('animation-duration', '0.22s');
+  await expect(dialog).toHaveCSS('opacity', '1');
   await expect(page.locator('.split-overlay')).toHaveCSS('animation-name', 'none');
+
+  const keyframes = await dialog.evaluate((element) => {
+    const animationName = getComputedStyle(element).animationName;
+    for (const sheet of document.styleSheets) {
+      try {
+        for (const rule of Array.from(sheet.cssRules)) {
+          if (rule instanceof CSSKeyframesRule && rule.name === animationName) {
+            return Array.from(rule.cssRules).map((frame) => frame.cssText).join(' ');
+          }
+        }
+      } catch (error) {
+        if (error.name !== 'SecurityError') throw error;
+      }
+    }
+    return '';
+  });
+  expect(keyframes).not.toMatch(/opacity|scale/);
 });
 
 test('full-screen modal overlay rules do not animate the backdrop layer', async ({ page }) => {
@@ -297,7 +322,7 @@ test('modal panels disable entry animation for reduced motion', async ({ page })
   await expect(page.locator('.modal-content')).toHaveCSS('animation-name', 'none');
 });
 
-test('opening a tool replaces the launcher instead of stacking overlays', async ({ page }) => {
+test('Classic Tools에서 연 도구는 Escape로 Tools와 대시보드를 차례로 복원한다', async ({ page }) => {
   await openClassicDashboard(page);
 
   await page.getByRole('button', { name: 'Tools', exact: true }).click();
@@ -309,7 +334,46 @@ test('opening a tool replaces the launcher instead of stacking overlays', async 
 
   await page.keyboard.press('Escape');
   await expect(page.locator('.md-overlay')).toHaveCount(0);
+  await expect(page.locator('.tools-modal-overlay')).toBeVisible();
+
+  await page.keyboard.press('Escape');
   await expect(page.locator('.tools-modal-overlay')).toHaveCount(0);
+});
+
+test('Split Tools에서 연 도구도 Escape로 Tools와 대시보드를 차례로 복원한다', async ({ page }) => {
+  await openSplitDashboard(page);
+
+  await page.getByRole('button', { name: '도구 모음 열기' }).click();
+  await page.getByRole('button', { name: /Markdown Preview/ }).click();
+  await expect(page.locator('.md-overlay')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.md-overlay')).toHaveCount(0);
+  await expect(page.locator('.split-tools-dialog')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.split-tools-dialog')).toHaveCount(0);
+});
+
+test('도구 모듈을 불러오는 동안 현재 Tools 셸을 유지한다', async ({ page }) => {
+  let releaseModule;
+  await page.route('**/src/components/JsonFormatter.jsx*', async (route) => {
+    await new Promise((resolve) => { releaseModule = resolve; });
+    await route.continue();
+  });
+  await openSplitDashboard(page);
+
+  await page.getByRole('button', { name: '도구 모음 열기' }).click();
+  await page.getByRole('button', { name: /JSON Formatter/ }).click();
+  await expect.poll(() => Boolean(releaseModule)).toBe(true);
+
+  await expect(page.locator('.split-tools-dialog')).toBeVisible();
+  await expect(page.locator('.split-tool-pending')).toBeVisible();
+  await expect(page.locator('.tool-loading-overlay')).toHaveCount(0);
+
+  releaseModule();
+  await expect(page.locator('.jf-overlay')).toBeVisible();
+  await expect(page.locator('.split-tools-dialog')).toHaveCount(0);
 });
 
 test('tool launcher search has an accessible name', async ({ page }) => {
@@ -335,7 +399,7 @@ test('rapid tool selections leave only the last requested tool surface active', 
   await expect(page.locator('.tools-modal-overlay, .b64-overlay, .md-overlay')).toHaveCount(1);
 });
 
-test('mobile drawer opens a tool and Escape leaves no launcher or tool surface', async ({ page }) => {
+test('모바일에서도 Escape가 도구, Tools, 대시보드 순서로 돌아간다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openClassicDashboard(page);
 
@@ -351,6 +415,9 @@ test('mobile drawer opens a tool and Escape leaves no launcher or tool surface',
 
   await page.keyboard.press('Escape');
   await expect(page.locator('.md-overlay')).toHaveCount(0);
+  await expect(page.locator('.tools-modal-overlay')).toBeVisible();
+
+  await page.keyboard.press('Escape');
   await expect(page.locator('.tools-modal-overlay')).toHaveCount(0);
   await expect(page.locator('.mobile-drawer-overlay')).toHaveCount(0);
 });

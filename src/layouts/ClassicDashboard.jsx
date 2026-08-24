@@ -12,7 +12,12 @@ import BrowserStats from '../components/BrowserStats';
 import { SpeedTestMini } from '../components/SpeedTestMini';
 import { API_BASE, getSafeExternalUrl, requestJson } from '../api/client';
 import { closeTopDialog, filterToolCatalog, openToolDialog, openToolLauncher } from '../features/tool-launcher/dialog-state';
-import { getWebTool, WEB_TOOL_CATALOG } from '../features/tool-launcher/toolRegistry.web';
+import {
+  getLoadedWebToolComponent,
+  getWebTool,
+  preloadWebTool,
+  WEB_TOOL_CATALOG,
+} from '../features/tool-launcher/toolRegistry.web';
 import SharedGoogleSearch from '../features/dashboard/GoogleSearch';
 import ServiceHub from '../features/dashboard/ServiceHub';
 import CursorGlow from '../features/effects/CursorGlow';
@@ -613,6 +618,8 @@ function Footer() {
 function ClassicDashboard({ colorMode }) {
   const [activeModal, setActiveModal] = useState(null);
   const [activeToolId, setActiveToolId] = useState(null);
+  const [toolReturnTarget, setToolReturnTarget] = useState(null);
+  const [pendingToolId, setPendingToolId] = useState(null);
   const [showQuickLinks, setShowQuickLinks] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [mobileTopSheetOpen, setMobileTopSheetOpen] = useState(false);
@@ -630,17 +637,21 @@ function ClassicDashboard({ colorMode }) {
   const settingsBtnRef = useRef(null);
   const [toolsExpanded, setToolsExpanded] = useState(false);
   const [toolSearch, setToolSearch] = useState('');
+  const toolLoadRequest = useRef(0);
   const filteredTools = filterToolCatalog(WEB_TOOL_CATALOG, toolSearch);
   const visibleToolIds = new Set(filteredTools.map((tool) => tool.id));
   const calendarVisible = 'calendar'.includes(toolSearch.trim().toLowerCase());
   const toolMatchCount = filteredTools.filter((tool) => TOOL_GRID_IDS.has(tool.id)).length + (calendarVisible ? 1 : 0);
   const activeTool = getWebTool(activeToolId);
-  const ActiveToolComponent = activeTool?.component || null;
+  const ActiveToolComponent = getLoadedWebToolComponent(activeToolId) || activeTool?.component || null;
   const transitionSurface = (update) => update();
 
   const openModal = (name) => {
     transitionSurface(() => {
+      toolLoadRequest.current += 1;
       setActiveToolId(null);
+      setToolReturnTarget(null);
+      setPendingToolId(null);
       setToolsExpanded(false);
       setActiveModal(name);
       setMobileDrawerOpen(false);
@@ -648,36 +659,64 @@ function ClassicDashboard({ colorMode }) {
   };
   const closeModal = () => transitionSurface(() => setActiveModal(null));
 
-  const openTool = (toolId) => {
-    const next = openToolDialog({ toolsExpanded, activeToolId, activeModal }, toolId);
-    transitionSurface(() => {
-      setToolsExpanded(next.toolsExpanded);
-      setActiveToolId(next.activeToolId);
-      setActiveModal(next.activeModal);
-      setMobileDrawerOpen(false);
-    });
+  const openTool = async (toolId, origin) => {
+    const returnTarget = origin || (toolsExpanded ? 'launcher' : 'dashboard');
+    const next = openToolDialog(
+      { toolsExpanded, activeToolId, activeModal, toolReturnTarget },
+      toolId,
+      returnTarget,
+    );
+    const requestId = ++toolLoadRequest.current;
+    setPendingToolId(toolId);
+
+    try {
+      await preloadWebTool(toolId);
+      if (requestId !== toolLoadRequest.current) return;
+      transitionSurface(() => {
+        setToolsExpanded(next.toolsExpanded);
+        setActiveToolId(next.activeToolId);
+        setActiveModal(next.activeModal);
+        setToolReturnTarget(next.toolReturnTarget);
+        setPendingToolId(null);
+        setMobileDrawerOpen(false);
+      });
+    } catch {
+      if (requestId === toolLoadRequest.current) setPendingToolId(null);
+    }
   };
 
   const openToolsLauncher = () => {
-    const next = openToolLauncher({ toolsExpanded, activeToolId, activeModal });
+    toolLoadRequest.current += 1;
+    const next = openToolLauncher({ toolsExpanded, activeToolId, activeModal, toolReturnTarget });
     transitionSurface(() => {
       setToolSearch('');
       setToolsExpanded(next.toolsExpanded);
       setActiveToolId(next.activeToolId);
       setActiveModal(next.activeModal);
+      setToolReturnTarget(next.toolReturnTarget);
+      setPendingToolId(null);
       setMobileDrawerOpen(false);
     });
+  };
+
+  const closeToolsLauncher = () => {
+    toolLoadRequest.current += 1;
+    setPendingToolId(null);
+    setToolsExpanded(false);
   };
 
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') {
         if (activeToolId || toolsExpanded || activeModal) {
-          const next = closeTopDialog({ toolsExpanded, activeToolId, activeModal });
+          toolLoadRequest.current += 1;
+          const next = closeTopDialog({ toolsExpanded, activeToolId, activeModal, toolReturnTarget });
           transitionSurface(() => {
             setToolsExpanded(next.toolsExpanded);
             setActiveToolId(next.activeToolId);
             setActiveModal(next.activeModal);
+            setToolReturnTarget(next.toolReturnTarget);
+            setPendingToolId(null);
           });
         } else if (showQuickLinks) {
           setShowQuickLinks(false);
@@ -686,7 +725,7 @@ function ClassicDashboard({ colorMode }) {
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [activeModal, activeToolId, showQuickLinks, toolsExpanded]);
+  }, [activeModal, activeToolId, showQuickLinks, toolReturnTarget, toolsExpanded]);
 
   // Mobile drawer touch handlers
   const handleDrawerTouchStart = (e) => {
@@ -941,7 +980,7 @@ function ClassicDashboard({ colorMode }) {
 
       {/* Tools full-screen modal (portal: bottom-right-stack의 transform 영향에서 벗어나기 위해 body로 렌더) */}
       {toolsExpanded && createPortal((
-      <div className="tools-modal-overlay" onClick={() => transitionSurface(() => setToolsExpanded(false))}>
+      <div className="tools-modal-overlay" onClick={() => transitionSurface(closeToolsLauncher)}>
         <div className="tools-modal" role="dialog" aria-modal="true" aria-labelledby="classic-tools-title" onClick={(e) => e.stopPropagation()}>
           <div className="tools-modal-header">
             <span className="tools-modal-title" id="classic-tools-title">Tools</span>
@@ -964,10 +1003,19 @@ function ClassicDashboard({ colorMode }) {
                 </button>
               )}
             </div>
-            <button className="tools-modal-close" onClick={() => transitionSurface(() => setToolsExpanded(false))} aria-label="닫기">
+            <button className="tools-modal-close" onClick={() => transitionSurface(closeToolsLauncher)} aria-label="닫기">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
+          {pendingToolId && (
+            <div className="tools-modal-pending">
+              <LoadingProgress
+                label={`${getWebTool(pendingToolId)?.name || '도구'}를 불러오는 중입니다.`}
+                detail="현재 도구 화면을 유지하면서 작업 공간을 준비하고 있습니다."
+                compact
+              />
+            </div>
+          )}
           <div className="tools-modal-grid">
         <button className="app-icon-btn" hidden={!calendarVisible} onClick={() => openModal('calendar')} title="Calendar">
           <span className="app-icon-visual">
@@ -1230,6 +1278,12 @@ function ClassicDashboard({ colorMode }) {
       </div>
       ), document.body)}
 
+      {pendingToolId && !toolsExpanded && createPortal((
+        <div className="tool-preload-status">
+          <LoadingProgress label="도구를 불러오는 중입니다." detail="현재 화면을 유지하면서 작업 공간을 준비하고 있습니다." compact />
+        </div>
+      ), document.body)}
+
       </div>{/* end bottom-right-stack */}
 
       {/* Top Left - SEONOLOGY Title */}
@@ -1349,7 +1403,10 @@ function ClassicDashboard({ colorMode }) {
         <Suspense fallback={<div className="tool-loading-overlay"><LoadingProgress label="도구를 불러오는 중입니다." detail="작업 공간을 준비하고 있습니다." /></div>}>
           <ActiveToolComponent
             isOpen
-            onClose={() => transitionSurface(() => setActiveToolId(null))}
+            onClose={() => transitionSurface(() => {
+              setActiveToolId(null);
+              setToolReturnTarget(null);
+            })}
             {...(activeTool.props || {})}
           />
         </Suspense>
