@@ -107,6 +107,136 @@ test('Split Console의 상태·도구·효과 진입점이 실제 기능 화면�
   await expect(page.locator('.snow-field')).toHaveCount(0);
 });
 
+test('Split Console Google 검색은 API 자동완성과 키보드 탐색을 제공한다', async ({ page }) => {
+  await page.route('**/api/suggest**', (route) => route.fulfill({ json: ['clock test', 'clock timer'] }));
+  await openWithCleanPreferences(page);
+
+  const search = page.getByRole('searchbox', { name: 'Google 검색' });
+  await search.fill('clock');
+  await expect(page.getByRole('option', { name: 'clock test' })).toBeVisible();
+  await search.press('ArrowDown');
+  await expect(page.getByRole('option', { name: 'clock test' })).toHaveAttribute('aria-selected', 'true');
+});
+
+test('Split Console은 Classic과 같은 커서 광원 효과를 저장한다', async ({ page }) => {
+  await openWithCleanPreferences(page);
+  await page.getByRole('button', { name: '효과 설정 열기' }).click();
+  await page.getByLabel('Cursor glow').selectOption('ocean');
+  await expect(page.locator('.cursor-glow')).toHaveAttribute('data-effect', 'ocean');
+  await page.reload();
+  await expect(page.locator('.cursor-glow')).toHaveAttribute('data-effect', 'ocean');
+});
+
+test('모달과 도구 전환에는 문서 전체 View Transition을 사용하지 않는다', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__viewTransitionCalls = 0;
+    document.startViewTransition = (update) => {
+      window.__viewTransitionCalls += 1;
+      update();
+      return { finished: Promise.resolve(), ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), skipTransition() {} };
+    };
+  });
+  await openWithCleanPreferences(page);
+
+  await page.getByRole('button', { name: '도구 모음 열기' }).click();
+  await page.getByRole('button', { name: '도구 모음 닫기' }).click();
+  expect(await page.evaluate(() => window.__viewTransitionCalls)).toBe(0);
+
+  await page.getByRole('button', { name: 'Classic 레이아웃' }).click();
+  expect(await page.evaluate(() => window.__viewTransitionCalls)).toBe(1);
+  await page.getByRole('button', { name: 'Tools', exact: true }).click();
+  expect(await page.evaluate(() => window.__viewTransitionCalls)).toBe(1);
+});
+
+test('클라우드 상태 장애를 OAuth 자격 증명 누락으로 잘못 표시하지 않는다', async ({ page }) => {
+  await page.route('**/api/gdrive/status', (route) => route.fulfill({
+    status: 503,
+    json: { error: 'Google Drive is unavailable' },
+  }));
+  await openWithCleanPreferences(page);
+
+  await page.getByRole('button', { name: 'GDrive' }).click();
+  await expect(page.getByRole('alert')).toContainText('service is temporarily unavailable');
+  await expect(page.getByText('OAuth credentials are missing')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
+});
+
+test('기존 도구 팝업에도 Split Console의 작업 공간 디자인을 적용한다', async ({ page }) => {
+  await page.route('**/api/gdrive/status', (route) => route.fulfill({ json: { configured: false, connected: false } }));
+  await page.route('**/api/notes', (route) => route.fulfill({ json: { notes: [] } }));
+  await openWithCleanPreferences(page);
+
+  await page.getByRole('button', { name: 'GDrive' }).click();
+  const cloudModal = page.locator('.nb-modal');
+  await expect(cloudModal).toBeVisible();
+  const cloudStyle = await cloudModal.evaluate((element) => ({
+    accent: getComputedStyle(element).getPropertyValue('--tool-accent').trim(),
+    radius: getComputedStyle(element).borderRadius,
+    width: element.getBoundingClientRect().width,
+  }));
+  expect(cloudStyle.accent).toBe('#526fd1');
+  expect(cloudStyle.radius).toBe('10px');
+  expect(cloudStyle.width).toBeGreaterThan(page.viewportSize().width * 0.85);
+  await page.locator('.nb-close-btn').click();
+
+  await page.getByRole('button', { name: '도구 모음 열기' }).click();
+  await page.getByRole('button', { name: /Notes/ }).click();
+  await expect(page.locator('.notes-panel')).toHaveCSS('--tool-accent', '#526fd1');
+  await expect(page.locator('.notes-panel')).toHaveCSS('border-radius', '10px');
+});
+
+test('Split Console에서 즐겨찾기 전체 관리와 서비스 탭을 사용할 수 있다', async ({ page }) => {
+  let bookmarks = {
+    categories: [{
+      id: 'cat-1',
+      name: 'Work',
+      order: 0,
+      bookmarks: [{
+        id: 'bm-1',
+        name: 'Example Docs',
+        url: 'https://example.com/',
+        icon: 'book',
+        color: '#526fd1',
+        quickLink: true,
+      }],
+    }],
+  };
+
+  await page.route('**/api/bookmarks**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (request.method() === 'GET' && url.pathname === '/api/bookmarks') {
+      await route.fulfill({ json: bookmarks });
+      return;
+    }
+    if (request.method() === 'POST' && url.pathname === '/api/bookmarks/categories') {
+      const input = request.postDataJSON();
+      const category = { id: 'cat-2', name: input.name, order: bookmarks.categories.length, bookmarks: [] };
+      bookmarks = { categories: [...bookmarks.categories, category] };
+      await route.fulfill({ json: { success: true, category } });
+      return;
+    }
+    await route.fulfill({ status: 200, json: { success: true } });
+  });
+  await page.route('**/api/services', (route) => route.fulfill({ json: { services: [] } }));
+
+  await openWithCleanPreferences(page);
+  await page.getByRole('button', { name: /BOOKMARKS.*즐겨찾기 관리/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Bookmarks' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Example Docs example.com' })).toBeVisible();
+  await page.getByRole('button', { name: '편집' }).click();
+  await page.getByRole('button', { name: '카테고리 추가' }).click();
+  await page.getByRole('textbox', { name: '카테고리 이름' }).fill('Personal');
+  await page.getByRole('button', { name: '추가', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Personal' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
+
+  await page.getByRole('button', { name: 'SEONOLOGY', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Services' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Bookmarks' }).click();
+  await expect(page.getByRole('link', { name: 'Example Docs example.com' })).toBeVisible();
+});
+
 test('390px 모바일의 표시 중인 핵심 조작 요소는 44px 터치 높이를 확보한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openWithCleanPreferences(page);

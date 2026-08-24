@@ -1,3 +1,23 @@
+import { toolsForSurface } from '@seonology/toolkit-core/catalog';
+
+export const DASHBOARD_CAPABILITIES = Object.freeze({
+  core: Object.freeze([
+    'search-suggestions',
+    'services',
+    'bookmarks-manage',
+    'quick-links',
+    'weather',
+    'exchange',
+    'todo',
+    'calendar',
+    'speedtest',
+    'cursor-glow',
+    'cursor-animation',
+    'snow',
+  ]),
+  tools: Object.freeze(toolsForSurface('web').map((tool) => tool.id)),
+});
+
 export const DASHBOARD_LINK_GROUPS = Object.freeze([
   Object.freeze({
     id: 'everyday',

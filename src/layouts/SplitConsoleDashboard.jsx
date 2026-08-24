@@ -3,21 +3,21 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import BrowserStats from '../components/BrowserStats.jsx';
 import Clock from '../components/Clock.jsx';
 import CursorCanvas from '../components/CursorCanvas.jsx';
+import CursorGlow from '../features/effects/CursorGlow.jsx';
 import SnowField from '../components/SnowField.jsx';
 import { usePersistentPreference } from '../hooks/usePersistentPreference.js';
 import { getClockTemplate } from '../features/clock/clockCatalog.js';
+import { CURSOR_ANIMATIONS, CURSOR_GLOW_EFFECTS } from '../features/effects/effectCatalog.js';
 import { DASHBOARD_LINK_GROUPS } from '../features/dashboard/dashboardLinks.js';
 import {
   GoogleSearch,
-  QuickLinksDrawer,
-  ServiceDirectory,
   StatusSummary,
   TodoSummary,
 } from '../features/dashboard/DashboardWidgets.jsx';
+import ServiceHub from '../features/dashboard/ServiceHub.jsx';
 import ToolDock from '../features/tool-launcher/ToolDock.jsx';
 import ToolsLauncher from '../features/tool-launcher/ToolsLauncher.jsx';
 import { getWebTool } from '../features/tool-launcher/toolRegistry.web.js';
-import { startUiTransition } from '../ui/startUiTransition.js';
 import './split-console.css';
 
 const Calendar = lazy(() => import('../components/Calendar.jsx'));
@@ -26,13 +26,6 @@ const TodoList = lazy(() => import('../components/TodoList.jsx'));
 const Weather = lazy(() => import('../components/Weather.jsx'));
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
-const CURSOR_ANIMATIONS = Object.freeze([
-  ['none', 'None'], ['trail', 'Trail'], ['comet', 'Comet'], ['particles', 'Particles'],
-  ['ripple', 'Ripple'], ['fireflies', 'Fireflies'], ['bubbles', 'Bubbles'],
-  ['stardust', 'Stardust'], ['snow', 'Cursor Snow'], ['magnetic', 'Magnetic'],
-  ['constellation', 'Constellation'], ['wave', 'Wave'], ['spotlight', 'Spotlight'],
-]);
-
 function DashboardDialog({ title, eyebrow, onClose, children, compact = false }) {
   return (
     <div className="split-overlay" onMouseDown={onClose}>
@@ -62,8 +55,8 @@ function SplitConsoleDashboard({
   const [activeToolId, setActiveToolId] = useState(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [effectsOpen, setEffectsOpen] = useState(false);
-  const [quickLinksOpen, setQuickLinksOpen] = useState(false);
   const [toolQuery, setToolQuery] = useState('');
+  const [cursorGlow, setCursorGlow] = usePersistentPreference('cursorGlow');
   const [cursorAnimation, setCursorAnimation] = usePersistentPreference('cursorAnimation');
   const template = getClockTemplate(clockTheme);
   const activeTool = getWebTool(activeToolId);
@@ -77,10 +70,9 @@ function SplitConsoleDashboard({
     setActiveToolId(null);
     setToolsOpen(false);
     setEffectsOpen(false);
-    setQuickLinksOpen(false);
   };
 
-  const transitionSurface = (update) => startUiTransition(update);
+  const transitionSurface = (update) => update();
 
   const openTool = (id) => {
     transitionSurface(() => {
@@ -116,6 +108,7 @@ function SplitConsoleDashboard({
       data-clock-layout={template.layout}
     >
       <SnowField enabled={snowEnabled} />
+      <CursorGlow effect={cursorGlow} />
       <CursorCanvas effect={cursorAnimation} />
 
       <section className="split-clock-zone" aria-label="현재 시간">
@@ -154,7 +147,7 @@ function SplitConsoleDashboard({
         <div className="split-work-actions">
           <TodoSummary onOpen={() => openModal('todo')} />
           <button type="button" className="split-summary-card" onClick={() => openTool('speedtest')}><span>SPEED TEST</span><b>네트워크 측정</b></button>
-          <button type="button" className="split-summary-card" onClick={() => setQuickLinksOpen(true)}><span>BOOKMARKS</span><b>Quick Links 열기</b></button>
+          <button type="button" className="split-summary-card" data-capability="bookmarks-manage" onClick={() => openModal('bookmarks')}><span>BOOKMARKS</span><b>즐겨찾기 관리</b></button>
         </div>
       </section>
 
@@ -176,18 +169,18 @@ function SplitConsoleDashboard({
         onOpenCalendar={() => openModal('calendar')}
       />
 
-      <QuickLinksDrawer open={quickLinksOpen} onClose={() => setQuickLinksOpen(false)} />
-
       {effectsOpen && (
         <DashboardDialog compact title="Effects" eyebrow="DISPLAY" onClose={() => transitionSurface(() => setEffectsOpen(false))}>
           <div className="split-effect-settings">
             <div><span>Snow field</span><button type="button" aria-pressed={snowEnabled} onClick={() => onSnowEnabledChange(!snowEnabled)}>{snowEnabled ? 'On' : 'Off'}</button></div>
-            <label><span>Cursor animation</span><select value={cursorAnimation} onChange={(event) => setCursorAnimation(event.target.value)}>{CURSOR_ANIMATIONS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+            <label><span>Cursor glow</span><select aria-label="Cursor glow" value={cursorGlow} onChange={(event) => setCursorGlow(event.target.value)}>{CURSOR_GLOW_EFFECTS.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}</select></label>
+            <label><span>Cursor animation</span><select value={cursorAnimation} onChange={(event) => setCursorAnimation(event.target.value)}>{CURSOR_ANIMATIONS.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}</select></label>
           </div>
         </DashboardDialog>
       )}
 
-      {activeModal === 'services' && <DashboardDialog title="Services" eyebrow="SEONOLOGY" onClose={() => transitionSurface(() => setActiveModal(null))}><ServiceDirectory /></DashboardDialog>}
+      {activeModal === 'services' && <DashboardDialog title="Services" eyebrow="SEONOLOGY" onClose={() => transitionSurface(() => setActiveModal(null))}><ServiceHub initialTab="services" /></DashboardDialog>}
+      {activeModal === 'bookmarks' && <DashboardDialog title="Bookmarks" eyebrow="SEONOLOGY" onClose={() => transitionSurface(() => setActiveModal(null))}><ServiceHub initialTab="bookmarks" /></DashboardDialog>}
       {activeModal === 'weather' && <DashboardDialog title="Weather" eyebrow="LIVE STATUS" onClose={() => transitionSurface(() => setActiveModal(null))}><Weather /></DashboardDialog>}
       {activeModal === 'exchange' && <DashboardDialog title="Exchange Rate" eyebrow="LIVE STATUS" onClose={() => transitionSurface(() => setActiveModal(null))}><ExchangeRate /></DashboardDialog>}
       {activeModal === 'todo' && <DashboardDialog title="Todo" eyebrow="WORKSPACE" onClose={() => transitionSurface(() => setActiveModal(null))}><TodoList /></DashboardDialog>}

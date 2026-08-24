@@ -70,6 +70,24 @@ test('legacy plaintext tokens are migrated to the encrypted envelope on read', a
   await assertDirectoryDoesNotContain(directory, /legacy-fixture-refresh/);
 });
 
+test('legacy tokens migrate when a readable mounted file cannot be chmodded by the app user', async () => {
+  let chmodCalls = 0;
+  const chmodFile = async () => {
+    chmodCalls += 1;
+    const error = new Error('operation not permitted');
+    error.code = 'EPERM';
+    throw error;
+  };
+  const { filePath, store } = await fixture(Buffer.alloc(32, 0x11), { chmodFile });
+  const legacy = { google: { refresh_token: 'mounted-file-fixture' } };
+  await writeFile(filePath, `${JSON.stringify(legacy)}\n`, { mode: 0o664 });
+
+  assert.deepEqual(await store.read(), legacy);
+  assert.equal(chmodCalls, 1);
+  assert.equal(JSON.parse(await readFile(filePath, 'utf8')).algorithm, 'aes-256-gcm');
+  assert.equal((await stat(filePath)).mode & 0o777, 0o600);
+});
+
 test('malformed legacy plaintext is rejected without changing the original file', async () => {
   const { backupPath, filePath, store } = await fixture();
   const original = '{"google":{"refresh_token":42}}\n';

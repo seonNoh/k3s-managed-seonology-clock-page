@@ -3,6 +3,29 @@
   --modal-workspace-height: 88dvh;
   --modal-motion-duration: 220ms;
   --modal-motion-easing: cubic-bezier(.2, .7, .2, 1);
+  --tool-bg: #edf1f8;
+  --tool-surface: #f8faff;
+  --tool-inner: #ffffff;
+  --tool-text: #20283a;
+  --tool-muted: #65708a;
+  --tool-line: #aebbd2;
+  --tool-line-strong: #6f83ab;
+  --tool-accent: #526fd1;
+  --tool-danger: #b84f4f;
+  --tool-shadow: rgba(42, 58, 92, .2);
+}
+
+:root[data-color-mode="dark"] {
+  --tool-bg: #111722;
+  --tool-surface: #1b2432;
+  --tool-inner: #222d3e;
+  --tool-text: #eef3ff;
+  --tool-muted: #a5b0c5;
+  --tool-line: #35445d;
+  --tool-line-strong: #62759d;
+  --tool-accent: #8ea4ff;
+  --tool-danger: #f08b82;
+  --tool-shadow: rgba(0, 0, 0, .5);
 }
 
 body :is(
@@ -95,6 +118,44 @@ body :is(
   font-size: 1rem;
   animation: modal-workspace-enter var(--modal-motion-duration) var(--modal-motion-easing) both !important;
   transform-origin: 50% 52%;
+  --bg-primary: var(--tool-bg);
+  --bg-card: var(--tool-inner);
+  --text-primary: var(--tool-text);
+  --text-secondary: var(--tool-muted);
+  --text-muted: var(--tool-muted);
+  --accent-primary: var(--tool-accent);
+  --accent-secondary: var(--tool-accent);
+  --border-color: var(--tool-line);
+  border: 1px solid var(--tool-line-strong) !important;
+  border-radius: 10px !important;
+  background: var(--tool-surface) !important;
+  box-shadow: 0 18px 48px var(--tool-shadow) !important;
+  color: var(--tool-text);
+  font-family: "JetBrains Mono", ui-monospace, monospace !important;
+}
+
+body :is(
+  .modal-overlay,
+  .tools-modal-overlay,
+  .split-overlay,
+  [class$="-overlay"]:has(> [class$="-modal"]),
+  [class$="-overlay"]:has(> [class$="-panel"]),
+  [class$="-overlay"]:has(> [class$="-container"])
+) {
+  background: color-mix(in srgb, var(--tool-bg) 68%, transparent) !important;
+  backdrop-filter: blur(9px) saturate(.85);
+}
+
+body :is(
+  .modal-overlay > .modal-content,
+  .tools-modal-overlay > .tools-modal,
+  .split-overlay > .split-dialog,
+  [class$="-overlay"] > [class$="-modal"],
+  [class$="-overlay"] > [class$="-panel"],
+  [class$="-overlay"] > [class$="-container"]
+) > :is(.modal-header, .tools-modal-header, [class$="-header"]:first-child) {
+  border-bottom-color: var(--tool-line) !important;
+  background: color-mix(in srgb, var(--tool-inner) 78%, transparent) !important;
 }
 
 body .split-overlay > .split-dialog--compact {
@@ -166,6 +227,20 @@ body :is(
   [class$="-overlay"] > [class$="-container"]
 ) :is(button, input, select, textarea) {
   font-size: max(1rem, 18px) !important;
+  border-radius: 8px !important;
+  font-family: "JetBrains Mono", ui-monospace, monospace !important;
+}
+
+body :is(
+  .modal-overlay > .modal-content,
+  .tools-modal-overlay > .tools-modal,
+  .split-overlay > .split-dialog,
+  [class$="-overlay"] > [class$="-modal"],
+  [class$="-overlay"] > [class$="-panel"],
+  [class$="-overlay"] > [class$="-container"]
+) :is(button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--tool-accent) !important;
+  outline-offset: 2px;
 }
 
 body :is(

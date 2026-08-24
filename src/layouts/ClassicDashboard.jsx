@@ -12,7 +12,11 @@ import { SpeedTestMini } from '../components/SpeedTestMini';
 import { API_BASE, getSafeExternalUrl, requestJson } from '../api/client';
 import { closeTopDialog, filterToolCatalog, openToolDialog, openToolLauncher } from '../features/tool-launcher/dialog-state';
 import { getWebTool, WEB_TOOL_CATALOG } from '../features/tool-launcher/toolRegistry.web';
-import { startUiTransition } from '../ui/startUiTransition';
+import SharedGoogleSearch from '../features/dashboard/GoogleSearch';
+import ServiceHub from '../features/dashboard/ServiceHub';
+import CursorGlow from '../features/effects/CursorGlow';
+import { CURSOR_ANIMATIONS, CURSOR_GLOW_EFFECTS } from '../features/effects/effectCatalog';
+import { usePersistentPreference } from '../hooks/usePersistentPreference';
 import '../App.css';
 
 // Import version from VERSION file (will be replaced at build time)
@@ -482,7 +486,7 @@ function DefaultIcon() {
   );
 }
 
-// Icon resolver (shared by ServiceIcon and BookmarksPanel)
+// Icon resolver for Quick Links
 function getIconByName(iconName) {
   switch (iconName) {
     case 'vault': return <VaultIcon />;
@@ -517,276 +521,11 @@ function getIconByName(iconName) {
 }
 
 // Service icon component
-function ServiceIcon({ service }) {
-  return (
-    <a
-      href={getSafeExternalUrl(service.url) || '#'}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="service-card"
-      style={{ '--service-color': service.color }}
-    >
-      <div className="service-icon">
-        {getIconByName(service.icon)}
-      </div>
-      <div className="service-info">
-        <div className="service-name">{service.name}</div>
-        <div className="service-desc">{service.description}</div>
-      </div>
-    </a>
-  );
-}
-
-// Services modal content
 // Bookmarks panel
-const RANDOM_COLORS = [
-  '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
-  '#f43f5e', '#ef4444', '#f97316', '#f59e0b', '#eab308',
-  '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4',
-  '#0ea5e9', '#3b82f6', '#6366f1',
-];
-const randomColor = () => RANDOM_COLORS[Math.floor(Math.random() * RANDOM_COLORS.length)];
 const loadBookmarkData = signal => requestJson('/api/bookmarks', { signal });
 const selectQuickLinks = data => (data.categories || [])
   .flatMap(category => category.bookmarks || [])
   .filter(bookmark => bookmark.quickLink && getSafeExternalUrl(bookmark.url));
-
-function BookmarksPanel() {
-  const [data, setData] = useState({ categories: [] });
-  const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
-  const [addingTo, setAddingTo] = useState(null); // categoryId for add form
-  const [newCatName, setNewCatName] = useState('');
-  const [showAddCat, setShowAddCat] = useState(false);
-  const [form, setForm] = useState({ name: '', url: '', icon: 'default', color: randomColor(), quickLink: false });
-  const [editingBm, setEditingBm] = useState(null); // { catId, bmId }
-  const [editForm, setEditForm] = useState({ name: '', url: '', color: '', quickLink: false });
-
-  const fetchBookmarks = async () => {
-    try {
-      const result = await loadBookmarkData();
-      setData(result);
-    } catch (err) {
-      console.error('Failed to fetch bookmarks:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadBookmarkData(controller.signal)
-      .then(setData)
-      .catch(err => {
-        if (err.name !== 'AbortError') console.error('Failed to fetch bookmarks:', err);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, []);
-
-  const addCategory = async () => {
-    if (!newCatName.trim()) return;
-    await fetch(`${API_BASE}/api/bookmarks/categories`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newCatName.trim() }),
-    });
-    setNewCatName('');
-    setShowAddCat(false);
-    fetchBookmarks();
-  };
-
-  const deleteCategory = async (catId) => {
-    await fetch(`${API_BASE}/api/bookmarks/categories/${catId}`, { method: 'DELETE' });
-    fetchBookmarks();
-  };
-
-  const addBookmark = async (catId) => {
-    if (!form.name.trim() || !form.url.trim()) return;
-    let url = form.url.trim();
-    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-    await fetch(`${API_BASE}/api/bookmarks/categories/${catId}/bookmarks`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, url }),
-    });
-    setForm({ name: '', url: '', icon: 'default', color: randomColor(), quickLink: false });
-    setAddingTo(null);
-    fetchBookmarks();
-  };
-
-  const deleteBookmark = async (catId, bmId) => {
-    await fetch(`${API_BASE}/api/bookmarks/categories/${catId}/bookmarks/${bmId}`, { method: 'DELETE' });
-    fetchBookmarks();
-  };
-
-  const toggleQuickLink = async (catId, bm) => {
-    await fetch(`${API_BASE}/api/bookmarks/categories/${catId}/bookmarks/${bm.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quickLink: !bm.quickLink }),
-    });
-    fetchBookmarks();
-  };
-
-  const startEditing = (catId, bm) => {
-    setEditingBm({ catId, bmId: bm.id });
-    setEditForm({ name: bm.name, url: bm.url, color: bm.color || '#6366f1', quickLink: !!bm.quickLink });
-  };
-
-  const saveEdit = async () => {
-    if (!editingBm || !editForm.name.trim() || !editForm.url.trim()) return;
-    let url = editForm.url.trim();
-    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-    await fetch(`${API_BASE}/api/bookmarks/categories/${editingBm.catId}/bookmarks/${editingBm.bmId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editForm.name.trim(), url, color: editForm.color, quickLink: editForm.quickLink }),
-    });
-    setEditingBm(null);
-    fetchBookmarks();
-  };
-
-  const cancelEdit = () => {
-    setEditingBm(null);
-  };
-
-  if (loading) return <div className="services-loading">Loading bookmarks...</div>;
-
-  return (
-    <div className="bookmarks-panel">
-      <div className="bookmarks-toolbar">
-        <button className="bm-toolbar-btn" onClick={() => setEditMode(!editMode)}>
-          {editMode ? (
-            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Done</>
-          ) : (
-            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit</>
-          )}
-        </button>
-        {editMode && (
-          <button className="bm-toolbar-btn bm-add-cat-btn" onClick={() => setShowAddCat(true)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Category
-          </button>
-        )}
-      </div>
-
-      {showAddCat && (
-        <div className="bm-add-cat-form">
-          <input
-            className="bm-input"
-            placeholder="Category name"
-            value={newCatName}
-            onChange={(e) => setNewCatName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addCategory()}
-            autoFocus
-          />
-          <button className="bm-btn-save" onClick={addCategory}>Add</button>
-          <button className="bm-btn-cancel" onClick={() => { setShowAddCat(false); setNewCatName(''); }}>Cancel</button>
-        </div>
-      )}
-
-      {data.categories.length === 0 && !showAddCat && (
-        <div className="bm-empty">
-          No bookmarks yet. Click Edit to add categories and bookmarks.
-        </div>
-      )}
-
-      {data.categories.map(cat => (
-        <div key={cat.id} className="bm-category">
-          <div className="bm-category-header">
-            <h3 className="bm-category-name">{cat.name}</h3>
-            <div className="bm-category-actions">
-              {editMode && (
-                <>
-                  <button className="bm-icon-btn" onClick={() => { setAddingTo(cat.id); setForm({ name: '', url: '', icon: 'default', color: randomColor(), quickLink: false }); }} title="Add bookmark">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  </button>
-                  <button className="bm-icon-btn bm-icon-btn-danger" onClick={() => deleteCategory(cat.id)} title="Delete category">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {addingTo === cat.id && (
-            <div className="bm-add-form">
-              <input className="bm-input" placeholder="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} autoFocus />
-              <input className="bm-input" placeholder="URL" value={form.url} onChange={e => setForm({...form, url: e.target.value})} onKeyDown={e => e.key === 'Enter' && addBookmark(cat.id)} />
-              <div className="bm-form-row">
-                <label className="bm-label">Color</label>
-                <input type="color" className="bm-color-input" value={form.color} onChange={e => setForm({...form, color: e.target.value})} />
-                <label className="bm-quicklink-check">
-                  <input type="checkbox" checked={form.quickLink} onChange={e => setForm({...form, quickLink: e.target.checked})} />
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                  Quick Link
-                </label>
-                <button className="bm-btn-save" onClick={() => addBookmark(cat.id)}>Add</button>
-                <button className="bm-btn-cancel" onClick={() => setAddingTo(null)}>Cancel</button>
-              </div>
-            </div>
-          )}
-
-          {cat.bookmarks.length > 0 ? (
-            <div className="bm-grid">
-              {cat.bookmarks.map(bm => (
-                editingBm && editingBm.catId === cat.id && editingBm.bmId === bm.id ? (
-                  <div key={bm.id} className="bm-card bm-card-editing" style={{ '--bm-color': editForm.color }}>
-                    <div className="bm-edit-form">
-                      <input className="bm-input bm-edit-input" placeholder="Name" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} autoFocus />
-                      <input className="bm-input bm-edit-input" placeholder="URL" value={editForm.url} onChange={e => setEditForm({...editForm, url: e.target.value})} onKeyDown={e => e.key === 'Enter' && saveEdit()} />
-                      <div className="bm-form-row">
-                        <label className="bm-label">Color</label>
-                        <input type="color" className="bm-color-input" value={editForm.color} onChange={e => setEditForm({...editForm, color: e.target.value})} />
-                        <label className="bm-quicklink-check">
-                          <input type="checkbox" checked={editForm.quickLink} onChange={e => setEditForm({...editForm, quickLink: e.target.checked})} />
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                          Quick Link
-                        </label>
-                        <button className="bm-btn-save" onClick={saveEdit}>Save</button>
-                        <button className="bm-btn-cancel" onClick={cancelEdit}>Cancel</button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                <div key={bm.id} className={`bm-card${bm.quickLink ? ' bm-card-quicklink' : ''}`} style={{ '--bm-color': bm.color }}>
-                  <a href={getSafeExternalUrl(bm.url) || '#'} target="_blank" rel="noopener noreferrer" className="bm-card-link">
-                    <div className="bm-card-icon">
-                      {getIconByName(bm.icon)}
-                    </div>
-                    <div className="bm-card-info">
-                      <span className="bm-card-name">{bm.name}</span>
-                      <span className="bm-card-url">{bm.url.replace(/^https?:\/\//, '').slice(0, 30)}</span>
-                    </div>
-                  </a>
-                  {bm.quickLink && !editMode && (
-                    <span className="bm-quicklink-badge" title="Quick Link">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    </span>
-                  )}
-                  {editMode && (
-                    <>
-                      <button className="bm-edit-btn" onClick={() => startEditing(cat.id, bm)} title="Edit">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      <button className={`bm-quicklink-toggle${bm.quickLink ? ' active' : ''}`} onClick={() => toggleQuickLink(cat.id, bm)} title={bm.quickLink ? 'Remove from Quick Links' : 'Add to Quick Links'}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill={bm.quickLink ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                      </button>
-                      <button className="bm-delete-btn" onClick={() => deleteBookmark(cat.id, bm.id)} title="Delete">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    </>
-                  )}
-                </div>
-                )
-              ))}
-            </div>
-          ) : (
-            <div className="bm-empty-cat">No bookmarks in this category</div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function QuickLinksPanel({ isOpen, onClose }) {
   const [quickLinks, setQuickLinks] = useState([]);
@@ -842,157 +581,11 @@ function QuickLinksPanel({ isOpen, onClose }) {
 }
 
 function SearchBar() {
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const suggestTimer = useRef(null);
-  const wrapperRef = useRef(null);
-
-  const fetchSuggestions = (q) => {
-    if (suggestTimer.current) clearTimeout(suggestTimer.current);
-    if (!q.trim()) { setSuggestions([]); setShowSuggestions(false); return; }
-    suggestTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/suggest?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        setSuggestions(data.slice(0, 8));
-        setShowSuggestions(data.length > 0);
-        setSelectedIndex(-1);
-      } catch { setSuggestions([]); }
-    }, 200);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const doSearch = (text) => {
-    if (!text.trim()) return;
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(text.trim())}`, '_blank');
-    setQuery('');
-    setSuggestions([]);
-    setShowSuggestions(false);
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    doSearch(query);
-  };
-
-  const handleKeyDown = (e) => {
-    if (!showSuggestions || suggestions.length === 0) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(prev => (prev + 1) % suggestions.length);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
-    } else if (e.key === 'Enter' && selectedIndex >= 0) {
-      e.preventDefault();
-      doSearch(suggestions[selectedIndex]);
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false);
-    }
-  };
-
-  return (
-    <div className="search-bar-wrapper" ref={wrapperRef}>
-      <form className="search-bar" onSubmit={handleSearch}>
-        <svg className="search-bar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input
-          className="search-bar-input"
-          type="text"
-          placeholder="Search Google..."
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); fetchSuggestions(e.target.value); }}
-          onKeyDown={handleKeyDown}
-          onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-        />
-        {query && (
-          <button type="button" className="search-bar-clear" onClick={() => { setQuery(''); setSuggestions([]); setShowSuggestions(false); }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        )}
-      </form>
-      {showSuggestions && suggestions.length > 0 && (
-        <div className="search-suggestions">
-          {suggestions.map((s, i) => (
-            <button
-              key={i}
-              className={`search-suggestion-item${i === selectedIndex ? ' selected' : ''}`}
-              onClick={() => doSearch(s)}
-              onMouseEnter={() => setSelectedIndex(i)}
-            >
-              <svg className="suggest-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <span className="suggest-text">{s}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <SharedGoogleSearch variant="classic" />;
 }
 
 function ServicesModal() {
-  const [tab, setTab] = useState('services');
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/services`);
-        const data = await res.json();
-        setServices(data.services || []);
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to fetch services:', err);
-        setError('Failed to load services');
-        setLoading(false);
-      }
-    };
-
-    fetchServices();
-  }, []);
-
-  return (
-    <div className="services-modal-wrapper">
-      <div className="services-tabs">
-        <button className={`services-tab${tab === 'services' ? ' active' : ''}`} onClick={() => setTab('services')}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          Services
-        </button>
-        <button className={`services-tab${tab === 'bookmarks' ? ' active' : ''}`} onClick={() => setTab('bookmarks')}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-          Bookmarks
-        </button>
-      </div>
-
-      {tab === 'services' && (
-        loading ? <div className="services-loading">Loading services...</div> :
-        error ? <div className="services-error">{error}</div> :
-        <div className="services-grid">
-          {services.map((service) => (
-            <ServiceIcon key={service.id} service={service} />
-          ))}
-        </div>
-      )}
-
-      {tab === 'bookmarks' && <BookmarksPanel />}
-    </div>
-  );
+  return <ServiceHub initialTab="services" />;
 }
 
 // Footer component
@@ -1016,38 +609,6 @@ function Footer() {
   );
 }
 
-const CURSOR_EFFECTS = [
-  { id: 'indigo', name: 'Indigo', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(99, 102, 241, 0.15) 0%, rgba(129, 140, 248, 0.06) 30%, transparent 70%)` },
-  { id: 'aurora', name: 'Aurora', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(56, 189, 248, 0.12) 0%, rgba(167, 139, 250, 0.08) 25%, rgba(251, 113, 133, 0.05) 50%, transparent 70%)` },
-  { id: 'spotlight', name: 'Spotlight', gradient: (x, y) => `radial-gradient(350px circle at ${x}% ${y}%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 40%, transparent 60%)` },
-  { id: 'warm', name: 'Warm', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(251, 146, 60, 0.14) 0%, rgba(245, 158, 11, 0.05) 30%, transparent 70%)` },
-  { id: 'neon', name: 'Neon', gradient: (x, y) => `radial-gradient(500px circle at ${x}% ${y}%, rgba(0, 255, 65, 0.12) 0%, rgba(0, 255, 65, 0.04) 30%, transparent 65%)` },
-  { id: 'ocean', name: 'Ocean', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(6, 182, 212, 0.14) 0%, rgba(59, 130, 246, 0.06) 35%, transparent 70%)` },
-  { id: 'sunset', name: 'Sunset', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(249, 115, 22, 0.13) 0%, rgba(236, 72, 153, 0.07) 30%, transparent 70%)` },
-  { id: 'rose', name: 'Rose', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(244, 63, 94, 0.14) 0%, rgba(251, 113, 133, 0.05) 30%, transparent 70%)` },
-  { id: 'emerald', name: 'Emerald', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(16, 185, 129, 0.14) 0%, rgba(52, 211, 153, 0.05) 30%, transparent 70%)` },
-  { id: 'cosmic', name: 'Cosmic', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(139, 92, 246, 0.16) 0%, rgba(88, 28, 135, 0.06) 30%, transparent 70%)` },
-  { id: 'fire', name: 'Fire', gradient: (x, y) => `radial-gradient(500px circle at ${x}% ${y}%, rgba(239, 68, 68, 0.14) 0%, rgba(249, 115, 22, 0.07) 25%, rgba(234, 179, 8, 0.03) 50%, transparent 65%)` },
-  { id: 'ice', name: 'Ice', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(165, 243, 252, 0.14) 0%, rgba(103, 232, 249, 0.05) 30%, transparent 70%)` },
-  { id: 'glow-none', name: 'None', gradient: () => 'none' },
-];
-
-const ANIM_EFFECTS = [
-  { id: 'none', name: 'None', color: 'transparent' },
-  { id: 'trail', name: 'Trail', color: '#818cf8' },
-  { id: 'comet', name: 'Comet', color: '#f59e0b' },
-  { id: 'particles', name: 'Particles', color: '#ec4899' },
-  { id: 'ripple', name: 'Ripple', color: '#6366f1' },
-  { id: 'fireflies', name: 'Fireflies', color: '#fbbf24' },
-  { id: 'bubbles', name: 'Bubbles', color: '#38bdf8' },
-  { id: 'stardust', name: 'Stardust', color: '#c084fc' },
-  { id: 'snow', name: 'Snow', color: '#e2e8f0' },
-  { id: 'magnetic', name: 'Magnetic', color: '#6366f1' },
-  { id: 'constellation', name: 'Constellation', color: '#818cf8' },
-  { id: 'wave', name: 'Wave', color: '#06b6d4' },
-  { id: 'spotlight', name: 'Spotlight', color: '#ffffff' },
-];
-
 function ClassicDashboard({ colorMode }) {
   const [activeModal, setActiveModal] = useState(null);
   const [activeToolId, setActiveToolId] = useState(null);
@@ -1061,9 +622,8 @@ function ClassicDashboard({ colorMode }) {
   const isDragging = useRef(false);
   const topSheetTouchStartY = useRef(0);
   const topSheetIsDragging = useRef(false);
-  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
-  const [cursorEffect, setCursorEffect] = useState(() => localStorage.getItem('clock-cursor-effect') || 'indigo');
-  const [cursorAnim, setCursorAnim] = useState(() => localStorage.getItem('clock-cursor-anim') || 'none');
+  const [cursorEffect, setCursorEffect] = usePersistentPreference('cursorGlow');
+  const [cursorAnim, setCursorAnim] = usePersistentPreference('cursorAnimation');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsPos, setSettingsPos] = useState({ right: 84, bottom: 24 });
   const settingsBtnRef = useRef(null);
@@ -1075,7 +635,7 @@ function ClassicDashboard({ colorMode }) {
   const toolMatchCount = filteredTools.filter((tool) => TOOL_GRID_IDS.has(tool.id)).length + (calendarVisible ? 1 : 0);
   const activeTool = getWebTool(activeToolId);
   const ActiveToolComponent = activeTool?.component || null;
-  const transitionSurface = (update) => startUiTransition(update);
+  const transitionSurface = (update) => update();
 
   const openModal = (name) => {
     transitionSurface(() => {
@@ -1126,9 +686,6 @@ function ClassicDashboard({ colorMode }) {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [activeModal, activeToolId, showQuickLinks, toolsExpanded]);
-
-  useEffect(() => { localStorage.setItem('clock-cursor-effect', cursorEffect); }, [cursorEffect]);
-  useEffect(() => { localStorage.setItem('clock-cursor-anim', cursorAnim); }, [cursorAnim]);
 
   // Mobile drawer touch handlers
   const handleDrawerTouchStart = (e) => {
@@ -1219,37 +776,11 @@ function ClassicDashboard({ colorMode }) {
     };
   }, [mobileDrawerOpen, mobileTopSheetOpen, activeModal]);
 
-  useEffect(() => {
-    let raf;
-    const handleMouse = (e) => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        setMousePos({
-          x: (e.clientX / window.innerWidth) * 100,
-          y: (e.clientY / window.innerHeight) * 100,
-        });
-        raf = null;
-      });
-    };
-    window.addEventListener('mousemove', handleMouse);
-    return () => {
-      window.removeEventListener('mousemove', handleMouse);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  const currentEffect = CURSOR_EFFECTS.find(e => e.id === cursorEffect) || CURSOR_EFFECTS[0];
-
   return (
     <div className={`dashboard-wrapper${showQuickLinks ? ' quicklinks-open' : ''}`} data-dashboard-layout="classic" data-color-mode={colorMode}>
       <QuickLinksPanel isOpen={showQuickLinks} onClose={() => setShowQuickLinks(false)} />
     <div className="dashboard">
-      <div
-        className="cursor-glow"
-        style={{
-          background: currentEffect.gradient(mousePos.x, mousePos.y),
-        }}
-      />
+      <CursorGlow effect={cursorEffect} />
       <CursorCanvas effect={cursorAnim} />
 
       {/* Mobile Top Sheet - swipe down from top */}
@@ -1379,7 +910,7 @@ function ClassicDashboard({ colorMode }) {
           <div className="cursor-settings-popover" style={{ right: settingsPos.right, bottom: settingsPos.bottom }} onClick={(e) => e.stopPropagation()}>
             <div className="glow-picker-dropdown">
               <div className="glow-picker-label">Glow Color</div>
-              {CURSOR_EFFECTS.map(e => (
+              {CURSOR_GLOW_EFFECTS.map(e => (
                 <button
                   key={e.id}
                   className={`glow-option${cursorEffect === e.id ? ' active' : ''}`}
@@ -1392,7 +923,7 @@ function ClassicDashboard({ colorMode }) {
             </div>
             <div className="glow-picker-dropdown">
               <div className="glow-picker-label">Animation</div>
-              {ANIM_EFFECTS.map(e => (
+              {CURSOR_ANIMATIONS.map(e => (
                 <button
                   key={e.id}
                   className={`glow-option${cursorAnim === e.id ? ' active' : ''}`}
@@ -1410,9 +941,9 @@ function ClassicDashboard({ colorMode }) {
       {/* Tools full-screen modal (portal: bottom-right-stack의 transform 영향에서 벗어나기 위해 body로 렌더) */}
       {toolsExpanded && createPortal((
       <div className="tools-modal-overlay" onClick={() => transitionSurface(() => setToolsExpanded(false))}>
-        <div className="tools-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="tools-modal" role="dialog" aria-modal="true" aria-labelledby="classic-tools-title" onClick={(e) => e.stopPropagation()}>
           <div className="tools-modal-header">
-            <span className="tools-modal-title">Tools</span>
+            <span className="tools-modal-title" id="classic-tools-title">Tools</span>
             <div className="tools-modal-search-wrap">
               <svg className="tools-modal-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />

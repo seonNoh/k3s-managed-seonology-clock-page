@@ -25,7 +25,9 @@ src/App.jsx
   +-- styles/modal-system.css           공통 대화상자 크기·글자·모션 정책
   +-- ui/startUiTransition.js           reduced-motion 대응 전환 adapter
   +-- layouts/SplitConsoleDashboard.jsx 새 기본 화면
-  |     +-- features/dashboard/          검색·상태·링크 데이터
+  |     +-- features/dashboard/          공용 검색·서비스 허브·상태·링크 데이터
+  |     +-- features/bookmarks/          즐겨찾기 CRUD와 Quick Link
+  |     +-- features/effects/            공용 커서 광원·애니메이션 카탈로그
   |     +-- features/tool-launcher/      도구 catalog와 실행 표면
   |     +-- components/SnowField.jsx     독립적인 눈 효과
   +-- layouts/ClassicDashboard.jsx      기존 화면 호환 경계
@@ -37,7 +39,9 @@ src/App.jsx
 
 Split Console은 `portrait`, `square`, `panorama` 시계 메타데이터에 따라 PC grid 자체를 바꾸며, 태블릿과 모바일에서는 각각 2영역과 세로 흐름으로 전환합니다. 시계 크기는 viewport 고정값이 아니라 clock container 폭을 사용합니다. Classic은 기존 DOM과 기능을 보존하는 호환 레이어이며 별도 lazy chunk로 로드됩니다. Calendar, 날씨, 환율, Todo와 개별 도구도 사용 시점에만 로드되므로 새 기본 화면의 초기 JavaScript에 기존 전체 화면과 무거운 도구가 포함되지 않습니다.
 
-대화상자 정책은 Classic 전용 CSS에서 분리되어 앱 시작 시 항상 로드됩니다. 작업형 대화상자는 데스크톱 92dvw×88dvh, 태블릿 94dvw×90dvh, 모바일 100dvw×100dvh를 사용하며 짧은 설정창만 compact 변형을 유지합니다. 개별 도구가 고정된 어두운 배경과 전역 light 글자 변수를 섞지 않도록 공통 셸에서 색상 모드별 표면·글자 변수를 함께 제공합니다. CSS 진입 모션과 View Transition API를 조합하되, API 미지원 환경은 즉시 상태를 갱신하고 `prefers-reduced-motion` 환경은 모든 전환을 생략합니다.
+대화상자 정책은 Classic 전용 CSS에서 분리되어 앱 시작 시 항상 로드됩니다. 작업형 대화상자는 데스크톱 92dvw×88dvh, 태블릿 94dvw×90dvh, 모바일 100dvw×100dvh를 사용하며 짧은 설정창만 compact 변형을 유지합니다. 개별 도구가 고정된 어두운 배경과 전역 light 글자 변수를 섞지 않도록 공통 `--tool-*` 셸에서 색상 모드별 표면·글자·테두리·액센트를 함께 제공합니다. 모달과 도구는 패널 자체의 CSS 진입 모션만 사용하며 View Transition API는 레이아웃과 색상 모드 같은 페이지 수준 전환으로 제한합니다. API 미지원 환경은 즉시 상태를 갱신하고 `prefers-reduced-motion` 환경은 모든 전환을 생략합니다.
+
+Split과 Classic은 즐겨찾기, 서비스 허브, Google 검색 자동완성, 커서 광원·애니메이션 카탈로그를 공용 기능 모듈에서 사용합니다. 두 레이아웃의 시각 배치는 독립적이지만 기능 계약과 저장 키는 하나이므로 한쪽 화면만 수정되어 기능이 누락되는 상황을 회귀 테스트에서 차단합니다.
 
 API는 `api/server.js`가 HTTP 서버 수명주기를 소유하고, `api/app.js`의 `createApp`은 포트를 열지 않는 테스트 가능한 애플리케이션 조립점입니다. 저장, OAuth transaction, cloud token, NAS path 정책은 각각 독립 경계로 분리합니다. URL과 기존 성공 응답은 호환성 계약으로 유지합니다.
 

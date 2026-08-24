@@ -66,9 +66,10 @@ publish 직전에는 origin의 `main` SHA가 planner의 `base_sha`와 같은지 
 
 1. GitOps SSOT에서 Image Updater write-back commit과 Argo CD Application의 `Synced`, `Healthy` 상태를 확인합니다.
 2. 외부 endpoint의 `/health`와 read-only API를 확인합니다.
-3. 인증된 브라우저에서 Split과 Classic 선택·새로고침 유지, light/dark, 눈 효과, 12개 시계, Google 검색, 날씨·환율, Quick Links, 오른쪽 도구를 확인합니다. 작업형 대화상자는 데스크톱·태블릿에서 화면 대부분을 사용하고 모바일에서 전체 화면으로 열리며, 제목과 닫기 버튼이 화면 설정 컨트롤에 가려지지 않아야 합니다.
+3. 인증된 브라우저에서 Split과 Classic 선택·새로고침 유지, light/dark, 눈 효과, 12개 시계, Google 검색 자동완성, 날씨·환율, 서비스·즐겨찾기 CRUD·Quick Links, 커서 광원·애니메이션, 오른쪽 도구를 확인합니다. 작업형 대화상자는 데스크톱·태블릿에서 화면 대부분을 사용하고 모바일에서 전체 화면으로 열리며, 제목과 닫기 버튼이 화면 설정 컨트롤에 가려지지 않아야 합니다. 모달을 열고 닫을 때 배경 전체가 깜빡이지 않아야 합니다.
 4. 390px 모바일, 768px 태블릿, 1440px PC에서 수평 스크롤과 가려진 고정 요소가 없는지 확인합니다.
 5. NAS·Drive의 삭제·이동·업로드는 자동 smoke에서 실행하지 않습니다.
+6. Pod 내부에서 비밀값을 출력하지 않고 `/data/cloud-tokens.json`의 JSON 최상위 키가 `algorithm`, `iv`, `tag`, `ciphertext`인 암호화 봉투인지, 파일 모드가 `0600`인지 확인합니다. `/api/gdrive/status`와 `/api/onedrive/status`가 `503`이 아닌지 확인하되 응답의 token 값은 기록하지 않습니다.
 
 ## 롤백
 

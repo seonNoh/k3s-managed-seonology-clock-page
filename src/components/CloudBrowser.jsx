@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { parseCloudStatusResponse } from '../features/tool-launcher/cloudStatus.js';
 import './NasBrowser.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -29,6 +30,7 @@ function CloudBrowser({ isOpen, onClose, provider }) {
   const [connected, setConnected] = useState(false);
   const [configured, setConfigured] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [statusError, setStatusError] = useState('');
   const [folderStack, setFolderStack] = useState([{ id: 'root', name: cfg.name }]);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -46,14 +48,18 @@ function CloudBrowser({ isOpen, onClose, provider }) {
 
   const checkStatus = useCallback(async () => {
     setChecking(true);
+    setStatusError('');
     try {
       const res = await fetch(`${API_BASE}${cfg.status}`);
-      const data = await res.json();
+      const data = await parseCloudStatusResponse(res);
       setConnected(data.connected);
       setConfigured(data.configured);
-    } catch { setConfigured(false); }
+    } catch (nextError) {
+      setConnected(false);
+      setStatusError(nextError.message || `${cfg.name} status is unavailable`);
+    }
     setChecking(false);
-  }, [cfg.status]);
+  }, [cfg.name, cfg.status]);
 
   const fetchFiles = useCallback(async (folderId) => {
     setLoading(true); setError(''); setSelected(null);
@@ -182,7 +188,14 @@ function CloudBrowser({ isOpen, onClose, provider }) {
           </div>
         </div>
 
-        {!checking && !connected && (
+        {!checking && statusError && (
+          <div className="nb-connect-screen" role="alert">
+            <p className="nb-connect-text">{cfg.name} service is temporarily unavailable: {statusError}</p>
+            <button className="nb-connect-btn" type="button" onClick={checkStatus}>Retry</button>
+          </div>
+        )}
+
+        {!checking && !statusError && !connected && (
           <div className="nb-connect-screen">
             {configured ? (
               <>

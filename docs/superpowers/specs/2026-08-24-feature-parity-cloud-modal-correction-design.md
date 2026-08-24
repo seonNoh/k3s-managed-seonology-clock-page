@@ -10,7 +10,7 @@
 
 - Split의 `BOOKMARKS`는 `quickLink` 항목만 필터링하여 보여주며 카테고리와 즐겨찾기 추가·수정·삭제 기능이 없다.
 - Split의 `SEONOLOGY` 화면에는 서비스 목록만 있고 Classic의 `Bookmarks` 탭이 없다.
-- Split 검색은 Google 검색 실행만 제공하고 Classic의 `/api/google-suggest` 자동완성과 키보드 선택을 제공하지 않는다.
+- Split 검색은 Google 검색 실행만 제공하고 Classic의 `/api/suggest` 자동완성과 키보드 선택을 제공하지 않는다.
 - Split 효과 설정에는 커서 애니메이션만 있으며 Classic의 배경광 색상 선택이 없다.
 - 웹 도구 레지스트리의 29개 도구는 두 레이아웃 모두에서 열 수 있지만, 개별 도구의 셸과 입력 컨트롤은 과거 CSS를 그대로 사용하여 새 화면과 시각적으로 단절되어 있다.
 

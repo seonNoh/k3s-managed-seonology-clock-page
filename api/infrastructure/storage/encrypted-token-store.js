@@ -163,14 +163,22 @@ async function syncDirectory(directory) {
   }
 }
 
-async function readSecureRegularFile(targetPath, description) {
+async function readSecureRegularFile(targetPath, description, {
+  chmodFile = (fileHandle, mode) => fileHandle.chmod(mode),
+  allowChmodFailure = false,
+} = {}) {
   let handle;
   try {
     const noFollow = fs.constants.O_NOFOLLOW || 0;
     handle = await open(targetPath, fs.constants.O_RDONLY | noFollow);
     const metadata = await handle.stat();
     if (!metadata.isFile()) throw new Error(`${description} must be a regular file`);
-    await handle.chmod(0o600);
+    try {
+      await chmodFile(handle, 0o600);
+    } catch (error) {
+      const isOwnershipError = error.code === 'EPERM' || error.code === 'EACCES';
+      if (!allowChmodFailure || !isOwnershipError) throw error;
+    }
     await handle.sync();
     return await handle.readFile('utf8');
   } catch (error) {
@@ -301,7 +309,12 @@ async function reconcileLegacyBackup({ backupPath, encryptionKey, legacyBackupPa
   await removeVerifiedPlaintextBackup({ legacyBackupPath, source: legacySource });
 }
 
-function createEncryptedTokenStore({ filePath, key, createStore = createAtomicJsonStore }) {
+function createEncryptedTokenStore({
+  filePath,
+  key,
+  createStore = createAtomicJsonStore,
+  chmodFile = (fileHandle, mode) => fileHandle.chmod(mode),
+}) {
   const encryptionKey = normalizeKey(key);
   const resolvedPath = path.resolve(filePath);
   const backupPath = `${resolvedPath}.migration-backup.json`;
@@ -323,7 +336,10 @@ function createEncryptedTokenStore({ filePath, key, createStore = createAtomicJs
     }
     if (Object.keys(persisted).length === 0) return {};
 
-    const source = await readSecureRegularFile(resolvedPath, 'plaintext token store');
+    const source = await readSecureRegularFile(resolvedPath, 'plaintext token store', {
+      chmodFile,
+      allowChmodFailure: true,
+    });
     let legacy;
     try {
       legacy = JSON.parse(source);

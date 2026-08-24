@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 
-import { getSafeExternalUrl, openExternalUrl, requestJson } from '../../api/client.js';
+import { requestJson } from '../../api/client.js';
 import { describeWeatherCode } from './weatherStatus.js';
+export { default as GoogleSearch } from './GoogleSearch.jsx';
 
 function useWeatherStatus() {
   const [weather, setWeather] = useState(null);
@@ -69,32 +70,6 @@ function useExchangeStatus() {
   return rate;
 }
 
-export function GoogleSearch() {
-  const [query, setQuery] = useState('');
-
-  const submit = (event) => {
-    event.preventDefault();
-    const normalized = query.trim();
-    if (!normalized) return;
-    openExternalUrl(`https://www.google.com/search?q=${encodeURIComponent(normalized)}`);
-    setQuery('');
-  };
-
-  return (
-    <form className="split-search" role="search" onSubmit={submit}>
-      <b aria-hidden="true">G</b>
-      <input
-        type="search"
-        aria-label="Google 검색"
-        placeholder="Google 검색"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-      />
-      <button type="submit">Search</button>
-    </form>
-  );
-}
-
 export function StatusSummary({ onOpenWeather, onOpenExchange }) {
   const weather = useWeatherStatus();
   const rate = useExchangeStatus();
@@ -137,76 +112,5 @@ export function TodoSummary({ onOpen }) {
       <span>TODO</span>
       <b>{pending.length ? `${pending.length}개 항목 대기 중` : '대기 중인 항목 없음'}</b>
     </button>
-  );
-}
-
-export function QuickLinksDrawer({ open, onClose }) {
-  const [links, setLinks] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    let active = true;
-    const controller = new AbortController();
-    requestJson('/api/bookmarks', { signal: controller.signal })
-      .then((result) => {
-        const nextLinks = (result.categories ?? []).flatMap((category) => category.bookmarks ?? [])
-          .filter((bookmark) => bookmark.quickLink && getSafeExternalUrl(bookmark.url));
-        if (active) setLinks(nextLinks);
-      })
-      .catch(() => { if (active) setLinks([]); })
-      .finally(() => { if (active) setLoaded(true); });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [open]);
-
-  if (!open) return null;
-  return (
-    <div className="split-overlay" onMouseDown={onClose}>
-      <section className="split-dialog split-links-dialog" role="dialog" aria-modal="true" aria-labelledby="quick-links-title" onMouseDown={(event) => event.stopPropagation()}>
-        <header><div><span>BOOKMARKS</span><h2 id="quick-links-title">Quick Links</h2></div><button type="button" className="split-dialog-close" onClick={onClose}>Close</button></header>
-        <div className="split-quick-links">
-          {!loaded && <p>불러오는 중입니다.</p>}
-          {loaded && links.length === 0 && <p>등록된 Quick Link가 없습니다.</p>}
-          {links.map((bookmark) => (
-            <a key={bookmark.id} href={getSafeExternalUrl(bookmark.url)} target="_blank" rel="noopener noreferrer">
-              <b>{bookmark.name}</b><span>{new URL(bookmark.url).hostname}</span>
-            </a>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-export function ServiceDirectory() {
-  const [services, setServices] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
-    requestJson('/api/services', { signal: controller.signal })
-      .then((result) => { if (active) setServices((result.services ?? []).filter((service) => getSafeExternalUrl(service.url))); })
-      .catch(() => { if (active) setServices([]); })
-      .finally(() => { if (active) setLoaded(true); });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, []);
-
-  return (
-    <div className="split-service-grid">
-      {!loaded && <p>서비스를 불러오는 중입니다.</p>}
-      {loaded && services.length === 0 && <p>표시할 서비스가 없습니다.</p>}
-      {services.map((service) => (
-        <a key={service.id} href={getSafeExternalUrl(service.url)} target="_blank" rel="noopener noreferrer">
-          <b>{service.name}</b><span>{service.description}</span>
-        </a>
-      ))}
-    </div>
   );
 }

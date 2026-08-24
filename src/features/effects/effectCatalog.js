@@ -1,0 +1,31 @@
+export const CURSOR_GLOW_EFFECTS = Object.freeze([
+  { id: 'indigo', name: 'Indigo', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(99, 102, 241, 0.15) 0%, rgba(129, 140, 248, 0.06) 30%, transparent 70%)` },
+  { id: 'aurora', name: 'Aurora', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(56, 189, 248, 0.12) 0%, rgba(167, 139, 250, 0.08) 25%, rgba(251, 113, 133, 0.05) 50%, transparent 70%)` },
+  { id: 'spotlight', name: 'Spotlight', gradient: (x, y) => `radial-gradient(350px circle at ${x}% ${y}%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 40%, transparent 60%)` },
+  { id: 'warm', name: 'Warm', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(251, 146, 60, 0.14) 0%, rgba(245, 158, 11, 0.05) 30%, transparent 70%)` },
+  { id: 'neon', name: 'Neon', gradient: (x, y) => `radial-gradient(500px circle at ${x}% ${y}%, rgba(0, 255, 65, 0.12) 0%, rgba(0, 255, 65, 0.04) 30%, transparent 65%)` },
+  { id: 'ocean', name: 'Ocean', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(6, 182, 212, 0.14) 0%, rgba(59, 130, 246, 0.06) 35%, transparent 70%)` },
+  { id: 'sunset', name: 'Sunset', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(249, 115, 22, 0.13) 0%, rgba(236, 72, 153, 0.07) 30%, transparent 70%)` },
+  { id: 'rose', name: 'Rose', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(244, 63, 94, 0.14) 0%, rgba(251, 113, 133, 0.05) 30%, transparent 70%)` },
+  { id: 'emerald', name: 'Emerald', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(16, 185, 129, 0.14) 0%, rgba(52, 211, 153, 0.05) 30%, transparent 70%)` },
+  { id: 'cosmic', name: 'Cosmic', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(139, 92, 246, 0.16) 0%, rgba(88, 28, 135, 0.06) 30%, transparent 70%)` },
+  { id: 'fire', name: 'Fire', gradient: (x, y) => `radial-gradient(500px circle at ${x}% ${y}%, rgba(239, 68, 68, 0.14) 0%, rgba(249, 115, 22, 0.07) 25%, rgba(234, 179, 8, 0.03) 50%, transparent 65%)` },
+  { id: 'ice', name: 'Ice', gradient: (x, y) => `radial-gradient(600px circle at ${x}% ${y}%, rgba(165, 243, 252, 0.14) 0%, rgba(103, 232, 249, 0.05) 30%, transparent 70%)` },
+  { id: 'glow-none', name: 'None', gradient: () => 'none' },
+]);
+
+export const CURSOR_ANIMATIONS = Object.freeze([
+  { id: 'none', name: 'None', color: 'transparent' },
+  { id: 'trail', name: 'Trail', color: '#818cf8' },
+  { id: 'comet', name: 'Comet', color: '#f59e0b' },
+  { id: 'particles', name: 'Particles', color: '#ec4899' },
+  { id: 'ripple', name: 'Ripple', color: '#6366f1' },
+  { id: 'fireflies', name: 'Fireflies', color: '#fbbf24' },
+  { id: 'bubbles', name: 'Bubbles', color: '#38bdf8' },
+  { id: 'stardust', name: 'Stardust', color: '#c084fc' },
+  { id: 'snow', name: 'Cursor Snow', color: '#e2e8f0' },
+  { id: 'magnetic', name: 'Magnetic', color: '#6366f1' },
+  { id: 'constellation', name: 'Constellation', color: '#818cf8' },
+  { id: 'wave', name: 'Wave', color: '#06b6d4' },
+  { id: 'spotlight', name: 'Spotlight', color: '#ffffff' },
+]);
