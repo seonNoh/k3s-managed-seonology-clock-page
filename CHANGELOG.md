@@ -1,3 +1,14 @@
+## [1.55.0] - 2026-08-24
+
+### Features
+
+- feat: restore dashboard feature parity and cloud access
+
+### Documentation
+
+- docs: define feature parity correction design
+- docs: plan feature parity correction
+
 ## [1.54.0] - 2026-08-24
 
 ### Features
