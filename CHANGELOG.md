@@ -1,3 +1,9 @@
+## [1.56.4] - 2026-08-24
+
+### Fixes
+
+- fix: eliminate modal compositor flicker
+
 ## [1.56.3] - 2026-08-24
 
 ### Fixes
