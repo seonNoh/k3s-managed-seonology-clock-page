@@ -1,3 +1,9 @@
+## [1.53.0] - 2026-08-24
+
+### Features
+
+- feat: add responsive dual-layout dashboard
+
 ## [1.52.0] - 2026-08-18
 
 ### Features
