@@ -1,3 +1,13 @@
+## [1.56.2] - 2026-08-24
+
+### Fixes
+
+- fix: stabilize modal rendering during pointer movement
+
+### Documentation
+
+- docs: define modal compositing stability
+
 ## [1.56.1] - 2026-08-24
 
 ### Fixes
