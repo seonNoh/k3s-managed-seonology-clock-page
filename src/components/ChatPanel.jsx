@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { renderSafeMarkdown } from '../utils/markdown';
+import LoadingProgress from './LoadingProgress.jsx';
 import './ChatPanel.css';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
@@ -356,9 +357,7 @@ function ChatPanel({ isOpen, onClose }) {
           ))}
           {loading && (
             <div className="chat-msg assistant">
-              <div className="chat-typing">
-                <span /><span /><span />
-              </div>
+              <LoadingProgress label="응답을 생성하는 중입니다." detail="모델의 첫 응답을 기다리고 있습니다." compact />
             </div>
           )}
           <div ref={messagesEndRef} />

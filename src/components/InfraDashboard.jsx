@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import LoadingProgress from './LoadingProgress.jsx';
 import './InfraDashboard.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -41,15 +42,6 @@ function formatUptime(str) {
   return str;
 }
 
-function Spinner({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" className="infra-spinner" fill="none" aria-label="loading">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" strokeOpacity="0.2" />
-      <path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function InfraDashboard({ isOpen, onClose }) {
   const [tab, setTab] = useState('cluster');
   const [cluster, setCluster] = useState(null);
@@ -57,6 +49,9 @@ function InfraDashboard({ isOpen, onClose }) {
   const [nas, setNas] = useState(null);
   const [loading, setLoading] = useState({});
   const [errors, setErrors] = useState({});
+  const [refreshProgress, setRefreshProgress] = useState({ active: false, completed: 0, total: 3 });
+  const refreshSequence = useRef(0);
+  const dismissProgressTimer = useRef(null);
 
   const fetchData = useCallback(async (key, url) => {
     setLoading(prev => ({ ...prev, [key]: true }));
@@ -75,19 +70,47 @@ function InfraDashboard({ isOpen, onClose }) {
   }, []);
 
   const refresh = useCallback(async () => {
+    const sequence = refreshSequence.current + 1;
+    refreshSequence.current = sequence;
+    window.clearTimeout(dismissProgressTimer.current);
+    setRefreshProgress({ active: true, completed: 0, total: 3 });
+
+    const trackedFetch = async (key, url) => {
+      try {
+        return await fetchData(key, url);
+      } finally {
+        if (refreshSequence.current === sequence) {
+          setRefreshProgress(prev => ({ ...prev, completed: Math.min(prev.completed + 1, prev.total) }));
+        }
+      }
+    };
+
     const [c, t, n] = await Promise.all([
-      fetchData('cluster', '/api/infra/cluster'),
-      fetchData('tailscale', '/api/infra/tailscale'),
-      fetchData('nas', '/api/infra/nas'),
+      trackedFetch('cluster', '/api/infra/cluster'),
+      trackedFetch('tailscale', '/api/infra/tailscale'),
+      trackedFetch('nas', '/api/infra/nas'),
     ]);
     if (c) setCluster(c);
     if (t) setTailscale(t);
     if (n) setNas(n);
+    if (refreshSequence.current === sequence) {
+      setRefreshProgress({ active: true, completed: 3, total: 3 });
+      dismissProgressTimer.current = window.setTimeout(() => {
+        if (refreshSequence.current === sequence) {
+          setRefreshProgress(prev => ({ ...prev, active: false }));
+        }
+      }, 450);
+    }
   }, [fetchData]);
 
   useEffect(() => {
     if (isOpen) refresh();
   }, [isOpen, refresh]);
+
+  useEffect(() => () => {
+    refreshSequence.current += 1;
+    window.clearTimeout(dismissProgressTimer.current);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -123,9 +146,18 @@ function InfraDashboard({ isOpen, onClose }) {
         </div>
 
         <div className="infra-body">
+          {refreshProgress.active && (
+            <LoadingProgress
+              className="infra-batch-progress"
+              label="인프라 상태를 동기화하는 중입니다."
+              detail={`데이터 소스 ${refreshProgress.completed}/${refreshProgress.total} 완료`}
+              value={refreshProgress.completed}
+              max={refreshProgress.total}
+              compact
+            />
+          )}
           {tab === 'cluster' && (
             <div className="infra-section">
-              {loading.cluster && <div className="infra-loading"><Spinner /> Loading cluster data...</div>}
               {errors.cluster && <div className="infra-error">{errors.cluster}</div>}
               {cluster && (
                 <>
@@ -188,7 +220,6 @@ function InfraDashboard({ isOpen, onClose }) {
 
           {tab === 'tailscale' && (
             <div className="infra-section">
-              {loading.tailscale && <div className="infra-loading"><Spinner /> Loading Tailscale data...</div>}
               {errors.tailscale && <div className="infra-error">{errors.tailscale}</div>}
               {tailscale && (
                 <>
@@ -215,7 +246,6 @@ function InfraDashboard({ isOpen, onClose }) {
 
           {tab === 'nas' && (
             <div className="infra-section">
-              {loading.nas && <div className="infra-loading"><Spinner /> Loading NAS data...</div>}
               {errors.nas && <div className="infra-error">{errors.nas}</div>}
               {nas && (
                 <>

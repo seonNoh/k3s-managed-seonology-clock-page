@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import LoadingProgress from './LoadingProgress.jsx';
 import './DnsLookup.css';
 
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT', 'SOA'];
@@ -126,6 +127,8 @@ function DnsLookup({ isOpen, onClose }) {
             <button className="dns-all-btn" onClick={lookupAll} disabled={loading || !domain.trim()}>All Types</button>
           </div>
         </div>
+
+        {loading && <LoadingProgress className="dns-loading-progress" label="DNS 레코드를 조회하는 중입니다." detail={selectedType ? `${selectedType} 레코드 응답을 기다리고 있습니다.` : 'DNS 응답을 기다리고 있습니다.'} compact />}
 
         {error && <div className="dns-error">{error}</div>}
 

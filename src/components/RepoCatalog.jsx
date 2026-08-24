@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './RepoCatalog.css';
 import { getSafeExternalUrl } from '../api/client';
+import LoadingProgress from './LoadingProgress.jsx';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -93,7 +94,11 @@ function RepoCatalog({ isOpen, onClose }) {
         </div>
 
         {(snapshot?.error || error) && <div className="repocat-error">{snapshot?.error || error}</div>}
-        {loading && !snapshot && <div className="repocat-loading">Loading…</div>}
+        {loading && !snapshot && (
+          <div className="repocat-loading">
+            <LoadingProgress label="저장소 카탈로그를 불러오는 중입니다." detail="등록된 GitHub 저장소를 분류하고 있습니다." compact />
+          </div>
+        )}
 
         <div className="repocat-tabs">
           {groups.map(g => (

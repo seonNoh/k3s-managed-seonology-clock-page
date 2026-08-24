@@ -7,6 +7,7 @@ import Weather from '../components/Weather';
 import TodoList from '../components/TodoList';
 import Calendar from '../components/Calendar';
 import ExchangeRate from '../components/ExchangeRate';
+import LoadingProgress from '../components/LoadingProgress';
 import BrowserStats from '../components/BrowserStats';
 import { SpeedTestMini } from '../components/SpeedTestMini';
 import { API_BASE, getSafeExternalUrl, requestJson } from '../api/client';
@@ -557,7 +558,7 @@ function QuickLinksPanel({ isOpen, onClose }) {
         </button>
       </div>
       <div className="quicklinks-list">
-        {loading && <div className="quicklinks-empty">Loading...</div>}
+        {loading && <LoadingProgress label="Quick Links를 불러오는 중입니다." detail="즐겨찾기에서 고정 항목을 확인하고 있습니다." compact />}
         {!loading && quickLinks.length === 0 && (
           <div className="quicklinks-empty">
             No quick links yet.<br/>
@@ -1345,7 +1346,7 @@ function ClassicDashboard({ colorMode }) {
 
 
       {ActiveToolComponent && (
-        <Suspense fallback={<div className="tool-loading-overlay" role="status">도구를 불러오는 중입니다.</div>}>
+        <Suspense fallback={<div className="tool-loading-overlay"><LoadingProgress label="도구를 불러오는 중입니다." detail="작업 공간을 준비하고 있습니다." /></div>}>
           <ActiveToolComponent
             isOpen
             onClose={() => transitionSurface(() => setActiveToolId(null))}

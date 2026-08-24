@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { parseCloudStatusResponse } from '../features/tool-launcher/cloudStatus.js';
+import LoadingProgress from './LoadingProgress.jsx';
 import './NasBrowser.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -188,6 +189,16 @@ function CloudBrowser({ isOpen, onClose, provider }) {
           </div>
         </div>
 
+        {checking && (
+          <div className="nb-loading-surface">
+            <LoadingProgress
+              label={`${cfg.name} 연결 상태를 확인하는 중입니다.`}
+              detail="보안 연결과 저장된 인증 상태를 확인하고 있습니다."
+              compact
+            />
+          </div>
+        )}
+
         {!checking && statusError && (
           <div className="nb-connect-screen" role="alert">
             <p className="nb-connect-text">{cfg.name} service is temporarily unavailable: {statusError}</p>
@@ -223,6 +234,12 @@ function CloudBrowser({ isOpen, onClose, provider }) {
 
             {error && <div className="nb-error">{error}<button className="nb-err-close" onClick={() => setError('')}>x</button></div>}
 
+            {uploading && (
+              <div className="nb-loading-surface nb-loading-surface--inline">
+                <LoadingProgress label={`${cfg.name}에 파일을 업로드하는 중입니다.`} detail="전송이 끝날 때까지 이 창을 열어 두세요." compact />
+              </div>
+            )}
+
             {showMkdir && (
               <div className="nb-mkdir-bar">
                 <input className="nb-input" value={newName} onChange={e => setNewName(e.target.value)}
@@ -233,7 +250,11 @@ function CloudBrowser({ isOpen, onClose, provider }) {
             )}
 
             <div className="nb-body">
-              {loading && <div className="nb-loading">Loading...</div>}
+              {loading && (
+                <div className="nb-loading-surface">
+                  <LoadingProgress label={`${cfg.name} 파일을 불러오는 중입니다.`} detail="서버 응답을 기다리고 있습니다." compact />
+                </div>
+              )}
               {!loading && (
                 <div className="nb-file-list">
                   {folderStack.length > 1 && (

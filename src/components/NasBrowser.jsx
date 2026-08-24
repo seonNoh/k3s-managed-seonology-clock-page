@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import LoadingProgress from './LoadingProgress.jsx';
 import './NasBrowser.css';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/nas';
@@ -167,6 +168,12 @@ function NasBrowser({ isOpen, onClose }) {
 
         {error && <div className="nb-error">{error}<button className="nb-err-close" onClick={() => setError('')}>x</button></div>}
 
+        {uploading && (
+          <div className="nb-loading-surface nb-loading-surface--inline">
+            <LoadingProgress label="NAS에 파일을 업로드하는 중입니다." detail="전송이 끝날 때까지 이 창을 열어 두세요." compact />
+          </div>
+        )}
+
         {showMkdir && (
           <div className="nb-mkdir-bar">
             <input className="nb-input" value={newName} onChange={e => setNewName(e.target.value)}
@@ -177,7 +184,11 @@ function NasBrowser({ isOpen, onClose }) {
         )}
 
         <div className="nb-body">
-          {loading && <div className="nb-loading">Loading...</div>}
+          {loading && (
+            <div className="nb-loading-surface">
+              <LoadingProgress label="NAS 파일을 불러오는 중입니다." detail="폴더 내용을 확인하고 있습니다." compact />
+            </div>
+          )}
 
           {!path && !loading && (
             <div className="nb-share-grid">

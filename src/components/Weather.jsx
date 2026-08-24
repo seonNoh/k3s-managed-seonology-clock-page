@@ -4,6 +4,7 @@ import {
   CloudSnow, Snowflake, CloudLightning, Thermometer, MapPin, AlertTriangle,
 } from 'lucide-react';
 import { resolveJmaOffice } from '../utils/jmaArea';
+import LoadingProgress from './LoadingProgress.jsx';
 import './Weather.css';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
@@ -183,12 +184,7 @@ function Weather() {
   }, []);
 
   if (s.loading) {
-    return (
-      <div className="weather-loading">
-        <div className="weather-loading-spinner"></div>
-        <span>날씨 정보 로딩 중...</span>
-      </div>
-    );
+    return <LoadingProgress label="날씨 정보를 불러오는 중입니다." detail="현재 위치의 실황·대기질·예보를 확인하고 있습니다." />;
   }
   if (s.error) return <div className="weather-error"><span>{s.error}</span></div>;
 

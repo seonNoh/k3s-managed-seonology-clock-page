@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Sparkles, Star, Sparkle, Briefcase, Heart, Dumbbell } from 'lucide-react';
+import LoadingProgress from './LoadingProgress.jsx';
 import './Fortune.css';
 
 // Fortune messages organized by category
@@ -87,11 +88,7 @@ function Fortune() {
   }, [todayFortune]);
 
   if (!fortune) {
-    return (
-      <div className="fortune-loading">
-        <span>운세 로딩 중...</span>
-      </div>
-    );
+    return <LoadingProgress label="오늘의 운세를 준비하는 중입니다." detail="날짜를 기준으로 결과를 계산하고 있습니다." compact />;
   }
 
   const getScoreIcon = (score) => {

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import LoadingProgress from './LoadingProgress.jsx';
 import './IpLookup.css';
 
 const FIELD_LABELS = {
@@ -216,8 +217,7 @@ function IpLookup({ isOpen, onClose }) {
 
             {loading && !result && (
               <div className="ip-loading">
-                <span className="ip-spinner large" />
-                <span>Looking up IP information...</span>
+                <LoadingProgress label="IP 정보를 조회하는 중입니다." detail="네트워크 위치와 공급자 정보를 확인하고 있습니다." compact />
               </div>
             )}
 

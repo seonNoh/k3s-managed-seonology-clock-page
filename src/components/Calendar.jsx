@@ -3,6 +3,7 @@ import Holidays from 'date-holidays';
 import { RefreshCw, X, MapPin, Users, CalendarDays } from 'lucide-react';
 import { FlagKR, FlagJP } from './Flags';
 import { getSafeExternalUrl } from '../api/client';
+import LoadingProgress from './LoadingProgress.jsx';
 import './Calendar.css';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
@@ -257,8 +258,9 @@ function Calendar() {
             <span className="legend-label">{val.label}</span>
           </span>
         ))}
-        {eventsLoading && <span className="legend-loading">로딩중...</span>}
       </div>
+
+      {eventsLoading && <LoadingProgress className="calendar-loading-progress" label="지역 이벤트를 불러오는 중입니다." detail="관광·문화·기술 행사를 갱신하고 있습니다." compact />}
 
       <div className="calendar-grid">
         {dayNames.map((day, index) => (

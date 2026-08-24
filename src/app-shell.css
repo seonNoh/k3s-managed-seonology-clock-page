@@ -7,11 +7,29 @@
 
 .app-layout-loading {
   min-height: 100dvh;
+  padding: 24px;
   display: grid;
   place-items: center;
-  background: #f5f1e8;
-  color: #34322f;
-  font: 500 0.78rem/1.4 "JetBrains Mono", monospace;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.app-shell[data-color-mode="light"] .app-layout-loading {
+  --tool-surface: #ffffff;
+  --tool-surface-elevated: #eef1f4;
+  --tool-border: #b8c9ee;
+  --tool-text: #20283a;
+  --tool-text-muted: #59636e;
+  --tool-accent: #526fd1;
+}
+
+.app-shell[data-color-mode="dark"] .app-layout-loading {
+  --tool-surface: #151b23;
+  --tool-surface-elevated: #1e2530;
+  --tool-border: #33404f;
+  --tool-text: #eef3ff;
+  --tool-text-muted: #939da8;
+  --tool-accent: #7c9fff;
 }
 
 .app-shell[data-color-mode="light"] {

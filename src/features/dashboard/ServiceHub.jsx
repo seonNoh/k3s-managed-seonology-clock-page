@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { getSafeExternalUrl, requestJson } from '../../api/client.js';
+import LoadingProgress from '../../components/LoadingProgress.jsx';
 import BookmarksManager from '../bookmarks/BookmarksManager.jsx';
 
 export default function ServiceHub({ initialTab = 'services' }) {
@@ -30,7 +31,7 @@ export default function ServiceHub({ initialTab = 'services' }) {
       </div>
       {tab === 'services' && (
         <div className="split-service-grid" role="tabpanel" data-capability="services">
-          {loading && <p>서비스를 불러오는 중입니다.</p>}
+          {loading && <LoadingProgress label="서비스를 불러오는 중입니다." detail="등록된 서비스 목록을 확인하고 있습니다." compact />}
           {error && <p role="alert">{error}</p>}
           {!loading && !error && services.length === 0 && <p>표시할 서비스가 없습니다.</p>}
           {services.map((service) => (

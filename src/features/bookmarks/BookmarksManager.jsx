@@ -2,6 +2,7 @@ import { BookMarked, Check, ExternalLink, Pencil, Plus, Trash2, Zap } from 'luci
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getSafeExternalUrl } from '../../api/client.js';
+import LoadingProgress from '../../components/LoadingProgress.jsx';
 import {
   addBookmark,
   addBookmarkCategory,
@@ -115,7 +116,15 @@ export default function BookmarksManager() {
 
   const quickLinks = useMemo(() => selectQuickLinks(data), [data]);
 
-  if (loading) return <div className="bookmark-status" role="status">즐겨찾기를 불러오는 중입니다.</div>;
+  if (loading) {
+    return (
+      <LoadingProgress
+        className="bookmark-loading-progress"
+        label="즐겨찾기를 불러오는 중입니다."
+        detail="서버 응답을 기다리고 있습니다."
+      />
+    );
+  }
 
   return (
     <div className="bookmarks-manager" data-capability="bookmarks-manage">

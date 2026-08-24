@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import LoadingProgress from './LoadingProgress.jsx';
 import './TodayInHistory.css';
 
 function TodayInHistory() {
@@ -77,12 +78,7 @@ function TodayInHistory() {
   };
 
   if (loading) {
-    return (
-      <div className="history-loading">
-        <div className="history-loading-spinner"></div>
-        <span>역사 정보 로딩 중...</span>
-      </div>
-    );
+    return <LoadingProgress label="오늘의 역사 정보를 불러오는 중입니다." detail="오늘 날짜의 주요 사건을 확인하고 있습니다." compact />;
   }
 
   return (

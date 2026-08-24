@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { FlagUS, FlagKR, FlagJP } from './Flags';
+import LoadingProgress from './LoadingProgress.jsx';
 import './ExchangeRate.css';
 
 function ExchangeRate() {
@@ -55,12 +56,7 @@ function ExchangeRate() {
   };
 
   if (loading) {
-    return (
-      <div className="exchange-loading">
-        <div className="exchange-loading-spinner"></div>
-        <span>환율 정보 로딩 중...</span>
-      </div>
-    );
+    return <LoadingProgress label="환율 정보를 불러오는 중입니다." detail="USD·KRW·JPY 기준 환율을 계산하고 있습니다." />;
   }
 
   if (error) {

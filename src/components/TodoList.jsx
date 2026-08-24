@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import LoadingProgress from './LoadingProgress.jsx';
 import './TodoList.css';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
@@ -72,7 +73,9 @@ function TodoList() {
       </form>
 
       <div className="todo-items">
-        {todos.length === 0 ? (
+        {loading ? (
+          <LoadingProgress label="할 일 목록을 불러오는 중입니다." detail="저장된 항목을 확인하고 있습니다." compact />
+        ) : todos.length === 0 ? (
           <div className="todo-empty">
             <span>할 일이 없습니다</span>
           </div>

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
+import LoadingProgress from './components/LoadingProgress.jsx';
 import SplitConsoleDashboard from './layouts/SplitConsoleDashboard.jsx';
 import { usePersistentPreference } from './hooks/usePersistentPreference.js';
 import { startUiTransition } from './ui/startUiTransition.js';
@@ -63,7 +64,7 @@ function App() {
       </nav>
 
       {layout === 'classic' ? (
-        <Suspense fallback={<div className="app-layout-loading" role="status">Classic 화면을 불러오는 중입니다.</div>}>
+        <Suspense fallback={<div className="app-layout-loading"><LoadingProgress label="Classic 화면을 불러오는 중입니다." detail="레이아웃 모듈을 준비하고 있습니다." /></div>}>
           <ClassicDashboard colorMode={colorMode} />
         </Suspense>
       ) : (

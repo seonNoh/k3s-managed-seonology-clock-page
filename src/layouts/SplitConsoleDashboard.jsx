@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import BrowserStats from '../components/BrowserStats.jsx';
 import Clock from '../components/Clock.jsx';
 import CursorCanvas from '../components/CursorCanvas.jsx';
+import LoadingProgress from '../components/LoadingProgress.jsx';
 import CursorGlow from '../features/effects/CursorGlow.jsx';
 import SnowField from '../components/SnowField.jsx';
 import { usePersistentPreference } from '../hooks/usePersistentPreference.js';
@@ -35,7 +36,7 @@ function DashboardDialog({ title, eyebrow, onClose, children, compact = false })
           <button type="button" className="split-dialog-close" onClick={onClose}>Close</button>
         </header>
         <div className="split-dialog-body">
-          <Suspense fallback={<div className="split-dialog-loading" role="status">내용을 불러오는 중입니다.</div>}>
+          <Suspense fallback={<div className="split-dialog-loading"><LoadingProgress label="내용을 불러오는 중입니다." detail="필요한 화면 모듈을 준비하고 있습니다." compact /></div>}>
             {children}
           </Suspense>
         </div>
@@ -187,7 +188,7 @@ function SplitConsoleDashboard({
       {activeModal === 'calendar' && <DashboardDialog title="Calendar" eyebrow="WORKSPACE" onClose={() => transitionSurface(() => setActiveModal(null))}><Calendar /></DashboardDialog>}
 
       {ActiveToolComponent && (
-        <Suspense fallback={<div className="tool-loading-overlay" role="status">도구를 불러오는 중입니다.</div>}>
+        <Suspense fallback={<div className="tool-loading-overlay"><LoadingProgress label="도구를 불러오는 중입니다." detail="작업 공간을 준비하고 있습니다." /></div>}>
           <ActiveToolComponent isOpen onClose={() => transitionSurface(() => setActiveToolId(null))} {...(activeTool.props ?? {})} />
         </Suspense>
       )}

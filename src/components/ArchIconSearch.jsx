@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { X, Check } from 'lucide-react';
+import LoadingProgress from './LoadingProgress.jsx';
 import './ArchIconSearch.css';
 
 // svg-studio 아이콘 라이브러리(클라우드/기술 아이콘 ~11,000여 개)를 clock-page API 프록시
@@ -206,7 +207,7 @@ export default function ArchIconSearch({ isOpen, onClose }) {
           <div className="archi-main">
             <div className="archi-grid-header">
               <span className="archi-result-count">
-                {loading ? '불러오는 중...' : `${filtered.length.toLocaleString()}개`}
+                {loading ? '인덱스 확인 중' : `${filtered.length.toLocaleString()}개`}
                 {query && <span className="archi-search-tag">"{query}"</span>}
               </span>
               {pageCount > 1 && (
@@ -221,7 +222,7 @@ export default function ArchIconSearch({ isOpen, onClose }) {
             {error ? (
               <div className="archi-empty">{error}</div>
             ) : loading ? (
-              <div className="archi-empty">아이콘을 불러오는 중...</div>
+              <div className="archi-empty"><LoadingProgress label="아키텍처 아이콘을 불러오는 중입니다." detail="검색 인덱스를 준비하고 있습니다." compact /></div>
             ) : pageItems.length === 0 ? (
               <div className="archi-empty">검색 결과가 없습니다</div>
             ) : (

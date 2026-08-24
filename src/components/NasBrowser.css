@@ -69,7 +69,17 @@
 }
 
 .nb-body { flex: 1; overflow-y: auto; }
-.nb-loading { padding: 40px; text-align: center; font-family: 'Inter', sans-serif; font-size: 0.86rem; color: var(--text-muted); }
+.nb-loading-surface {
+  width: 100%;
+  min-height: 140px;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+}
+.nb-loading-surface--inline {
+  min-height: 0;
+  padding: 12px 16px 0;
+}
 .nb-empty { padding: 40px; text-align: center; font-family: 'Inter', sans-serif; font-size: 0.86rem; color: var(--text-muted); }
 
 /* Connect Screen */
