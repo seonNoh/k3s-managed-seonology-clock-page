@@ -1,3 +1,9 @@
+## [1.56.3] - 2026-08-24
+
+### Fixes
+
+- fix: restore launcher before dashboard
+
 ## [1.56.2] - 2026-08-24
 
 ### Fixes
