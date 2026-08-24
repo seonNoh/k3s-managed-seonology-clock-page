@@ -140,6 +140,8 @@ test('Split의 모든 웹 도구가 같은 데스크톱 작업 공간 크기를 
     const panel = page.locator(panelSelector);
     await expect(panel, name).toBeVisible();
     await expectWorkspaceBounds(panel, viewport, 'desktop');
+    expect(await panel.evaluate((element) => getComputedStyle(element.parentElement).backdropFilter), `${name} backdrop`).toBe('none');
+    expect(await panel.evaluate((element) => getComputedStyle(element).backdropFilter), `${name} surface`).toBe('none');
     await page.keyboard.press('Escape');
     await expect(panel, `${name} close`).toHaveCount(0);
     await expect(page.locator('.split-tools-dialog'), `${name} launcher return`).toBeVisible();
@@ -301,6 +303,33 @@ test('full-screen modal overlay rules do not animate the backdrop layer', async 
   });
 
   expect(animatedOverlays).toEqual([]);
+});
+
+test('interactive modal surfaces release viewport-wide compositor effects after entry', async ({ page }) => {
+  await openSplitDashboard(page);
+  await page.getByRole('button', { name: '도구 모음 열기' }).click();
+
+  const splitOverlay = page.locator('.split-overlay');
+  const splitDialog = page.locator('.split-tools-dialog');
+  await expect(splitOverlay).toHaveCSS('backdrop-filter', 'none');
+  await expect(splitDialog).toHaveCSS('animation-fill-mode', 'backwards');
+  await splitDialog.evaluate((element) => Promise.all(
+    element.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
+  ));
+  await expect(splitDialog).toHaveCSS('transform', 'none');
+
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Classic 레이아웃' }).click();
+  await page.getByRole('button', { name: 'Tools', exact: true }).click();
+
+  const classicOverlay = page.locator('.tools-modal-overlay');
+  const classicDialog = page.locator('.tools-modal');
+  await expect(classicOverlay).toHaveCSS('backdrop-filter', 'none');
+  await expect(classicDialog).toHaveCSS('animation-fill-mode', 'backwards');
+  await classicDialog.evaluate((element) => Promise.all(
+    element.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
+  ));
+  await expect(classicDialog).toHaveCSS('transform', 'none');
 });
 
 test('modal panels disable entry animation for reduced motion', async ({ page }) => {
