@@ -1,3 +1,9 @@
+## [1.56.0] - 2026-08-24
+
+### Features
+
+- feat: add honest loading progress surfaces
+
 ## [1.55.0] - 2026-08-24
 
 ### Features
