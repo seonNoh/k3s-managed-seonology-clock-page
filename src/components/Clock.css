@@ -1,15 +1,24 @@
 /* ===== BASE ===== */
 .clock {
+  --clock-hour: #6d7fe0;
+  --clock-minute: #2f9ca8;
+  --clock-second: #d06f4f;
+  container: clock / inline-size;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
+  gap: clamp(0.75rem, 3cqw, 1.5rem);
   position: relative;
-  /* Extra padding so the theme-toggle button stays inside the hover-detectable box */
-  padding: 60px 70px 20px;
-  margin: -60px -70px -20px;
+  width: 100%;
+  min-width: 0;
+  padding: 52px 0 0;
+  margin: 0;
 }
+
+.clock-unit-hour { color: var(--clock-hour); }
+.clock-unit-minute { color: var(--clock-minute); }
+.clock-unit-second { color: var(--clock-second); }
 
 /* Theme Toggle */
 .theme-toggle {
@@ -20,7 +29,7 @@
   height: 40px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 50%;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -28,11 +37,16 @@
   color: var(--text-muted);
   transition: all 0.3s ease;
   z-index: 20;
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0.55;
+  pointer-events: auto;
 }
 
 .clock:hover .theme-toggle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.clock:focus-within .theme-toggle {
   opacity: 1;
   pointer-events: auto;
 }
@@ -60,7 +74,7 @@
   background: rgba(20, 20, 30, 0.95);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 24px;
   min-width: 360px;
   animation: scaleIn 0.2s ease;
@@ -138,7 +152,8 @@
 /* ===== 1. DIGITAL ===== */
 .clock-time {
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: clamp(8rem, 25vw, 28rem);
+  max-width: 100%;
+  font-size: clamp(3.5rem, 26cqw, 28rem);
   font-weight: 200;
   letter-spacing: -0.04em;
   color: var(--text-primary);
@@ -149,6 +164,14 @@
 
 .clock-digits {
   font-variant-numeric: tabular-nums;
+}
+
+.clock-seconds {
+  align-self: flex-end;
+  margin: 0 0 0.18em 0.15em;
+  font-size: 0.2em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
 }
 
 .clock-separator {
@@ -174,8 +197,8 @@
 /* ===== 2. ORBIT ===== */
 .orbit-clock {
   position: relative;
-  width: clamp(360px, 50vw, 620px);
-  height: clamp(360px, 50vw, 620px);
+  width: min(100%, 620px);
+  aspect-ratio: 1;
 }
 
 .orbit-svg {
@@ -282,7 +305,8 @@
 
 .neon-time {
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: clamp(5rem, 18vw, 16rem);
+  max-width: 100%;
+  font-size: clamp(3rem, 18cqw, 16rem);
   font-weight: 300;
   color: #00f0ff;
   line-height: 1;
@@ -353,8 +377,8 @@
 }
 
 .binary-dot {
-  width: clamp(20px, 4vw, 40px);
-  height: clamp(20px, 4vw, 40px);
+  width: clamp(16px, 4cqw, 40px);
+  height: clamp(16px, 4cqw, 40px);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -362,9 +386,9 @@
 }
 
 .binary-dot.active {
-  background: #6366f1;
-  border-color: #818cf8;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5), 0 0 24px rgba(99, 102, 241, 0.2);
+  background: currentColor;
+  border-color: currentColor;
+  box-shadow: 0 0 12px color-mix(in srgb, currentColor 55%, transparent), 0 0 24px color-mix(in srgb, currentColor 25%, transparent);
 }
 
 .binary-dot.invisible {
@@ -482,7 +506,7 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  width: clamp(300px, 60vw, 700px);
+  width: min(100%, 700px);
 }
 
 .progress-row {
@@ -513,6 +537,7 @@
   height: 100%;
   border-radius: 4px;
   position: relative;
+  background: currentColor;
 }
 
 .progress-fill::after {
@@ -537,8 +562,8 @@
 
 /* ===== 8. SWISS RAILWAY ===== */
 .swiss-clock {
-  width: clamp(300px, 40vw, 550px);
-  height: clamp(300px, 40vw, 550px);
+  width: min(100%, 550px);
+  aspect-ratio: 1;
   position: relative;
 }
 
@@ -649,7 +674,7 @@
 /* ===== 9. MATRIX ===== */
 .matrix-clock {
   position: relative;
-  width: clamp(300px, 80vw, 900px);
+  width: min(100%, 900px);
   min-height: clamp(250px, 50vh, 500px);
   overflow: hidden;
   display: flex;
@@ -689,7 +714,7 @@
   position: relative;
   z-index: 2;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: clamp(4rem, 14vw, 10rem);
+  font-size: clamp(2.6rem, 14cqw, 10rem);
   font-weight: 700;
   color: #00ff41;
   text-shadow:
@@ -891,8 +916,8 @@
 /* ===== 11. MINIMAL RING ===== */
 .ring-clock {
   position: relative;
-  width: clamp(280px, 35vw, 420px);
-  height: clamp(280px, 35vw, 420px);
+  width: min(100%, 420px);
+  aspect-ratio: 1;
 }
 
 .ring-svg {
@@ -956,7 +981,7 @@
 .typo-hour,
 .typo-min {
   font-family: 'Georgia', 'Playfair Display', 'Times New Roman', serif;
-  font-size: clamp(8rem, 22vw, 22rem);
+  font-size: clamp(4rem, 22cqw, 22rem);
   font-weight: 100;
   color: var(--text-primary);
   line-height: 0.85;
@@ -1012,16 +1037,6 @@
     height: 20px;
   }
 
-  .orbit-clock {
-    width: clamp(320px, 92vw, 520px);
-    height: clamp(320px, 92vw, 520px);
-  }
-
-  .swiss-clock {
-    width: clamp(250px, 60vw, 400px);
-    height: clamp(250px, 60vw, 400px);
-  }
-
   .theme-picker {
     min-width: 0;
     width: 90vw;
@@ -1031,10 +1046,6 @@
 
   .theme-picker-grid {
     grid-template-columns: repeat(3, 1fr);
-  }
-
-  .progress-clock {
-    width: clamp(280px, 85vw, 500px);
   }
 
   .progress-label {
@@ -1331,5 +1342,90 @@
   100% {
     opacity: 0;
     height: 0;
+  }
+}
+
+/* Container-based overrides keep every template inside its assigned clock zone. */
+.flip-clock {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+
+.flip-clock-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+}
+
+.flip-unit,
+.flip-unit-cards {
+  min-width: 0;
+}
+
+.flip-card {
+  width: clamp(36px, 10cqw, 120px);
+  height: auto;
+  aspect-ratio: 2 / 3;
+}
+
+.card-face span,
+.flip-top span,
+.flip-bottom span,
+.flip-bottom-cover span {
+  font-size: clamp(2.15rem, 10cqw, 7.5rem);
+}
+
+.flip-unit.clock-unit-hour .card-face span,
+.flip-unit.clock-unit-hour .flip-animation span { color: var(--clock-hour); }
+.flip-unit.clock-unit-minute .card-face span,
+.flip-unit.clock-unit-minute .flip-animation span { color: var(--clock-minute); }
+.flip-unit.clock-unit-second .card-face span,
+.flip-unit.clock-unit-second .flip-animation span { color: var(--clock-second); }
+
+@container clock (max-width: 520px) {
+  .flip-clock-inner {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    row-gap: 1rem;
+  }
+
+  .flip-clock-inner > .flip-clock-separator:nth-child(4) {
+    display: none;
+  }
+
+  .flip-clock-inner > .flip-unit:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  .progress-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem;
+  }
+
+  .progress-label {
+    width: auto;
+    text-align: start;
+  }
+
+  .progress-track {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Unit colors must win over each template's inherited or local text color. */
+.clock .clock-unit-hour { color: var(--clock-hour); }
+.clock .clock-unit-minute { color: var(--clock-minute); }
+.clock .clock-unit-second { color: var(--clock-second); }
+
+@media (prefers-reduced-motion: reduce) {
+  .clock *,
+  .clock *::before,
+  .clock *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

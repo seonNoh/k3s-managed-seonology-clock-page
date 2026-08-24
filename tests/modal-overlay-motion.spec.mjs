@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-test('full-screen modal overlay rules do not animate the backdrop layer', async ({ page }) => {
+async function openClassicDashboard(page) {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Classic 레이아웃' }).click();
+  await expect(page.locator('[data-dashboard-layout="classic"]')).toBeVisible();
+}
+
+test('full-screen modal overlay rules do not animate the backdrop layer', async ({ page }) => {
+  await openClassicDashboard(page);
 
   const animatedOverlays = await page.evaluate(() => {
     const failures = [];
@@ -37,7 +43,7 @@ test('full-screen modal overlay rules do not animate the backdrop layer', async 
 
 test('modal panels disable entry animation for reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
+  await openClassicDashboard(page);
 
   await page.getByRole('button', { name: 'Tools', exact: true }).click();
   await expect(page.locator('.tools-modal')).toBeVisible();
@@ -49,7 +55,7 @@ test('modal panels disable entry animation for reduced motion', async ({ page })
 });
 
 test('opening a tool replaces the launcher instead of stacking overlays', async ({ page }) => {
-  await page.goto('/');
+  await openClassicDashboard(page);
 
   await page.getByRole('button', { name: 'Tools', exact: true }).click();
   await expect(page.locator('.tools-modal-overlay')).toBeVisible();
@@ -64,14 +70,14 @@ test('opening a tool replaces the launcher instead of stacking overlays', async 
 });
 
 test('tool launcher search has an accessible name', async ({ page }) => {
-  await page.goto('/');
+  await openClassicDashboard(page);
 
   await page.getByRole('button', { name: 'Tools', exact: true }).click();
   await expect(page.getByRole('textbox', { name: '도구 검색' })).toHaveAttribute('aria-label', '도구 검색');
 });
 
 test('rapid tool selections leave only the last requested tool surface active', async ({ page }) => {
-  await page.goto('/');
+  await openClassicDashboard(page);
   await page.getByRole('button', { name: 'Tools', exact: true }).click();
 
   await page.locator('.tools-modal').evaluate((launcher) => {
@@ -88,7 +94,7 @@ test('rapid tool selections leave only the last requested tool surface active', 
 
 test('mobile drawer opens a tool and Escape leaves no launcher or tool surface', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await openClassicDashboard(page);
 
   await page.locator('.bottom-right-stack .mobile-drawer-handle').click();
   await expect(page.locator('.bottom-right-stack')).toHaveClass(/drawer-open/);

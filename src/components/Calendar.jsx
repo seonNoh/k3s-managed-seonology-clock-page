@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Holidays from 'date-holidays';
 import { RefreshCw, X, MapPin, Users, CalendarDays } from 'lucide-react';
 import { FlagKR, FlagJP } from './Flags';
+import { getSafeExternalUrl } from '../api/client';
 import './Calendar.css';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
@@ -346,7 +347,7 @@ function Calendar() {
                 <a
                   key={event.id}
                   className="event-card"
-                  href={event.url || '#'}
+                  href={getSafeExternalUrl(event.url) || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ borderLeftColor: SOURCE_COLORS[event.source]?.border || '#888' }}
@@ -386,7 +387,7 @@ function Calendar() {
               <a
                 key={event.id}
                 className="upcoming-event-item"
-                href={event.url || '#'}
+                href={getSafeExternalUrl(event.url) || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
               >

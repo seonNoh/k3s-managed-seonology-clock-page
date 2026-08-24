@@ -11,6 +11,7 @@
     "test": "playwright test",
     "test:unit": "vitest run --config vitest.config.js && node --test tests/unit/release-gate.test.js tests/unit/container-smoke.test.js",
     "test:api": "npm test --prefix api",
+    "pretest:e2e": "npm run build --prefix toolkit-extension",
     "test:e2e": "playwright test",
     "build": "vite build",
     "lint": "eslint .",
@@ -18,7 +19,7 @@
     "smoke:container": "node scripts/container-smoke.mjs",
     "release:gate": "node scripts/release-gate.mjs",
     "audit:dependencies": "npm audit --audit-level=high && npm audit --prefix api --audit-level=high && npm audit --prefix toolkit-extension --audit-level=high",
-    "verify": "npm run lint && npm run test:unit && npm run test:api && npm run test:e2e && npm run build && npm run build --prefix toolkit-extension && npm run audit:dependencies && npm run smoke:container"
+    "verify": "npm run lint && npm run test:unit && npm run test:api && npm run test:e2e && npm run build && npm run audit:dependencies && npm run smoke:container"
   },
   "dependencies": {
     "@seonology/toolkit-core": "file:packages/toolkit-core",

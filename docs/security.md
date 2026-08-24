@@ -9,6 +9,7 @@
 | 범주 | 변수 |
 | --- | --- |
 | 저장소 및 런타임 | `BOOKMARKS_DIR`, `PORT`, `CATALOG_INTERVAL_MS`, `ICONS_BASE` |
+| 브라우저 origin | `CORS_ALLOWED_ORIGINS` |
 | OAuth·cloud | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_REDIRECT_URI`, `GITHUB_TOKEN`, `GITHUB_CATALOG_TOKEN`, `CLOUD_TOKEN_ENCRYPTION_KEY` |
 | NAS | `NAS_HOST`, `NAS_PORT`, `NAS_ACCOUNT`, `NAS_PASSWORD`, `NAS_ALLOWED_ROOTS`, `NAS_CA_PATH`, `NAS_TLS_SERVERNAME`, `NAS_MAX_UPLOAD_BYTES`, `NAS_MAX_UPLOAD_FILES` |
 | 외부 도구 | `GEMINI_API_KEY`, `CONNPASS_API_KEY`, `DOORKEEPER_TOKEN`, `TAILSCALE_OAUTH_CLIENT_ID`, `TAILSCALE_OAUTH_CLIENT_SECRET`, `GRAFANA_URL`, `GRAFANA_USER`, `GRAFANA_PASS` |
@@ -22,6 +23,8 @@
 - OAuth state와 PKCE verifier는 일회성·만료성 transaction으로 검증합니다.
 - NAS 경로는 허용 root의 정확한 하위 경로인지 검사하고 traversal, 제어문자, backslash를 거부합니다.
 - 업로드는 대상 경로를 stream보다 먼저 검증하고, size·count·abort·upstream 오류를 provider 경계에서 처리합니다.
+- Bookmark URL은 API의 POST·PATCH·전체 PUT과 기존 데이터 read 경계에서 모두 검사합니다. `http:`·`https:`만 허용하고 credential 포함 URL, `javascript:`, `data:`, `file:`, protocol-relative URL과 2,048자를 넘는 값을 거부합니다. 웹에서도 링크를 열기 직전에 같은 정책을 다시 적용합니다.
+- Google 검색 제안 proxy는 HTTPS upstream, 5초 timeout, 256 KiB 응답 상한과 2xx 상태 확인을 사용합니다.
 
 ## 전송 및 브라우저 경계
 
@@ -29,7 +32,9 @@ nginx는 `/health`와 `/api/`를 loopback Express API로만 프록시합니다. 
 
 컨테이너는 UID/GID `10001`로 실행하며 privilege escalation과 Linux capabilities를 허용하지 않고, RuntimeDefault seccomp profile을 사용합니다. root filesystem은 read-only이고 `/data` PVC 및 `/tmp`, `/var/cache/nginx`, `/var/run/nginx` emptyDir만 쓰기 가능하게 mount합니다. Docker smoke도 같은 read-only 조건과 tmpfs mount를 강제해 health endpoint를 검증합니다.
 
-응답에는 CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`를 적용합니다. CSP의 외부 이미지·연결 허용은 현 기능의 HTTPS provider 통신을 위한 것이며, provider를 추가할 때는 필요한 origin만으로 더 좁혀야 합니다.
+응답에는 CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`를 적용합니다. CSP의 `script-src`는 self-hosted bundle만 허용하며 `unsafe-inline`을 사용하지 않습니다. Google Fonts의 stylesheet와 font origin만 각각 `style-src`, `font-src`에 추가합니다. 외부 이미지·연결 허용은 현 기능의 HTTPS provider 통신을 위한 것이며, provider를 추가할 때는 필요한 origin만으로 더 좁혀야 합니다.
+
+Express CORS는 기본 `*` 응답 대신 `https://clock.seonology.com`과 명시된 로컬 개발 origin만 반영합니다. CORS는 인증 수단이 아니므로 라이브 ingress의 mTLS/OIDC middleware를 계속 필수로 유지합니다. 브라우저와 extension 사이의 tab activation 메시지는 `*` 대상 대신 현재 origin을 사용하고 content script도 `event.source`와 `event.origin`을 함께 검사합니다.
 
 ## 검증과 대응
 
@@ -39,6 +44,8 @@ CI는 root·API·extension의 production dependency audit에서 High 이상을 �
 
 - [OWASP 입력 검증 치트 시트](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)
 - [OWASP HTML sanitization 치트 시트](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
+- [Express CORS middleware 설정](https://expressjs.com/en/resources/middleware/cors/)
+- [MDN CSP script-src](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src)
 - [nginx request body 크기 제한](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size)
 - [nginx request buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering)
 - [Busboy multipart limits](https://github.com/mscdex/busboy#exports)

@@ -16,6 +16,8 @@ npm run build --prefix toolkit-extension
 
 운영 secret은 `.env` 파일을 이미지에 넣지 않습니다. 로컬에서 필요한 값은 현재 shell에만 주입하고, production과 같은 값이나 credential을 테스트 fixture에 복사하지 않습니다.
 
+별도 origin의 개발 클라이언트가 API를 호출해야 할 때만 `CORS_ALLOWED_ORIGINS`에 쉼표로 구분한 정확한 origin을 추가합니다. wildcard와 suffix 정규식은 사용하지 않습니다. production의 동일 origin 요청과 비브라우저 health probe는 별도 CORS 허용값이 필요하지 않습니다.
+
 ## 배포 전 검증
 
 ```sh
@@ -64,8 +66,9 @@ publish 직전에는 origin의 `main` SHA가 planner의 `base_sha`와 같은지 
 
 1. GitOps SSOT에서 Image Updater write-back commit과 Argo CD Application의 `Synced`, `Healthy` 상태를 확인합니다.
 2. 외부 endpoint의 `/health`와 read-only API를 확인합니다.
-3. 인증된 브라우저에서 대표 도구, Markdown/Mermaid, Escape, backdrop, scroll lock, console 오류를 확인합니다.
-4. NAS·Drive의 삭제·이동·업로드는 자동 smoke에서 실행하지 않습니다.
+3. 인증된 브라우저에서 Split과 Classic 선택·새로고침 유지, light/dark, 눈 효과, 12개 시계, Google 검색, 날씨·환율, Quick Links, 오른쪽 도구를 확인합니다.
+4. 390px 모바일, 768px 태블릿, 1440px PC에서 수평 스크롤과 가려진 고정 요소가 없는지 확인합니다.
+5. NAS·Drive의 삭제·이동·업로드는 자동 smoke에서 실행하지 않습니다.
 
 ## 롤백
 

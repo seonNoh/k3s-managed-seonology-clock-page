@@ -8,6 +8,26 @@
   overflow: hidden;
 }
 
+.dashboard-wrapper {
+  min-height: 100dvh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dashboard-wrapper[data-color-mode="light"] .dashboard {
+  background: radial-gradient(circle at 50% 42%, rgba(82, 111, 209, 0.08), transparent 42%), var(--bg-primary);
+}
+
+.dashboard-wrapper[data-color-mode="light"] .search-container,
+.dashboard-wrapper[data-color-mode="light"] .tools-toggle-btn,
+.dashboard-wrapper[data-color-mode="light"] .quicklinks-toggle,
+.dashboard-wrapper[data-color-mode="light"] .quick-shortcuts,
+.dashboard-wrapper[data-color-mode="light"] .todo-preview,
+.dashboard-wrapper[data-color-mode="light"] .top-center-bar {
+  border-color: var(--border-color);
+  background-color: rgba(255, 255, 255, 0.72);
+}
+
 .cursor-glow {
   position: fixed;
   inset: 0;

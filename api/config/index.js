@@ -20,6 +20,13 @@ function loadConfig(env = process.env) {
       doorkeeperToken: env.DOORKEEPER_TOKEN || '',
       connpassApiKey: env.CONNPASS_API_KEY || '',
     },
+    security: {
+      corsAllowedOrigins: splitList(env.CORS_ALLOWED_ORIGINS || [
+        'https://clock.seonology.com',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+      ].join(',')),
+    },
     cloud: {
       tokenFile: path.join(dataDirectory, 'cloud-tokens.json'),
       tokenEncryptionKey: env.CLOUD_TOKEN_ENCRYPTION_KEY || '',

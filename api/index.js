@@ -6,6 +6,11 @@ const { loadConfig } = require('./config');
 const { createNasPathPolicy } = require('./domains/nas/path-policy');
 const { createUploadBoundary, writeWithBackpressure } = require('./domains/nas/nas-uploader');
 const { createAtomicJsonStore } = require('./infrastructure/storage/atomic-json-store');
+const {
+  isValidBookmarkCollection,
+  normalizeExternalUrl,
+  sanitizeBookmarkCollection,
+} = require('./security/external-url');
 
 function createApp(dependencies = {}) {
 const app = express();
@@ -30,8 +35,16 @@ const GEMINI_API_KEY = runtimeConfig.api.geminiApiKey;
 const DOORKEEPER_TOKEN = runtimeConfig.api.doorkeeperToken;
 const CONNPASS_API_KEY = runtimeConfig.api.connpassApiKey;
 
-// CORS configuration
-app.use(cors());
+// CORS is needed only for the separate local Vite development origin.
+const corsAllowedOrigins = new Set(runtimeConfig.security?.corsAllowedOrigins || []);
+app.use(cors({
+  origin(origin, callback) {
+    callback(null, !origin || corsAllowedOrigins.has(origin));
+  },
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Accept'],
+  maxAge: 600,
+}));
 app.use(express.json());
 
 // Kubernetes API configuration
@@ -360,7 +373,7 @@ const bookmarksStore = createAtomicJsonStore({
 app.get('/api/bookmarks', async (req, res) => {
   try {
     const data = await bookmarksStore.read();
-    res.json(data);
+    res.json(sanitizeBookmarkCollection(data));
   } catch (err) {
     console.error('Error getting bookmarks:', err);
     res.status(500).json({ error: 'Failed to read bookmarks' });
@@ -371,10 +384,10 @@ app.get('/api/bookmarks', async (req, res) => {
 app.put('/api/bookmarks', async (req, res) => {
   try {
     const data = req.body;
-    if (!data || !Array.isArray(data.categories)) {
+    if (!isValidBookmarkCollection(data)) {
       return res.status(400).json({ error: 'Invalid bookmarks data' });
     }
-    await bookmarksStore.update(() => data);
+    await bookmarksStore.update(() => sanitizeBookmarkCollection(data));
     res.json({ success: true });
   } catch (err) {
     console.error('Error saving bookmarks:', err);
@@ -390,10 +403,11 @@ app.post('/api/bookmarks/categories', async (req, res) => {
     const id = `cat-${Date.now()}`;
     let category;
     await bookmarksStore.update(data => {
-      const order = data.categories.length;
+      const sanitized = sanitizeBookmarkCollection(data);
+      const order = sanitized.categories.length;
       category = { id, name, order, bookmarks: [] };
-      data.categories.push(category);
-      return data;
+      sanitized.categories.push(category);
+      return sanitized;
     });
     res.json({ success: true, category });
   } catch (err) {
@@ -406,8 +420,9 @@ app.post('/api/bookmarks/categories', async (req, res) => {
 app.delete('/api/bookmarks/categories/:categoryId', async (req, res) => {
   try {
     await bookmarksStore.update(data => {
-      data.categories = data.categories.filter(c => c.id !== req.params.categoryId);
-      return data;
+      const sanitized = sanitizeBookmarkCollection(data);
+      sanitized.categories = sanitized.categories.filter(c => c.id !== req.params.categoryId);
+      return sanitized;
     });
     res.json({ success: true });
   } catch (err) {
@@ -420,17 +435,20 @@ app.delete('/api/bookmarks/categories/:categoryId', async (req, res) => {
 app.post('/api/bookmarks/categories/:categoryId/bookmarks', async (req, res) => {
   try {
     const { name, url, icon, color, quickLink } = req.body;
+    const safeUrl = normalizeExternalUrl(url);
     if (!name || !url) return res.status(400).json({ error: 'Name and URL are required' });
-    const bookmark = { id: `bm-${Date.now()}`, name, url, icon: icon || 'default', color: color || '#6366f1', quickLink: !!quickLink };
+    if (!safeUrl) return res.status(400).json({ error: 'Only credential-free HTTP(S) URLs are allowed' });
+    const bookmark = { id: `bm-${Date.now()}`, name, url: safeUrl, icon: icon || 'default', color: color || '#6366f1', quickLink: !!quickLink };
     await bookmarksStore.update(data => {
-      const cat = data.categories.find(c => c.id === req.params.categoryId);
+      const sanitized = sanitizeBookmarkCollection(data);
+      const cat = sanitized.categories.find(c => c.id === req.params.categoryId);
       if (!cat) {
         const error = new Error('Category not found');
         error.statusCode = 404;
         throw error;
       }
       cat.bookmarks.push(bookmark);
-      return data;
+      return sanitized;
     });
     res.json({ success: true, bookmark });
   } catch (err) {
@@ -443,14 +461,15 @@ app.post('/api/bookmarks/categories/:categoryId/bookmarks', async (req, res) => 
 app.delete('/api/bookmarks/categories/:categoryId/bookmarks/:bookmarkId', async (req, res) => {
   try {
     await bookmarksStore.update(data => {
-      const cat = data.categories.find(c => c.id === req.params.categoryId);
+      const sanitized = sanitizeBookmarkCollection(data);
+      const cat = sanitized.categories.find(c => c.id === req.params.categoryId);
       if (!cat) {
         const error = new Error('Category not found');
         error.statusCode = 404;
         throw error;
       }
       cat.bookmarks = cat.bookmarks.filter(b => b.id !== req.params.bookmarkId);
-      return data;
+      return sanitized;
     });
     res.json({ success: true });
   } catch (err) {
@@ -462,9 +481,14 @@ app.delete('/api/bookmarks/categories/:categoryId/bookmarks/:bookmarkId', async 
 // PATCH update a bookmark
 app.patch('/api/bookmarks/categories/:categoryId/bookmarks/:bookmarkId', async (req, res) => {
   try {
+    const safeUrl = req.body.url === undefined ? undefined : normalizeExternalUrl(req.body.url);
+    if (req.body.url !== undefined && !safeUrl) {
+      return res.status(400).json({ error: 'Only credential-free HTTP(S) URLs are allowed' });
+    }
     let bm;
     await bookmarksStore.update(data => {
-      const cat = data.categories.find(c => c.id === req.params.categoryId);
+      const sanitized = sanitizeBookmarkCollection(data);
+      const cat = sanitized.categories.find(c => c.id === req.params.categoryId);
       if (!cat) {
         const error = new Error('Category not found');
         error.statusCode = 404;
@@ -477,11 +501,11 @@ app.patch('/api/bookmarks/categories/:categoryId/bookmarks/:bookmarkId', async (
         throw error;
       }
       if (req.body.name) bm.name = req.body.name;
-      if (req.body.url) bm.url = req.body.url;
+      if (safeUrl) bm.url = safeUrl;
       if (req.body.icon) bm.icon = req.body.icon;
       if (req.body.color) bm.color = req.body.color;
       if (req.body.quickLink !== undefined) bm.quickLink = !!req.body.quickLink;
-      return data;
+      return sanitized;
     });
     res.json({ success: true, bookmark: bm });
   } catch (err) {
@@ -500,12 +524,24 @@ app.get('/api/suggest', async (req, res) => {
   const q = req.query.q;
   if (!q) return res.json([]);
   try {
-    const url = `http://suggestqueries.google.com/complete/search?client=firefox&hl=ko&q=${encodeURIComponent(q)}`;
+    const url = `https://suggestqueries.google.com/complete/search?client=firefox&hl=ko&q=${encodeURIComponent(q)}`;
     const response = await new Promise((resolve, reject) => {
-      const http = require('http');
-      http.get(url, (resp) => {
+      const request = https.get(url, (resp) => {
+        if (resp.statusCode < 200 || resp.statusCode >= 300) {
+          resp.resume();
+          reject(new Error(`Google suggest returned ${resp.statusCode}`));
+          return;
+        }
         const chunks = [];
-        resp.on('data', chunk => chunks.push(chunk));
+        let size = 0;
+        resp.on('data', chunk => {
+          size += chunk.length;
+          if (size > 256 * 1024) {
+            request.destroy(new Error('Google suggest response is too large'));
+            return;
+          }
+          chunks.push(chunk);
+        });
         resp.on('end', () => {
           const buf = Buffer.concat(chunks);
           // Google returns charset=EUC-KR for Korean queries; detect from Content-Type
@@ -519,7 +555,9 @@ app.get('/api/suggest', async (req, res) => {
             resolve(buf.toString('utf8'));
           }
         });
-      }).on('error', reject);
+      });
+      request.setTimeout(5000, () => request.destroy(new Error('Google suggest timed out')));
+      request.on('error', reject);
     });
     const parsed = JSON.parse(response);
     res.json(parsed[1] || []);

@@ -107,6 +107,13 @@ test('release workflow는 extension popup E2E 전에 extension artifact를 만�
   assert.match(workflow, /- name: Build extension for browser tests[\s\S]*?npm ci --prefix toolkit-extension[\s\S]*?npm run build --prefix toolkit-extension/)
 })
 
+test('로컬 E2E 명령도 extension artifact를 먼저 만든다', () => {
+  const packageJson = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
+
+  assert.equal(packageJson.scripts['pretest:e2e'], 'npm run build --prefix toolkit-extension')
+  assert.equal(packageJson.scripts['test:e2e'], 'playwright test')
+})
+
 test('release workflow는 image push 직전에 remote main의 planned base SHA를 검증한다', () => {
   const workflow = readFileSync(new URL('../../.github/workflows/release.yaml', import.meta.url), 'utf8')
   const preflightIndex = workflow.indexOf('- name: Verify planned base SHA before image push')

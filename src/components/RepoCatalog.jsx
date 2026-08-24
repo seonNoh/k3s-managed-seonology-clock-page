@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './RepoCatalog.css';
+import { getSafeExternalUrl } from '../api/client';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -115,7 +116,7 @@ function RepoCatalog({ isOpen, onClose }) {
               </div>
               <div className="repocat-grid">
                 {t.repos.map(r => (
-                  <a key={r.name} className="repocat-card" href={r.htmlUrl} target="_blank" rel="noreferrer">
+                  <a key={r.name} className="repocat-card" href={getSafeExternalUrl(r.htmlUrl) || '#'} target="_blank" rel="noopener noreferrer">
                     <div className="repocat-card-top">
                       <span className="repocat-card-name">{r.name}</span>
                       {r.private && <span className="repocat-badge priv">private</span>}

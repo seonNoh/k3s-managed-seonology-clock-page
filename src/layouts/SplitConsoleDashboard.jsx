@@ -1,0 +1,198 @@
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+
+import BrowserStats from '../components/BrowserStats.jsx';
+import Clock from '../components/Clock.jsx';
+import CursorCanvas from '../components/CursorCanvas.jsx';
+import SnowField from '../components/SnowField.jsx';
+import { usePersistentPreference } from '../hooks/usePersistentPreference.js';
+import { getClockTemplate } from '../features/clock/clockCatalog.js';
+import { DASHBOARD_LINK_GROUPS } from '../features/dashboard/dashboardLinks.js';
+import {
+  GoogleSearch,
+  QuickLinksDrawer,
+  ServiceDirectory,
+  StatusSummary,
+  TodoSummary,
+} from '../features/dashboard/DashboardWidgets.jsx';
+import ToolDock from '../features/tool-launcher/ToolDock.jsx';
+import ToolsLauncher from '../features/tool-launcher/ToolsLauncher.jsx';
+import { getWebTool } from '../features/tool-launcher/toolRegistry.web.js';
+import './split-console.css';
+
+const Calendar = lazy(() => import('../components/Calendar.jsx'));
+const ExchangeRate = lazy(() => import('../components/ExchangeRate.jsx'));
+const TodoList = lazy(() => import('../components/TodoList.jsx'));
+const Weather = lazy(() => import('../components/Weather.jsx'));
+
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
+const CURSOR_ANIMATIONS = Object.freeze([
+  ['none', 'None'], ['trail', 'Trail'], ['comet', 'Comet'], ['particles', 'Particles'],
+  ['ripple', 'Ripple'], ['fireflies', 'Fireflies'], ['bubbles', 'Bubbles'],
+  ['stardust', 'Stardust'], ['snow', 'Cursor Snow'], ['magnetic', 'Magnetic'],
+  ['constellation', 'Constellation'], ['wave', 'Wave'], ['spotlight', 'Spotlight'],
+]);
+
+function DashboardDialog({ title, eyebrow, onClose, children }) {
+  return (
+    <div className="split-overlay" onMouseDown={onClose}>
+      <section className="split-dialog" role="dialog" aria-modal="true" aria-labelledby="split-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
+        <header>
+          <div><span>{eyebrow}</span><h2 id="split-dialog-title">{title}</h2></div>
+          <button type="button" className="split-dialog-close" onClick={onClose}>Close</button>
+        </header>
+        <div className="split-dialog-body">
+          <Suspense fallback={<div className="split-dialog-loading" role="status">내용을 불러오는 중입니다.</div>}>
+            {children}
+          </Suspense>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SplitConsoleDashboard({
+  colorMode,
+  clockTheme,
+  onClockThemeChange,
+  snowEnabled,
+  onSnowEnabledChange,
+}) {
+  const [activeModal, setActiveModal] = useState(null);
+  const [activeToolId, setActiveToolId] = useState(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [effectsOpen, setEffectsOpen] = useState(false);
+  const [quickLinksOpen, setQuickLinksOpen] = useState(false);
+  const [toolQuery, setToolQuery] = useState('');
+  const [cursorAnimation, setCursorAnimation] = usePersistentPreference('cursorAnimation');
+  const template = getClockTemplate(clockTheme);
+  const activeTool = getWebTool(activeToolId);
+  const ActiveToolComponent = activeTool?.component ?? null;
+  const dateLabel = useMemo(() => new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).format(new Date()).toUpperCase(), []);
+
+  const closeSurfaces = () => {
+    setActiveModal(null);
+    setActiveToolId(null);
+    setToolsOpen(false);
+    setEffectsOpen(false);
+    setQuickLinksOpen(false);
+  };
+
+  const openTool = (id) => {
+    closeSurfaces();
+    setActiveToolId(id);
+  };
+
+  const openModal = (id) => {
+    closeSurfaces();
+    setActiveModal(id);
+  };
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') closeSurfaces();
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        document.querySelector('[aria-label="Google 검색"]')?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
+
+  return (
+    <main
+      className="split-console"
+      data-dashboard-layout="split"
+      data-color-mode={colorMode}
+      data-clock-layout={template.layout}
+    >
+      <SnowField enabled={snowEnabled} />
+      <CursorCanvas effect={cursorAnimation} />
+
+      <section className="split-clock-zone" aria-label="현재 시간">
+        <header className="split-zone-head">
+          <button type="button" onClick={() => openModal('services')}>SEONOLOGY</button>
+          <span>LOCAL CLOCK / {template.name.toUpperCase()}</span>
+        </header>
+        <div className="split-clock-frame">
+          <Clock theme={clockTheme} onThemeChange={onClockThemeChange} />
+        </div>
+        <StatusSummary onOpenWeather={() => openModal('weather')} onOpenExchange={() => openModal('exchange')} />
+      </section>
+
+      <section className="split-work-zone" aria-label="검색과 바로가기">
+        <header className="split-work-head">
+          <div><span>WORKSPACE</span><h1>Shift Console</h1></div>
+          <div className="split-work-status"><span>{dateLabel}</span><BrowserStats /></div>
+        </header>
+
+        <GoogleSearch />
+
+        <div className="split-link-sections">
+          {DASHBOARD_LINK_GROUPS.map((group) => (
+            <section className="split-link-group" key={group.id}>
+              <header><span>{group.index}</span><h2>{group.name}</h2></header>
+              <div>
+                {group.links.map((link) => {
+                  const external = link.href.startsWith('http');
+                  return <a key={link.name} href={link.href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{link.name}</a>;
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+
+        <div className="split-work-actions">
+          <TodoSummary onOpen={() => openModal('todo')} />
+          <button type="button" className="split-summary-card" onClick={() => openTool('speedtest')}><span>SPEED TEST</span><b>네트워크 측정</b></button>
+          <button type="button" className="split-summary-card" onClick={() => setQuickLinksOpen(true)}><span>BOOKMARKS</span><b>Quick Links 열기</b></button>
+        </div>
+      </section>
+
+      <ToolDock
+        activeToolId={activeToolId}
+        onOpenTool={openTool}
+        onOpenTools={() => { closeSurfaces(); setToolQuery(''); setToolsOpen(true); }}
+        onOpenEffects={() => { closeSurfaces(); setEffectsOpen(true); }}
+      />
+
+      <footer className="split-footer"><span>Craft by seon</span><span>React + Vite</span><span>v{APP_VERSION}</span></footer>
+
+      <ToolsLauncher
+        open={toolsOpen}
+        query={toolQuery}
+        onQueryChange={setToolQuery}
+        onClose={() => setToolsOpen(false)}
+        onOpenTool={openTool}
+        onOpenCalendar={() => openModal('calendar')}
+      />
+
+      <QuickLinksDrawer open={quickLinksOpen} onClose={() => setQuickLinksOpen(false)} />
+
+      {effectsOpen && (
+        <DashboardDialog title="Effects" eyebrow="DISPLAY" onClose={() => setEffectsOpen(false)}>
+          <div className="split-effect-settings">
+            <div><span>Snow field</span><button type="button" aria-pressed={snowEnabled} onClick={() => onSnowEnabledChange(!snowEnabled)}>{snowEnabled ? 'On' : 'Off'}</button></div>
+            <label><span>Cursor animation</span><select value={cursorAnimation} onChange={(event) => setCursorAnimation(event.target.value)}>{CURSOR_ANIMATIONS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+          </div>
+        </DashboardDialog>
+      )}
+
+      {activeModal === 'services' && <DashboardDialog title="Services" eyebrow="SEONOLOGY" onClose={() => setActiveModal(null)}><ServiceDirectory /></DashboardDialog>}
+      {activeModal === 'weather' && <DashboardDialog title="Weather" eyebrow="LIVE STATUS" onClose={() => setActiveModal(null)}><Weather /></DashboardDialog>}
+      {activeModal === 'exchange' && <DashboardDialog title="Exchange Rate" eyebrow="LIVE STATUS" onClose={() => setActiveModal(null)}><ExchangeRate /></DashboardDialog>}
+      {activeModal === 'todo' && <DashboardDialog title="Todo" eyebrow="WORKSPACE" onClose={() => setActiveModal(null)}><TodoList /></DashboardDialog>}
+      {activeModal === 'calendar' && <DashboardDialog title="Calendar" eyebrow="WORKSPACE" onClose={() => setActiveModal(null)}><Calendar /></DashboardDialog>}
+
+      {ActiveToolComponent && (
+        <Suspense fallback={<div className="tool-loading-overlay" role="status">도구를 불러오는 중입니다.</div>}>
+          <ActiveToolComponent isOpen onClose={() => setActiveToolId(null)} {...(activeTool.props ?? {})} />
+        </Suspense>
+      )}
+    </main>
+  );
+}
+
+export default SplitConsoleDashboard;

@@ -50,7 +50,7 @@ function BrowserStats() {
       type: 'seonology-activate-tab',
       tabId: tab.id,
       windowId: windowId,
-    }, '*');
+    }, window.location.origin);
   };
 
   // Extract domain from URL for display

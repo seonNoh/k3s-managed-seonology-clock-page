@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import './FlipClock.css';
 
 function FlipCard({ digit, prevDigit, isFlipping }) {
@@ -35,44 +35,13 @@ function FlipCard({ digit, prevDigit, isFlipping }) {
   );
 }
 
-// Custom hook to track previous value
-function usePrevious(value) {
-  const ref = useRef(value);
-  useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
-}
-
-function FlipUnit({ value, prevValue, label }) {
-  const [isFlipping, setIsFlipping] = useState(false);
-  const timeoutRef = useRef(null);
-
-  useEffect(() => {
-    if (value !== prevValue) {
-      setIsFlipping(true);
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        setIsFlipping(false);
-      }, 600);
-    }
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [value, prevValue]);
-
+function FlipUnit({ value, prevValue, label, unit }) {
+  const isFlipping = value !== prevValue;
   const digits = String(value).padStart(2, '0').split('');
   const prevDigits = String(prevValue).padStart(2, '0').split('');
 
   return (
-    <div className="flip-unit">
+    <div className={`flip-unit clock-unit-${unit}`}>
       <div className="flip-unit-cards">
         {digits.map((digit, index) => (
           <FlipCard
@@ -104,25 +73,25 @@ function FlipClock({ time: externalTime, embedded = false }) {
   const hours = time.getHours();
   const minutes = time.getMinutes();
   const seconds = time.getSeconds();
-
-  const prevHours = usePrevious(hours);
-  const prevMinutes = usePrevious(minutes);
-  const prevSeconds = usePrevious(seconds);
+  const previousTime = new Date(time.getTime() - 1000);
+  const prevHours = previousTime.getHours();
+  const prevMinutes = previousTime.getMinutes();
+  const prevSeconds = previousTime.getSeconds();
 
   return (
     <div className={`flip-clock${embedded ? ' flip-clock-embedded' : ''}`}>
       <div className="flip-clock-inner">
-        <FlipUnit value={hours} prevValue={prevHours} label="HOURS" />
+        <FlipUnit value={hours} prevValue={prevHours} label="HOURS" unit="hour" />
         <div className="flip-clock-separator">
           <span className="separator-dot"></span>
           <span className="separator-dot"></span>
         </div>
-        <FlipUnit value={minutes} prevValue={prevMinutes} label="MINUTES" />
+        <FlipUnit value={minutes} prevValue={prevMinutes} label="MINUTES" unit="minute" />
         <div className="flip-clock-separator">
           <span className="separator-dot"></span>
           <span className="separator-dot"></span>
         </div>
-        <FlipUnit value={seconds} prevValue={prevSeconds} label="SECONDS" />
+        <FlipUnit value={seconds} prevValue={prevSeconds} label="SECONDS" unit="second" />
       </div>
     </div>
   );

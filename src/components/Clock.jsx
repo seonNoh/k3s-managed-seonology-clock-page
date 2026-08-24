@@ -1,5 +1,10 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import FlipClock from './FlipClock';
+import MatrixRain from '../features/clock/MatrixRain.jsx';
+import { CLOCK_TEMPLATES } from '../features/clock/clockCatalog.js';
+import { formatClockDate, getClockAngles, getTimeInWords, padTime } from '../features/clock/timeFormat.js';
+import { usePersistentPreference } from '../hooks/usePersistentPreference.js';
 import './Clock.css';
 
 /* Theme SVG icons */
@@ -22,21 +27,6 @@ const ThemeIcon = ({ id }) => {
   }
 };
 
-const THEMES = [
-  { id: 'digital', name: 'Digital' },
-  { id: 'analog', name: 'Orbit' },
-  { id: 'flip', name: 'Flip' },
-  { id: 'neon', name: 'Neon' },
-  { id: 'binary', name: 'Binary' },
-  { id: 'word', name: 'Word' },
-  { id: 'progress', name: 'Progress' },
-  { id: 'swiss', name: 'Swiss' },
-  { id: 'matrix', name: 'Matrix' },
-  { id: 'dotmatrix', name: 'LED' },
-  { id: 'ring', name: 'Ring' },
-  { id: 'typography', name: 'Typo' },
-];
-
 /* 5×7 dot-matrix digit patterns */
 const DIGIT_PATTERNS = {
   '0': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,1,1],[1,0,1,0,1],[1,1,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
@@ -52,44 +42,19 @@ const DIGIT_PATTERNS = {
   ':': [[0,0,0],[0,1,0],[0,0,0],[0,0,0],[0,0,0],[0,1,0],[0,0,0]],
 };
 
-/* Matrix rain – memoised so it never re-renders */
-const MatrixRain = memo(function MatrixRain() {
-  const cols = useRef(null);
-  if (!cols.current) {
-    const ch = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF';
-    cols.current = Array.from({ length: 35 }, (_, i) => ({
-      id: i,
-      left: `${(i / 35) * 100}%`,
-      delay: `${Math.random() * 8}s`,
-      duration: `${4 + Math.random() * 8}s`,
-      fontSize: `${0.7 + Math.random() * 0.5}rem`,
-      opacity: 0.15 + Math.random() * 0.35,
-      chars: Array.from({ length: 30 }, () => ch[Math.floor(Math.random() * ch.length)]),
-    }));
-  }
-  return (
-    <div className="matrix-rain">
-      {cols.current.map(c => (
-        <div key={c.id} className="matrix-column"
-          style={{ left: c.left, animationDelay: c.delay, animationDuration: c.duration, fontSize: c.fontSize, opacity: c.opacity }}>
-          {c.chars.map((ch, j) => <span key={j}>{ch}</span>)}
-        </div>
-      ))}
-    </div>
-  );
-});
-
-function Clock() {
+function Clock({ theme: controlledTheme, onThemeChange, showThemeControl = true }) {
   const [time, setTime] = useState(new Date());
-  const [theme, setTheme] = useState(() => localStorage.getItem('clock-theme') || 'digital');
+  const [storedTheme, setStoredTheme] = usePersistentPreference('clockTheme');
   const [showPicker, setShowPicker] = useState(false);
-  const [wordLang, setWordLang] = useState(() => localStorage.getItem('clock-word-lang') || 'en');
-  const [ledStyle, setLedStyle] = useState(() => localStorage.getItem('clock-led-style') || 'amber');
-  const [ledShape, setLedShape] = useState(() => localStorage.getItem('clock-led-shape') || 'round');
+  const [wordLang, setWordLang] = usePersistentPreference('wordLanguage');
+  const [ledStyle, setLedStyle] = usePersistentPreference('ledStyle');
+  const [ledShape, setLedShape] = usePersistentPreference('ledShape');
+  const theme = controlledTheme ?? storedTheme;
 
-  useEffect(() => { localStorage.setItem('clock-word-lang', wordLang); }, [wordLang]);
-  useEffect(() => { localStorage.setItem('clock-led-style', ledStyle); }, [ledStyle]);
-  useEffect(() => { localStorage.setItem('clock-led-shape', ledShape); }, [ledShape]);
+  const setTheme = (nextTheme) => {
+    if (controlledTheme === undefined) setStoredTheme(nextTheme);
+    onThemeChange?.(nextTheme);
+  };
 
   useEffect(() => {
     const smoothThemes = ['analog']; // Orbit needs smooth updates
@@ -98,8 +63,6 @@ function Clock() {
     return () => clearInterval(timer);
   }, [theme]);
 
-  useEffect(() => { localStorage.setItem('clock-theme', theme); }, [theme]);
-
   useEffect(() => {
     if (!showPicker) return;
     const onKey = (e) => { if (e.key === 'Escape') setShowPicker(false); };
@@ -107,104 +70,25 @@ function Clock() {
     return () => document.removeEventListener('keydown', onKey);
   }, [showPicker]);
 
-  /* ---- helpers ---- */
-  const pad = (n) => String(n).padStart(2, '0');
-  const hours = pad(time.getHours());
-  const minutes = pad(time.getMinutes());
-  const seconds = pad(time.getSeconds());
-
-  const formatDate = (d) => {
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
-  };
-
-  const getAngles = () => {
-    const h = time.getHours() % 12, m = time.getMinutes(), s = time.getSeconds();
-    return { hour: h * 30 + m * 0.5, minute: m * 6 + s * 0.1, second: s * 6 };
-  };
-
-  const getTimeInWords = () => {
-    const h = time.getHours() % 12, m = time.getMinutes();
-
-    if (wordLang === 'ko') {
-      const hourKo = ['열두','한','두','세','네','다섯','여섯','일곱','여덟','아홉','열','열한'];
-      if (m === 0) return ['지금', hourKo[h] + '시', '정각'];
-      const minKo = ['','일','이','삼','사','오','육','칠','팔','구','십',
-        '십일','십이','십삼','십사','십오','십육','십칠','십팔','십구','이십',
-        '이십일','이십이','이십삼','이십사','이십오','이십육','이십칠','이십팔','이십구',
-        '삼십','삼십일','삼십이','삼십삼','삼십사','삼십오','삼십육','삼십칠','삼십팔','삼십구',
-        '사십','사십일','사십이','사십삼','사십사','사십오','사십육','사십칠','사십팔','사십구',
-        '오십','오십일','오십이','오십삼','오십사','오십오','오십육','오십칠','오십팔','오십구'][m];
-      return ['지금', hourKo[h] + '시', minKo + '분'];
-    }
-
-    if (wordLang === 'ja') {
-      const hourJa = ['十二','一','二','三','四','五','六','七','八','九','十','十一'];
-      if (m === 0) return ['今', hourJa[h] + '時', 'ちょうど'];
-      const ones = ['','一','二','三','四','五','六','七','八','九'];
-      const tens = ['','十','二十','三十','四十','五十'];
-      const minJa = tens[Math.floor(m / 10)] + ones[m % 10];
-      return ['今', hourJa[h] + '時', minJa + '分'];
-    }
-
-    // English (default)
-    const hourWords = ['TWELVE','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE','TEN','ELEVEN'];
-    if (m === 0) return ['IT IS', hourWords[h], "O'CLOCK"];
-    const onesEn = ['','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE',
-      'TEN','ELEVEN','TWELVE','THIRTEEN','FOURTEEN','FIFTEEN','SIXTEEN','SEVENTEEN','EIGHTEEN','NINETEEN'];
-    const tensEn = ['','','TWENTY','THIRTY','FORTY','FIFTY'];
-    const minEn = m < 20 ? onesEn[m] : (tensEn[Math.floor(m / 10)] + (m % 10 ? ' ' + onesEn[m % 10] : ''));
-    if (m <= 30) return ['IT IS', minEn, m === 30 ? 'HALF PAST' : 'PAST', hourWords[h]];
-    const remaining = 60 - m;
-    const remEn = remaining < 20 ? onesEn[remaining] : (tensEn[Math.floor(remaining / 10)] + (remaining % 10 ? ' ' + onesEn[remaining % 10] : ''));
-    return ['IT IS', remEn, 'TO', hourWords[(h + 1) % 12]];
-  };
+  const hours = padTime(time.getHours());
+  const minutes = padTime(time.getMinutes());
+  const seconds = padTime(time.getSeconds());
 
   /* ===== 1. DIGITAL ===== */
   const renderDigital = () => (
     <>
       <div className="clock-time">
-        <span className="clock-digits">{hours}</span>
+        <span className="clock-digits clock-unit-hour">{hours}</span>
         <span className="clock-separator">:</span>
-        <span className="clock-digits">{minutes}</span>
+        <span className="clock-digits clock-unit-minute">{minutes}</span>
+        <span className="clock-seconds clock-unit-second">{seconds}</span>
       </div>
-      <div className="clock-date">{formatDate(time)}</div>
+      <div className="clock-date">{formatClockDate(time)}</div>
     </>
   );
 
   /* ===== 2. ORBIT ===== */
-  const [orbitHourPulse, setOrbitHourPulse] = useState(false);
-  const lastHourRef = useRef(time.getHours());
-  const pulseTimerRef = useRef(null);
-
-  useEffect(() => {
-    const currentHour = time.getHours();
-    const currentMin = time.getMinutes();
-    const currentSec = time.getSeconds();
-
-    // Always track hour changes
-    if (currentHour !== lastHourRef.current) {
-      // Trigger pulse only at the top of the hour (min=0, sec=0)
-      // With 50ms interval, sec=0 window is reliable
-      if (currentMin === 0 && currentSec <= 1) {
-        if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
-        setOrbitHourPulse(true);
-        pulseTimerRef.current = setTimeout(() => {
-          setOrbitHourPulse(false);
-          pulseTimerRef.current = null;
-        }, 2000);
-      }
-      lastHourRef.current = currentHour;
-    }
-  }, [time]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
-    };
-  }, []);
+  const orbitHourPulse = time.getMinutes() === 0 && time.getSeconds() < 2;
 
   /* ── Orbit time-of-day color system ── */
   const TIME_PHASES = [
@@ -298,7 +182,7 @@ function Clock() {
           </div>
           {orbitHourPulse && <div className="orbit-pulse-ring" style={{ borderColor: colors.main }} />}
         </div>
-        <div className="clock-date orbit-date">{formatDate(time)}</div>
+        <div className="clock-date orbit-date">{formatClockDate(time)}</div>
       </>
     );
   };
@@ -310,13 +194,13 @@ function Clock() {
   const renderNeon = () => (
     <div className="neon-clock">
       <div className="neon-time">
-        <span className="neon-digits">{hours}</span>
+        <span className="neon-digits clock-unit-hour">{hours}</span>
         <span className="neon-sep">:</span>
-        <span className="neon-digits">{minutes}</span>
+        <span className="neon-digits clock-unit-minute">{minutes}</span>
         <span className="neon-sep">:</span>
-        <span className="neon-digits neon-seconds">{seconds}</span>
+        <span className="neon-digits neon-seconds clock-unit-second">{seconds}</span>
       </div>
-      <div className="neon-date">{formatDate(time)}</div>
+      <div className="neon-date">{formatClockDate(time)}</div>
     </div>
   );
 
@@ -324,16 +208,16 @@ function Clock() {
   const renderBinary = () => {
     const h = time.getHours(), m = time.getMinutes(), s = time.getSeconds();
     const columns = [
-      { val: Math.floor(h / 10), bits: 2 }, { val: h % 10, bits: 4 }, null,
-      { val: Math.floor(m / 10), bits: 3 }, { val: m % 10, bits: 4 }, null,
-      { val: Math.floor(s / 10), bits: 3 }, { val: s % 10, bits: 4 },
+      { val: Math.floor(h / 10), bits: 2, unit: 'hour' }, { val: h % 10, bits: 4, unit: 'hour' }, null,
+      { val: Math.floor(m / 10), bits: 3, unit: 'minute' }, { val: m % 10, bits: 4, unit: 'minute' }, null,
+      { val: Math.floor(s / 10), bits: 3, unit: 'second' }, { val: s % 10, bits: 4, unit: 'second' },
     ];
     return (
       <div className="binary-clock">
         <div className="binary-grid">
           {columns.map((col, i) =>
             col === null ? <div key={i} className="binary-spacer" /> : (
-              <div key={i} className="binary-col">
+              <div key={i} className={`binary-col clock-unit-${col.unit}`}>
                 {[8,4,2,1].map((bit, bi) => (
                   <div key={bi} className={`binary-dot${col.val & bit ? ' active' : ''}${bi < (4 - col.bits) ? ' invisible' : ''}`} />
                 ))}
@@ -348,7 +232,7 @@ function Clock() {
 
   /* ===== 6. WORD CLOCK ===== */
   const renderWord = () => {
-    const words = getTimeInWords();
+    const words = getTimeInWords(time, wordLang);
     const langs = ['en', 'ko', 'ja'];
     const langLabels = { en: 'EN', ko: '한', ja: '日' };
     const cycleWordLang = () => {
@@ -371,31 +255,31 @@ function Clock() {
   const renderProgress = () => {
     const h = time.getHours(), m = time.getMinutes(), s = time.getSeconds();
     const bars = [
-      { label: 'HOURS', value: h, max: 24, display: hours, color: '#818cf8' },
-      { label: 'MINUTES', value: m, max: 60, display: minutes, color: '#6366f1' },
-      { label: 'SECONDS', value: s, max: 60, display: seconds, color: '#a78bfa' },
+      { label: 'HOURS', value: h, max: 24, display: hours, unit: 'hour' },
+      { label: 'MINUTES', value: m, max: 60, display: minutes, unit: 'minute' },
+      { label: 'SECONDS', value: s, max: 60, display: seconds, unit: 'second' },
     ];
     return (
       <div className="progress-clock">
         {bars.map((b, i) => (
-          <div key={i} className="progress-row">
+          <div key={i} className={`progress-row clock-unit-${b.unit}`}>
             <span className="progress-label">{b.label}</span>
             <div className="progress-track">
               <div className="progress-fill"
-                style={{ width: `${(b.value / b.max) * 100}%`, background: b.color,
+                style={{ width: `${(b.value / b.max) * 100}%`,
                   transition: b.value === 0 ? 'none' : 'width 0.5s ease' }} />
             </div>
             <span className="progress-value">{b.display}</span>
           </div>
         ))}
-        <div className="clock-date" style={{ textAlign: 'center', marginTop: '1rem' }}>{formatDate(time)}</div>
+        <div className="clock-date" style={{ textAlign: 'center', marginTop: '1rem' }}>{formatClockDate(time)}</div>
       </div>
     );
   };
 
   /* ===== 8. SWISS RAILWAY ===== */
   const renderSwiss = () => {
-    const a = getAngles();
+    const a = getClockAngles(time);
     return (
       <>
         <div className="swiss-clock">
@@ -413,7 +297,7 @@ function Clock() {
             <div className="swiss-center" />
           </div>
         </div>
-        <div className="clock-date analog-date">{formatDate(time)}</div>
+        <div className="clock-date analog-date">{formatClockDate(time)}</div>
       </>
     );
   };
@@ -423,11 +307,11 @@ function Clock() {
     <div className="matrix-clock">
       <MatrixRain />
       <div className="matrix-time">
-        <span>{hours}</span><span className="matrix-sep">:</span>
-        <span>{minutes}</span><span className="matrix-sep">:</span>
-        <span>{seconds}</span>
+        <span className="clock-unit-hour">{hours}</span><span className="matrix-sep">:</span>
+        <span className="clock-unit-minute">{minutes}</span><span className="matrix-sep">:</span>
+        <span className="clock-unit-second">{seconds}</span>
       </div>
-      <div className="matrix-date">{formatDate(time)}</div>
+      <div className="matrix-date">{formatClockDate(time)}</div>
     </div>
   );
 
@@ -525,7 +409,7 @@ function Clock() {
             })}
           </div>
         )}
-        <div className="clock-date dotmatrix-date">{formatDate(time)}</div>
+        <div className="clock-date dotmatrix-date">{formatClockDate(time)}</div>
       </div>
     );
   };
@@ -557,9 +441,9 @@ function Clock() {
           })}
         </svg>
         <div className="ring-display">
-          <div className="ring-time">{hours}:{minutes}</div>
-          <div className="ring-seconds">{seconds}</div>
-          <div className="ring-date">{formatDate(time)}</div>
+          <div className="ring-time"><span className="clock-unit-hour">{hours}</span>:<span className="clock-unit-minute">{minutes}</span></div>
+          <div className="ring-seconds clock-unit-second">{seconds}</div>
+          <div className="ring-date">{formatClockDate(time)}</div>
         </div>
       </div>
     );
@@ -569,12 +453,12 @@ function Clock() {
   const renderTypography = () => (
     <div className="typo-clock">
       <div className="typo-time">
-        <span className="typo-hour">{hours}</span>
+        <span className="typo-hour clock-unit-hour">{hours}</span>
         <span className="typo-sep" />
-        <span className="typo-min">{minutes}</span>
+        <span className="typo-min clock-unit-minute">{minutes}</span>
       </div>
-      <div className="typo-seconds">{seconds}</div>
-      <div className="typo-date">{formatDate(time)}</div>
+      <div className="typo-seconds clock-unit-second">{seconds}</div>
+      <div className="typo-date">{formatClockDate(time)}</div>
     </div>
   );
 
@@ -587,24 +471,25 @@ function Clock() {
   };
 
   return (
-    <div className={`clock clock-${theme}`}>
-      <button className="theme-toggle" onClick={() => setShowPicker(true)} title="Change clock theme">
+    <div className={`clock clock-${theme}`} data-clock-template={theme}>
+      {showThemeControl && <button type="button" className="theme-toggle" onClick={() => setShowPicker(true)} title="Change clock theme" aria-label="시계 템플릿 변경">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="10" />
           <path d="M12 6v6l4 2" />
         </svg>
-      </button>
+      </button>}
 
       {renderers[theme]?.() || renderDigital()}
 
-      {showPicker && (
+      {showPicker && createPortal((
         <div className="theme-picker-overlay" onClick={() => setShowPicker(false)}>
-          <div className="theme-picker" onClick={(e) => e.stopPropagation()}>
-            <div className="theme-picker-title">Select Theme</div>
+          <div className="theme-picker" role="dialog" aria-modal="true" aria-labelledby="clock-theme-picker-title" onClick={(e) => e.stopPropagation()}>
+            <div className="theme-picker-title" id="clock-theme-picker-title">Select Theme</div>
             <div className="theme-picker-grid">
-              {THEMES.map(t => (
-                <button key={t.id}
+              {CLOCK_TEMPLATES.map(t => (
+                <button type="button" key={t.id}
                   className={`theme-picker-item${theme === t.id ? ' active' : ''}`}
+                  aria-pressed={theme === t.id}
                   onClick={() => { setTheme(t.id); setShowPicker(false); }}>
                   <span className="theme-picker-icon"><ThemeIcon id={t.id} /></span>
                   <span className="theme-picker-name">{t.name}</span>
@@ -613,7 +498,7 @@ function Clock() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }

@@ -1,0 +1,81 @@
+.app-shell {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--app-bg, #0a0a0f);
+  color: var(--app-text, rgba(255, 255, 255, 0.95));
+}
+
+.app-layout-loading {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: #f5f1e8;
+  color: #34322f;
+  font: 500 0.78rem/1.4 "JetBrains Mono", monospace;
+}
+
+.app-shell[data-color-mode="light"] {
+  --app-bg: #edf1f8;
+  --app-text: #20283a;
+}
+
+.app-shell[data-color-mode="dark"] {
+  --app-bg: #111722;
+  --app-text: #eef3ff;
+}
+
+.view-controls {
+  position: fixed;
+  z-index: 1200;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: calc(100vw - 20px);
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--app-bg) 90%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, #101525 18%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.view-control-group {
+  display: flex;
+  gap: 3px;
+}
+
+.view-controls button {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font: 600 0.68rem/1 "JetBrains Mono", monospace;
+  cursor: pointer;
+}
+
+.view-controls button[aria-pressed="true"] {
+  background: #526fd1;
+  color: #fff;
+}
+
+.view-controls button:focus-visible {
+  outline: 3px solid #e27f59;
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .view-controls {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    justify-content: space-between;
+  }
+
+  .view-controls button {
+    min-height: 44px;
+  }
+}
