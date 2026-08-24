@@ -355,6 +355,7 @@
 
 .snow-field { position: fixed; z-index: 5; inset: 0; overflow: hidden; pointer-events: none; }
 .snow-field i { position: absolute; top: -18px; left: var(--snow-x); width: 9px; height: 1px; background: var(--split-snow); opacity: 0.78; transform: scale(var(--snow-scale)); animation: split-snow-fall var(--snow-duration) linear var(--snow-delay) infinite; }
+.snow-field--paused i { animation-play-state: paused; }
 .snow-field i::before,
 .snow-field i::after { content: ""; position: absolute; inset: 0; background: inherit; }
 .snow-field i::before { transform: rotate(60deg); }

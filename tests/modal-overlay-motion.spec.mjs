@@ -322,6 +322,123 @@ test('modal panels disable entry animation for reduced motion', async ({ page })
   await expect(page.locator('.modal-content')).toHaveCSS('animation-name', 'none');
 });
 
+test('Split Tools 모달이 열린 동안 배경 효과를 정지하고 닫으면 재개한다', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('clock-snow-enabled', 'true');
+    localStorage.setItem('clock-cursor-effect', 'indigo');
+    localStorage.setItem('clock-cursor-anim', 'snow');
+  });
+  await page.reload();
+
+  const glow = page.locator('.cursor-glow');
+  const canvas = page.locator('.split-console canvas');
+  const snowCrystal = page.locator('.snow-field i').first();
+
+  await expect(glow).toHaveCount(1);
+  await expect(canvas).toBeVisible();
+  await expect(snowCrystal).toHaveCSS('animation-play-state', 'running');
+
+  await page.getByRole('button', { name: '도구 모음 열기' }).click();
+  const dialog = page.locator('.split-tools-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(snowCrystal).toHaveCSS('animation-play-state', 'paused');
+  await dialog.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
+
+  const before = await page.evaluate(() => {
+    const modal = document.querySelector('.split-tools-dialog');
+    const modalRect = modal.getBoundingClientRect();
+    return {
+      glowStyle: document.querySelector('.cursor-glow').getAttribute('style'),
+      canvasFrame: document.querySelector('.split-console canvas').toDataURL(),
+      modal: {
+        x: modalRect.x,
+        y: modalRect.y,
+        width: modalRect.width,
+        height: modalRect.height,
+        opacity: getComputedStyle(modal).opacity,
+        transform: getComputedStyle(modal).transform,
+      },
+    };
+  });
+
+  for (let index = 0; index < 80; index += 1) {
+    await page.mouse.move(380 + ((index % 12) * 70), 250 + ((index % 3) * 100));
+  }
+  await page.waitForTimeout(180);
+
+  const after = await page.evaluate(() => {
+    const modal = document.querySelector('.split-tools-dialog');
+    const modalRect = modal.getBoundingClientRect();
+    return {
+      glowStyle: document.querySelector('.cursor-glow').getAttribute('style'),
+      canvasFrame: document.querySelector('.split-console canvas').toDataURL(),
+      modal: {
+        x: modalRect.x,
+        y: modalRect.y,
+        width: modalRect.width,
+        height: modalRect.height,
+        opacity: getComputedStyle(modal).opacity,
+        transform: getComputedStyle(modal).transform,
+      },
+    };
+  });
+
+  expect(after).toEqual(before);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(snowCrystal).toHaveCSS('animation-play-state', 'running');
+  const frozenGlow = after.glowStyle;
+  await page.mouse.move(40, 40);
+  await expect.poll(() => glow.getAttribute('style')).not.toBe(frozenGlow);
+});
+
+test('Classic Tools는 배경 효과와 버튼 합성 이동을 정지한다', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('clock-cursor-effect', 'indigo');
+    localStorage.setItem('clock-cursor-anim', 'snow');
+    localStorage.setItem('clock-dashboard-layout', 'classic');
+  });
+  await page.reload();
+
+  await expect(page.locator('[data-dashboard-layout="classic"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Tools', exact: true }).click();
+  await expect(page.locator('.tools-modal')).toBeVisible();
+  await page.waitForTimeout(80);
+
+  const before = await page.evaluate(() => ({
+    glowStyle: document.querySelector('.cursor-glow').getAttribute('style'),
+    canvasFrame: document.querySelector('.dashboard canvas').toDataURL(),
+  }));
+
+  const calendar = page.getByRole('button', { name: 'Calendar', exact: true });
+  await calendar.hover();
+  await page.waitForTimeout(180);
+
+  const after = await page.evaluate(() => ({
+    glowStyle: document.querySelector('.cursor-glow').getAttribute('style'),
+    canvasFrame: document.querySelector('.dashboard canvas').toDataURL(),
+  }));
+  expect(after).toEqual(before);
+  await expect(calendar).toHaveCSS('transform', 'none');
+  await expect(calendar).toHaveCSS('will-change', 'auto');
+});
+
+test('glow-none 설정은 포인터 추적 레이어를 만들지 않는다', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('clock-cursor-effect', 'glow-none');
+  });
+  await page.reload();
+
+  await expect(page.locator('.cursor-glow')).toHaveCount(0);
+});
+
 test('Classic Tools에서 연 도구는 Escape로 Tools와 대시보드를 차례로 복원한다', async ({ page }) => {
   await openClassicDashboard(page);
 

@@ -35,7 +35,7 @@
 
 - [ ] **Step 2: 현재 구현에서 테스트가 정확한 이유로 실패하는지 확인한다**
 
-  Run: `npx playwright test tests/modal-overlay-motion.spec.mjs --grep "모달이 열린 동안 배경 효과를 정지한다" --project=chromium`
+  Run: `npx playwright test tests/modal-overlay-motion.spec.mjs --grep "모달이 열린 동안 배경 효과를 정지한다"`
 
   Expected: Snow animation이 `running`이거나 Cursor Glow/Canvas 프레임이 변경되어 FAIL
 
@@ -45,7 +45,7 @@
 
 - [ ] **Step 4: 현재 구현에서 추가 테스트도 정확한 이유로 실패하는지 확인한다**
 
-  Run: `npx playwright test tests/modal-overlay-motion.spec.mjs --grep "Classic Tools|glow-none" --project=chromium`
+  Run: `npx playwright test tests/modal-overlay-motion.spec.mjs --grep "Classic Tools|glow-none"`
 
   Expected: hover transform 또는 `.cursor-glow` 존재 때문에 FAIL
 
@@ -75,7 +75,7 @@
 
 - [ ] **Step 4: 대상 테스트를 실행한다**
 
-  Run: `npx playwright test tests/modal-overlay-motion.spec.mjs --grep "모달이 열린 동안 배경 효과를 정지한다|glow-none" --project=chromium`
+  Run: `npx playwright test tests/modal-overlay-motion.spec.mjs --grep "모달이 열린 동안 배경 효과를 정지한다|glow-none"`
 
   Expected: PASS
 
@@ -104,7 +104,7 @@
 
 - [ ] **Step 4: 대상 테스트를 실행한다**
 
-  Run: `npx playwright test tests/modal-overlay-motion.spec.mjs --grep "모달이 열린 동안 배경 효과를 정지한다|Classic Tools|glow-none" --project=chromium`
+  Run: `npx playwright test tests/modal-overlay-motion.spec.mjs --grep "모달이 열린 동안 배경 효과를 정지한다|Classic Tools|glow-none"`
 
   Expected: PASS
 

@@ -69,6 +69,7 @@ function SplitConsoleDashboard({
   const template = getClockTemplate(clockTheme);
   const activeTool = getWebTool(activeToolId);
   const ActiveToolComponent = getLoadedWebToolComponent(activeToolId) ?? activeTool?.component ?? null;
+  const backgroundEffectsPaused = Boolean(toolsOpen || effectsOpen || activeModal || activeToolId || pendingToolId);
   const dateLabel = useMemo(() => new Intl.DateTimeFormat('en-CA', {
     year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
   }).format(new Date()).toUpperCase(), []);
@@ -157,9 +158,9 @@ function SplitConsoleDashboard({
       data-color-mode={colorMode}
       data-clock-layout={template.layout}
     >
-      <SnowField enabled={snowEnabled} />
-      <CursorGlow effect={cursorGlow} />
-      <CursorCanvas effect={cursorAnimation} />
+      <SnowField enabled={snowEnabled} paused={backgroundEffectsPaused} />
+      <CursorGlow effect={cursorGlow} paused={backgroundEffectsPaused} />
+      <CursorCanvas effect={cursorAnimation} paused={backgroundEffectsPaused} />
 
       <section className="split-clock-zone" aria-label="현재 시간">
         <header className="split-zone-head">

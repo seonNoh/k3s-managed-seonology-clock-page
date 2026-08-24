@@ -7,10 +7,10 @@ const CRYSTALS = Object.freeze(Array.from({ length: 30 }, (_, index) => Object.f
   scale: `${0.5 + ((index * 13) % 65) / 100}`,
 })));
 
-function SnowField({ enabled }) {
+function SnowField({ enabled, paused = false }) {
   if (!enabled) return null;
   return (
-    <div className="snow-field" aria-hidden="true">
+    <div className={`snow-field${paused ? ' snow-field--paused' : ''}`} data-paused={paused || undefined} aria-hidden="true">
       {CRYSTALS.map((crystal) => (
         <i
           key={crystal.id}

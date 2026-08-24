@@ -644,6 +644,7 @@ function ClassicDashboard({ colorMode }) {
   const toolMatchCount = filteredTools.filter((tool) => TOOL_GRID_IDS.has(tool.id)).length + (calendarVisible ? 1 : 0);
   const activeTool = getWebTool(activeToolId);
   const ActiveToolComponent = getLoadedWebToolComponent(activeToolId) || activeTool?.component || null;
+  const backgroundEffectsPaused = Boolean(toolsExpanded || settingsOpen || activeModal || activeToolId || pendingToolId);
   const transitionSurface = (update) => update();
 
   const openModal = (name) => {
@@ -820,8 +821,8 @@ function ClassicDashboard({ colorMode }) {
     <div className={`dashboard-wrapper${showQuickLinks ? ' quicklinks-open' : ''}`} data-dashboard-layout="classic" data-color-mode={colorMode}>
       <QuickLinksPanel isOpen={showQuickLinks} onClose={() => setShowQuickLinks(false)} />
     <div className="dashboard">
-      <CursorGlow effect={cursorEffect} />
-      <CursorCanvas effect={cursorAnim} />
+      <CursorGlow effect={cursorEffect} paused={backgroundEffectsPaused} />
+      <CursorCanvas effect={cursorAnim} paused={backgroundEffectsPaused} />
 
       {/* Mobile Top Sheet - swipe down from top */}
       {mobileTopSheetOpen && <div className="mobile-drawer-overlay" onClick={() => setMobileTopSheetOpen(false)} />}

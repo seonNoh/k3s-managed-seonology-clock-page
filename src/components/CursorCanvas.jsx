@@ -1,6 +1,6 @@
 import { useEffect, useRef, memo } from 'react';
 
-const CursorCanvas = memo(function CursorCanvas({ effect }) {
+const CursorCanvas = memo(function CursorCanvas({ effect, paused = false }) {
   const canvasRef = useRef(null);
   const stateRef = useRef({
     mouse: { x: -200, y: -200 },
@@ -11,7 +11,7 @@ const CursorCanvas = memo(function CursorCanvas({ effect }) {
   });
 
   useEffect(() => {
-    if (effect === 'none') return;
+    if (effect === 'none' || paused) return undefined;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -506,13 +506,15 @@ const CursorCanvas = memo(function CursorCanvas({ effect }) {
       window.removeEventListener('mousemove', handleMouse);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [effect]);
+  }, [effect, paused]);
 
   if (effect === 'none') return null;
 
   return (
     <canvas
       ref={canvasRef}
+      className="cursor-canvas"
+      data-paused={paused || undefined}
       style={{
         position: 'fixed',
         inset: 0,
