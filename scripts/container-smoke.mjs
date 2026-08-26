@@ -30,10 +30,32 @@ export async function verifyAppVersion(endpoint, version, { fetchImpl = fetch } 
   if (marker?.version !== version) throw new Error('App version marker mismatch')
 }
 
-export function parsePublishedPort(value) {
-  const address = value.trim().split('\n')[0]
-  if (!address) throw new Error('Docker did not publish port 80')
-  return `http://${address}`
+export function createContainerFetchArgs(name, pathname) {
+  const url = new URL(pathname, 'http://127.0.0.1:8080').toString()
+  const script = [
+    `const response = await fetch(${JSON.stringify(url)})`,
+    'const body = await response.text()',
+    "process.stdout.write(JSON.stringify({ ok: response.ok, status: response.status, contentType: response.headers.get('content-type'), body }))",
+  ].join('; ')
+
+  return ['exec', name, 'node', '--input-type=module', '--eval', script]
+}
+
+function fetchFromContainer(name, url) {
+  const pathname = new URL(url).pathname
+  const result = JSON.parse(docker(createContainerFetchArgs(name, pathname)))
+  return {
+    ok: result.ok,
+    status: result.status,
+    headers: {
+      get(header) {
+        return header.toLowerCase() === 'content-type' ? result.contentType : null
+      },
+    },
+    async json() {
+      return JSON.parse(result.body)
+    },
+  }
 }
 
 export function createReadonlyRuntimeArgs(name, image) {
@@ -51,8 +73,6 @@ export function createReadonlyRuntimeArgs(name, image) {
     '/data:rw,noexec,nosuid,mode=1777,size=16m',
     '--name',
     name,
-    '-p',
-    '127.0.0.1::8080',
     image,
   ]
 }
@@ -80,11 +100,11 @@ export function createRecoveryCliImageCheckCommand() {
   ].join('; ')
 }
 
-async function waitForHealth(endpoint) {
+async function waitForHealth(endpoint, { fetchImpl = fetch } = {}) {
   let lastError
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
-      const response = await fetch(`${endpoint}/health`)
+      const response = await fetchImpl(`${endpoint}/health`)
       if (response.ok && response.headers.get('content-type')?.includes('application/json')) return
       lastError = new Error(`Unexpected health response: ${response.status}`)
     } catch (error) {
@@ -95,9 +115,9 @@ async function waitForHealth(endpoint) {
   throw lastError ?? new Error('Health endpoint did not become ready')
 }
 
-async function healthFails(endpoint) {
+async function healthFails(endpoint, { fetchImpl = fetch } = {}) {
   try {
-    const response = await fetch(`${endpoint}/health`)
+    const response = await fetchImpl(`${endpoint}/health`)
     return !response.ok
   } catch {
     return true
@@ -114,18 +134,19 @@ async function main() {
     if (process.env.SMOKE_SKIP_BUILD !== '1') docker(createBuildArgs(image, version || readFileSync('VERSION', 'utf8').trim()), { stdio: 'inherit' })
     docker(createReadonlyRuntimeArgs(name, image))
     started = true
-    const endpoint = parsePublishedPort(docker(['port', name, '8080']))
-    await waitForHealth(endpoint)
+    const endpoint = 'http://127.0.0.1:8080'
+    const fetchImpl = (url) => fetchFromContainer(name, url)
+    await waitForHealth(endpoint, { fetchImpl })
 
     if (docker(['exec', name, 'id', '-u']) !== '10001') {
       throw new Error('Container did not run as UID 10001')
     }
-    await verifyAppVersion(endpoint, version || readFileSync('VERSION', 'utf8').trim())
+    await verifyAppVersion(endpoint, version || readFileSync('VERSION', 'utf8').trim(), { fetchImpl })
     docker(['exec', name, 'sh', '-c', createRecoveryCliImageCheckCommand()])
 
     docker(['exec', name, 'sh', '-c', createApiShutdownCommand()])
     for (let attempt = 0; attempt < 10; attempt += 1) {
-      if (await healthFails(endpoint)) return
+      if (await healthFails(endpoint, { fetchImpl })) return
       await new Promise((resolve) => setTimeout(resolve, 500))
     }
     throw new Error('Health endpoint remained ready after the API process stopped')
