@@ -3,6 +3,9 @@ const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
 const { loadConfig } = require('./config');
+const { createAgentPlatformClient } = require('./chat/agent-platform-client');
+const { setupChatRoutes } = require('./chat/chat-routes');
+const { createGeminiClient } = require('./chat/gemini-client');
 const { createNasPathPolicy } = require('./domains/nas/path-policy');
 const { createUploadBoundary, writeWithBackpressure } = require('./domains/nas/nas-uploader');
 const { createAtomicJsonStore } = require('./infrastructure/storage/atomic-json-store');
@@ -27,10 +30,6 @@ const { setupGithubCatalogRoutes } = require('./github-catalog');
 const { setupIconRoutes } = require('./icons');
 const { setupJmaRoutes } = require('./jma');
 
-// AI Chat configuration
-const GITHUB_TOKEN = runtimeConfig.api.githubToken;
-const GEMINI_API_KEY = runtimeConfig.api.geminiApiKey;
-
 // Sapporo Events configuration
 const DOORKEEPER_TOKEN = runtimeConfig.api.doorkeeperToken;
 const CONNPASS_API_KEY = runtimeConfig.api.connpassApiKey;
@@ -46,6 +45,16 @@ app.use(cors({
   maxAge: 600,
 }));
 app.use(express.json());
+
+const geminiClient = dependencies.geminiClient || createGeminiClient({
+  apiKey: runtimeConfig.api.geminiApiKey,
+  fetchImpl: dependencies.fetchImpl || global.fetch,
+});
+const agentPlatformClient = dependencies.agentPlatformClient || createAgentPlatformClient({
+  ...runtimeConfig.agentPlatform,
+  fetchImpl: dependencies.fetchImpl || global.fetch,
+});
+setupChatRoutes(app, { geminiClient, agentPlatformClient });
 
 // Kubernetes API configuration
 const K8S_API_HOST = process.env.KUBERNETES_SERVICE_HOST || 'kubernetes.default.svc';
@@ -758,167 +767,6 @@ app.delete('/api/notes/:id', async (req, res) => {
   }
 });
 
-// ===== AI CHAT API =====
-
-// GET available models
-app.get('/api/chat/models', (req, res) => {
-  const models = [];
-  if (GITHUB_TOKEN) {
-    models.push(
-      { id: 'gpt-4.1', name: 'GPT-4.1', provider: 'github', desc: 'OpenAI 최신 플래그십' },
-      { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', provider: 'github', desc: 'GPT-4.1 경량 버전' },
-      { id: 'gpt-4o', name: 'GPT-4o', provider: 'github', desc: 'OpenAI 멀티모달' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'github', desc: 'GPT-4o 경량 버전' },
-      { id: 'DeepSeek-R1', name: 'DeepSeek R1', provider: 'github', desc: '추론 특화 오픈소스' },
-      { id: 'Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B', provider: 'github', desc: 'Meta 오픈소스 대형' },
-      { id: 'Phi-4', name: 'Phi-4', provider: 'github', desc: 'MS 경량 고성능' },
-      { id: 'Codestral-2501', name: 'Codestral', provider: 'github', desc: 'Mistral 코딩 특화' },
-    );
-  }
-  if (GEMINI_API_KEY) {
-    models.push(
-      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'gemini', desc: 'Google 최신 프리미엄' },
-      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini', desc: 'Google 빠른 응답' },
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini', desc: 'Google 안정 버전' },
-      { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', provider: 'gemini', desc: 'Google 차세대 (Preview)' },
-    );
-  }
-  res.json({ models, hasGithub: !!GITHUB_TOKEN, hasGemini: !!GEMINI_API_KEY });
-});
-
-// GET rate limit / usage info for GitHub Models
-app.get('/api/chat/usage', async (req, res) => {
-  const usage = {};
-
-  if (GITHUB_TOKEN) {
-    try {
-      const response = await fetch('https://models.inference.ai.azure.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GITHUB_TOKEN}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: 'hi' }],
-          max_tokens: 1,
-        }),
-      });
-      usage.github = {
-        limitRequests: parseInt(response.headers.get('x-ratelimit-limit-requests') || '0'),
-        remainingRequests: parseInt(response.headers.get('x-ratelimit-remaining-requests') || '0'),
-        limitTokens: parseInt(response.headers.get('x-ratelimit-limit-tokens') || '0'),
-        remainingTokens: parseInt(response.headers.get('x-ratelimit-remaining-tokens') || '0'),
-      };
-    } catch (err) {
-      console.error('GitHub usage check error:', err);
-      usage.github = null;
-    }
-  }
-
-  if (GEMINI_API_KEY) {
-    // Gemini doesn't expose usage via headers easily; return static info
-    usage.gemini = {
-      note: 'Free tier: 15 RPM, 1500 req/day (Flash), 50 req/day (Pro)',
-    };
-  }
-
-  res.json(usage);
-});
-
-// POST chat via GitHub Models
-app.post('/api/chat/github', async (req, res) => {
-  if (!GITHUB_TOKEN) return res.status(503).json({ error: 'GitHub Token not configured' });
-
-  const { messages, model = 'gpt-4o' } = req.body;
-  if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: 'messages array required' });
-  }
-
-  try {
-    const response = await fetch('https://models.inference.ai.azure.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
-      },
-      body: JSON.stringify({ model, messages, max_tokens: 4096 }),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('GitHub Models API error:', response.status, err);
-      return res.status(response.status).json({ error: err });
-    }
-
-    const data = await response.json();
-    res.json({
-      content: data.choices[0]?.message?.content || '',
-      model: data.model,
-      usage: data.usage,
-      rateLimit: {
-        limitRequests: parseInt(response.headers.get('x-ratelimit-limit-requests') || '0'),
-        remainingRequests: parseInt(response.headers.get('x-ratelimit-remaining-requests') || '0'),
-        limitTokens: parseInt(response.headers.get('x-ratelimit-limit-tokens') || '0'),
-        remainingTokens: parseInt(response.headers.get('x-ratelimit-remaining-tokens') || '0'),
-      },
-    });
-  } catch (err) {
-    console.error('GitHub Models error:', err);
-    res.status(500).json({ error: 'Failed to call GitHub Models' });
-  }
-});
-
-// POST chat via Google Gemini
-app.post('/api/chat/gemini', async (req, res) => {
-  if (!GEMINI_API_KEY) return res.status(503).json({ error: 'Gemini API Key not configured' });
-
-  const { messages, model = 'gemini-2.0-flash' } = req.body;
-  if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: 'messages array required' });
-  }
-
-  // Convert OpenAI-style messages to Gemini format
-  const systemInstruction = messages.find(m => m.role === 'system');
-  const contents = messages
-    .filter(m => m.role !== 'system')
-    .map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
-
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-    const body = { contents };
-    if (systemInstruction) {
-      body.systemInstruction = { parts: [{ text: systemInstruction.content }] };
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('Gemini API error:', response.status, err);
-      return res.status(response.status).json({ error: err });
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    res.json({
-      content: text,
-      model: model,
-      usage: data.usageMetadata,
-    });
-  } catch (err) {
-    console.error('Gemini error:', err);
-    res.status(500).json({ error: 'Failed to call Gemini' });
-  }
-});
-
 // ===== CHAT HISTORY API =====
 const CHAT_HISTORY_FILE = path.join(BOOKMARKS_DIR, 'chat-history.json');
 const MAX_CONVERSATIONS = 50;
@@ -938,6 +786,7 @@ app.get('/api/chat/history', async (req, res) => {
       id: c.id,
       title: c.title,
       model: c.model,
+      provider: c.provider,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
       messageCount: c.messages.length,
@@ -963,7 +812,7 @@ app.get('/api/chat/history/:id', async (req, res) => {
 // POST save/update conversation
 app.post('/api/chat/history', async (req, res) => {
   try {
-    const { id, title, model, messages } = req.body;
+    const { id, title, model, provider, messages } = req.body;
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages array required' });
     }
@@ -972,6 +821,7 @@ app.post('/api/chat/history', async (req, res) => {
       if (existing) {
         existing.title = title || existing.title;
         existing.model = model || existing.model;
+        existing.provider = provider || existing.provider;
         existing.messages = messages;
         existing.updatedAt = new Date().toISOString();
       } else {
@@ -979,6 +829,7 @@ app.post('/api/chat/history', async (req, res) => {
           id: id || `chat-${Date.now()}`,
           title: title || (messages[0]?.content?.slice(0, 40) || 'New Chat'),
           model: model || '',
+          provider: provider || '',
           messages,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

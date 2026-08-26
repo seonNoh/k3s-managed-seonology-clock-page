@@ -10,11 +10,14 @@
 | --- | --- |
 | 저장소 및 런타임 | `BOOKMARKS_DIR`, `PORT`, `CATALOG_INTERVAL_MS`, `ICONS_BASE` |
 | 브라우저 origin | `CORS_ALLOWED_ORIGINS` |
-| OAuth·cloud | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_REDIRECT_URI`, `GITHUB_TOKEN`, `GITHUB_CATALOG_TOKEN`, `CLOUD_TOKEN_ENCRYPTION_KEY` |
+| OAuth·cloud | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_REDIRECT_URI`, `GITHUB_CATALOG_TOKEN`, `CLOUD_TOKEN_ENCRYPTION_KEY` |
 | NAS | `NAS_HOST`, `NAS_PORT`, `NAS_ACCOUNT`, `NAS_PASSWORD`, `NAS_ALLOWED_ROOTS`, `NAS_CA_PATH`, `NAS_TLS_SERVERNAME`, `NAS_MAX_UPLOAD_BYTES`, `NAS_MAX_UPLOAD_FILES` |
-| 외부 도구 | `GEMINI_API_KEY`, `CONNPASS_API_KEY`, `DOORKEEPER_TOKEN`, `TAILSCALE_OAUTH_CLIENT_ID`, `TAILSCALE_OAUTH_CLIENT_SECRET`, `GRAFANA_URL`, `GRAFANA_USER`, `GRAFANA_PASS` |
+| AI Chat | `GEMINI_API_KEY`, `AGENT_PLATFORM_URL`, `AGENT_TOKEN_URL`, `AGENT_CLIENT_ID`, `AGENT_CLIENT_SECRET`, `AGENT_TIMEOUT_MS`, `AGENT_POLL_INTERVAL_MS` |
+| 외부 도구 | `CONNPASS_API_KEY`, `DOORKEEPER_TOKEN`, `TAILSCALE_OAUTH_CLIENT_ID`, `TAILSCALE_OAUTH_CLIENT_SECRET`, `GRAFANA_URL`, `GRAFANA_USER`, `GRAFANA_PASS` |
 
 `CLOUD_TOKEN_ENCRYPTION_KEY`는 AES-256-GCM에 맞는 배포 전용 키여야 하며 다른 용도로 재사용하지 않습니다. 기존 `cloud-tokens.json` 평문은 Google/Microsoft token schema를 검증한 뒤에만 마이그레이션합니다. Kubernetes PVC에서 파일이 `root:10001`로 생성되어 애플리케이션이 그룹 권한으로 읽을 수 있지만 소유자가 아니어서 `chmod`에 `EPERM`·`EACCES`가 발생하는 경우에는 읽기와 검증을 계속합니다. 이 예외는 읽을 수 있고 `O_NOFOLLOW`와 일반 파일 검사를 통과한 기존 평문 파일에만 적용되며, 검증 후 애플리케이션 소유의 새 원자 파일로 경로를 교체하여 primary 모드를 `0600`으로 확정합니다. 원문은 별도 AAD를 사용하는 `cloud-tokens.json.migration-backup.json` AES-256-GCM envelope에 `0600`으로 원자 보존한 뒤 primary를 암호화하며, 성공 후 디스크에 token 평문을 남기지 않습니다. 암호화 쓰기가 실패하면 primary 원본은 유지합니다. 이전 버전의 `cloud-tokens.json.plaintext-backup`이 있으면 schema와 새 암호화 백업의 exact round-trip을 검증한 뒤에만 제거합니다. backup의 symlink, 기존 파일 불일치, 손상, key mismatch는 덮어쓰지 않고 fail-closed합니다. 복구는 `CLOUD_TOKEN_ENCRYPTION_KEY`와 명시적인 새 target을 요구하는 CLI만 사용하며 기존 파일을 덮어쓰지 않습니다. NAS TLS는 CA와 hostname을 구성해 기본 검증을 유지합니다.
+
+AI Chat의 정액제 하네스는 브라우저에서 Agent Platform으로 직접 접근하지 않습니다. Clock API가 전용 Keycloak confidential client의 client-credentials 토큰을 메모리에서만 보관하고, `seonology-agents-api` audience로 cluster-local Agent API를 호출합니다. Agent client secret과 access token은 응답, 로그, 저장 대화에 포함하지 않으며, Agent 실행은 `sensitive: true`로 요청합니다.
 
 ## 입력 및 출력 경계
 

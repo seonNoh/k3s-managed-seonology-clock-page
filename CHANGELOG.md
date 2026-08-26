@@ -1,3 +1,14 @@
+## [1.57.0] - 2026-08-27
+
+### Features
+
+- feat: connect AI chat to agent platform
+
+### Documentation
+
+- docs: define AI chat agent integration
+- docs: plan AI chat agent integration
+
 ## [1.56.4] - 2026-08-24
 
 ### Fixes

@@ -15,10 +15,17 @@ function loadConfig(env = process.env) {
     port: positiveInteger(env.PORT, 3001),
     dataDirectory,
     api: {
-      githubToken: env.GITHUB_TOKEN || '',
       geminiApiKey: env.GEMINI_API_KEY || '',
       doorkeeperToken: env.DOORKEEPER_TOKEN || '',
       connpassApiKey: env.CONNPASS_API_KEY || '',
+    },
+    agentPlatform: {
+      baseUrl: env.AGENT_PLATFORM_URL || 'http://agent-api.agent-platform.svc.cluster.local:8080',
+      tokenUrl: env.AGENT_TOKEN_URL || 'http://keycloak.keycloak.svc.cluster.local:8080/realms/master/protocol/openid-connect/token',
+      clientId: env.AGENT_CLIENT_ID || '',
+      clientSecret: env.AGENT_CLIENT_SECRET || '',
+      timeoutMs: positiveInteger(env.AGENT_TIMEOUT_MS, 180000),
+      pollIntervalMs: positiveInteger(env.AGENT_POLL_INTERVAL_MS, 1000),
     },
     security: {
       corsAllowedOrigins: splitList(env.CORS_ALLOWED_ORIGINS || [

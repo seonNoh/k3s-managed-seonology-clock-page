@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { renderSafeMarkdown } from '../utils/markdown';
+import {
+  groupChatModels,
+  modelSelectionKey,
+  providerMetadata,
+  resolveSavedModel,
+} from '../features/chat/model-groups.js';
 import LoadingProgress from './LoadingProgress.jsx';
 import './ChatPanel.css';
 
@@ -29,49 +35,63 @@ const PRESETS = [
   },
 ];
 
-function formatNumber(n) {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-  if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
-  return String(n);
-}
-
 function ChatPanel({ isOpen, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedModelKey, setSelectedModelKey] = useState('');
   const [availableModels, setAvailableModels] = useState([]);
   const [activePreset, setActivePreset] = useState('general');
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [conversationId, setConversationId] = useState(null);
-  const [rateLimit, setRateLimit] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
   const [showModelInfo, setShowModelInfo] = useState(false);
 
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const panelRef = useRef(null);
 
-  // Fetch available models
+  const fetchHistory = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/chat/history`);
+      if (!response.ok) throw new Error('대화 기록을 불러오지 못했습니다.');
+      const data = await response.json();
+      setConversations(Array.isArray(data.conversations) ? data.conversations : []);
+      setHistoryError('');
+    } catch {
+      setHistoryError('대화 기록을 불러오지 못했습니다.');
+    }
+  }, []);
+
+  // Fetch available models and saved conversations.
   useEffect(() => {
     if (!isOpen) return;
     const fetchModels = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/chat/models`);
+        if (!res.ok) throw new Error('Failed to fetch models');
         const data = await res.json();
-        setAvailableModels(data.models || []);
-        if (data.models?.length > 0 && !selectedModel) {
-          setSelectedModel(data.models[0].id);
-        }
+        const models = Array.isArray(data.models) ? data.models : [];
+        setAvailableModels(models);
+        setSelectedModelKey(current => (
+          models.some(model => modelSelectionKey(model) === current)
+            ? current
+            : modelSelectionKey(models[0])
+        ));
       } catch (err) {
         console.error('Failed to fetch models:', err);
       }
     };
     fetchModels();
-  }, [isOpen]);
+    fetchHistory();
+  }, [fetchHistory, isOpen]);
 
   // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   }, [messages, loading]);
 
   // Focus textarea when opened
@@ -101,7 +121,7 @@ function ChatPanel({ isOpen, onClose }) {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
-    const model = availableModels.find(m => m.id === selectedModel);
+    const model = availableModels.find(m => modelSelectionKey(m) === selectedModelKey);
     if (!model) return;
 
     const userMessage = { role: 'user', content: input.trim() };
@@ -119,7 +139,7 @@ function ChatPanel({ isOpen, onClose }) {
       const res = await fetch(`${API_BASE}/api/chat/${model.provider}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, model: selectedModel }),
+        body: JSON.stringify({ messages: apiMessages, model: model.id }),
       });
       const data = await res.json();
       if (data.error) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
@@ -128,13 +148,8 @@ function ChatPanel({ isOpen, onClose }) {
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
 
-      // Update rate limit info from GitHub responses
-      if (data.rateLimit) {
-        setRateLimit(data.rateLimit);
-      }
-
       // Save to history
-      saveHistory(updatedMessages);
+      saveHistory(updatedMessages, model);
     } catch (err) {
       setMessages([...newMessages, { role: 'assistant', content: `Error: ${err.message}` }]);
     } finally {
@@ -142,20 +157,56 @@ function ChatPanel({ isOpen, onClose }) {
     }
   };
 
-  const saveHistory = async (msgs) => {
+  const saveHistory = async (msgs, model) => {
     try {
       const firstUserMsg = msgs.find(m => m.role === 'user');
       const title = firstUserMsg?.content?.slice(0, 40) || 'New Chat';
       const id = conversationId || `chat-${Date.now()}`;
       if (!conversationId) setConversationId(id);
 
-      await fetch(`${API_BASE}/api/chat/history`, {
+      const response = await fetch(`${API_BASE}/api/chat/history`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, title, model: selectedModel, messages: msgs }),
+        body: JSON.stringify({ id, title, model: model.id, provider: model.provider, messages: msgs }),
+      });
+      if (!response.ok) throw new Error('Failed to save chat history');
+      const now = new Date().toISOString();
+      setConversations(current => {
+        const saved = {
+          id,
+          title,
+          model: model.id,
+          provider: model.provider,
+          updatedAt: now,
+          messageCount: msgs.length,
+        };
+        return [saved, ...current.filter(conversation => conversation.id !== id)];
       });
     } catch {
       // Silent fail for history save
+    }
+  };
+
+  const loadConversation = async (id) => {
+    setHistoryLoading(true);
+    setHistoryError('');
+    try {
+      const response = await fetch(`${API_BASE}/api/chat/history/${encodeURIComponent(id)}`);
+      if (!response.ok) throw new Error('Failed to load conversation');
+      const conversation = await response.json();
+      setMessages(Array.isArray(conversation.messages) ? conversation.messages : []);
+      setConversationId(conversation.id);
+      setSelectedModelKey(current => resolveSavedModel(
+        conversation.model,
+        conversation.provider,
+        availableModels,
+        current,
+      ));
+      setHistoryOpen(false);
+    } catch {
+      setHistoryError('선택한 대화를 불러오지 못했습니다.');
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -179,20 +230,17 @@ function ChatPanel({ isOpen, onClose }) {
   const newChat = () => {
     setMessages([]);
     setConversationId(null);
-    setRateLimit(null);
     setInput('');
+    setHistoryOpen(false);
     if (textareaRef.current) textareaRef.current.focus();
   };
 
   if (!isOpen) return null;
 
-  const modelsByProvider = {};
-  availableModels.forEach(m => {
-    if (!modelsByProvider[m.provider]) modelsByProvider[m.provider] = [];
-    modelsByProvider[m.provider].push(m);
-  });
+  const modelGroups = groupChatModels(availableModels);
 
-  const currentModel = availableModels.find(m => m.id === selectedModel);
+  const currentModel = availableModels.find(m => modelSelectionKey(m) === selectedModelKey);
+  const currentProvider = providerMetadata(currentModel?.provider);
 
   return (
     <div className="chat-overlay" onClick={onClose}>
@@ -204,13 +252,13 @@ function ChatPanel({ isOpen, onClose }) {
             <div className="chat-model-wrapper">
               <select
                 className="chat-model-select"
-                value={selectedModel}
-                onChange={(e) => { setSelectedModel(e.target.value); setRateLimit(null); }}
+                value={selectedModelKey}
+                onChange={(e) => setSelectedModelKey(e.target.value)}
               >
-                {Object.entries(modelsByProvider).map(([provider, models]) => (
-                  <optgroup key={provider} label={provider === 'github' ? 'GitHub Models' : 'Google Gemini'}>
-                    {models.map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
+                {modelGroups.map(group => (
+                  <optgroup key={group.provider} label={group.label}>
+                    {group.models.map(m => (
+                      <option key={modelSelectionKey(m)} value={modelSelectionKey(m)}>{m.name}</option>
                     ))}
                   </optgroup>
                 ))}
@@ -225,6 +273,19 @@ function ChatPanel({ isOpen, onClose }) {
                 </svg>
               </button>
             </div>
+            <button
+              className={`chat-action-btn${historyOpen ? ' active' : ''}`}
+              onClick={() => setHistoryOpen(open => !open)}
+              title="대화 기록"
+              aria-label="대화 기록"
+              aria-expanded={historyOpen}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 3-6.7" />
+                <path d="M3 4v5h5" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+            </button>
             <button className="chat-action-btn" onClick={newChat} title="New Chat">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -232,6 +293,37 @@ function ChatPanel({ isOpen, onClose }) {
             </button>
           </div>
         </div>
+
+        {historyOpen && (
+          <div className="chat-history" aria-label="저장된 대화">
+            <div className="chat-history-heading">
+              <span>대화 기록</span>
+              <span>{conversations.length}개</span>
+            </div>
+            {historyLoading && (
+              <LoadingProgress label="대화를 불러오는 중입니다." compact />
+            )}
+            {historyError && <div className="chat-history-error">{historyError}</div>}
+            {!historyLoading && !historyError && conversations.length === 0 && (
+              <div className="chat-history-empty">저장된 대화가 없습니다.</div>
+            )}
+            {!historyLoading && conversations.map(conversation => (
+              <button
+                type="button"
+                className={`chat-history-item${conversation.id === conversationId ? ' active' : ''}`}
+                key={conversation.id}
+                data-conversation-id={conversation.id}
+                onClick={() => loadConversation(conversation.id)}
+              >
+                <span className="chat-history-title">{conversation.title}</span>
+                <span className="chat-history-meta">
+                  {conversation.messageCount}개 메시지
+                  {conversation.model ? ` · ${conversation.model}` : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Model Info Dropdown */}
         {showModelInfo && currentModel && (
@@ -242,7 +334,7 @@ function ChatPanel({ isOpen, onClose }) {
             </div>
             <div className="chat-model-info-row">
               <span className="chat-model-info-label">Provider</span>
-              <span className="chat-model-info-value">{currentModel.provider === 'github' ? 'GitHub Models' : 'Google Gemini'}</span>
+              <span className="chat-model-info-value">{currentProvider?.label || currentModel.provider}</span>
             </div>
             {currentModel.desc && (
               <div className="chat-model-info-row">
@@ -254,43 +346,11 @@ function ChatPanel({ isOpen, onClose }) {
               <span className="chat-model-info-label">ID</span>
               <span className="chat-model-info-value chat-model-info-mono">{currentModel.id}</span>
             </div>
-            {rateLimit && currentModel.provider === 'github' && (
-              <>
-                <div className="chat-model-info-divider" />
-                <div className="chat-model-info-row">
-                  <span className="chat-model-info-label">Requests</span>
-                  <span className="chat-model-info-value">
-                    {formatNumber(rateLimit.remainingRequests)} / {formatNumber(rateLimit.limitRequests)}
-                  </span>
-                </div>
-                <div className="chat-usage-bar">
-                  <div
-                    className="chat-usage-fill"
-                    style={{ width: `${(rateLimit.remainingRequests / rateLimit.limitRequests) * 100}%` }}
-                  />
-                </div>
-                <div className="chat-model-info-row">
-                  <span className="chat-model-info-label">Tokens</span>
-                  <span className="chat-model-info-value">
-                    {formatNumber(rateLimit.remainingTokens)} / {formatNumber(rateLimit.limitTokens)}
-                  </span>
-                </div>
-                <div className="chat-usage-bar">
-                  <div
-                    className="chat-usage-fill"
-                    style={{ width: `${(rateLimit.remainingTokens / rateLimit.limitTokens) * 100}%` }}
-                  />
-                </div>
-              </>
-            )}
-            {currentModel.provider === 'gemini' && (
-              <>
-                <div className="chat-model-info-divider" />
-                <div className="chat-model-info-row">
-                  <span className="chat-model-info-label">Quota</span>
-                  <span className="chat-model-info-value">15 RPM / 1,500 req/day (Flash)</span>
-                </div>
-              </>
+            {currentModel.credential && (
+              <div className="chat-model-info-row">
+                <span className="chat-model-info-label">Credential</span>
+                <span className="chat-model-info-value">{currentModel.credential.status}</span>
+              </div>
             )}
           </div>
         )}
