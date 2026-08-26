@@ -21,7 +21,7 @@ function loadConfig(env = process.env) {
     },
     agentPlatform: {
       baseUrl: env.AGENT_PLATFORM_URL || 'http://agent-api.agent-platform.svc.cluster.local:8080',
-      tokenUrl: env.AGENT_TOKEN_URL || 'http://keycloak.keycloak.svc.cluster.local:8080/realms/master/protocol/openid-connect/token',
+      tokenUrl: env.AGENT_TOKEN_URL || 'https://auth.seonology.com/realms/master/protocol/openid-connect/token',
       clientId: env.AGENT_CLIENT_ID || '',
       clientSecret: env.AGENT_CLIENT_SECRET || '',
       timeoutMs: positiveInteger(env.AGENT_TIMEOUT_MS, 180000),
