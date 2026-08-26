@@ -267,7 +267,7 @@
   padding: 6px;
   border: 1px solid var(--split-line-strong);
   border-radius: 9px;
-  background: var(--split-panel);
+  background: var(--split-raised);
   box-shadow: 0 16px 30px var(--split-shadow);
 }
 

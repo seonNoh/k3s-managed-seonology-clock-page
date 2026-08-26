@@ -120,6 +120,22 @@ test('Split Console Google 검색은 API 자동완성과 키보드 탐색을 제
   await expect(page.getByRole('option', { name: 'clock test' })).toHaveAttribute('aria-selected', 'true');
 });
 
+test('Split Console 검색 추천 창은 light와 dark mode에서 불투명한 표면을 사용한다', async ({ page }) => {
+  await page.route('**/api/suggest**', (route) => route.fulfill({ json: ['clock test', 'clock timer'] }));
+  await openWithCleanPreferences(page);
+
+  const search = page.getByRole('searchbox', { name: 'Google 검색' });
+  const suggestions = page.getByRole('listbox', { name: 'Google 검색 제안' });
+  await search.fill('clock');
+  await expect(suggestions).toBeVisible();
+  await expect(suggestions).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+
+  await page.getByRole('button', { name: 'Dark mode' }).click();
+  await search.click();
+  await expect(suggestions).toBeVisible();
+  await expect(suggestions).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+});
+
 test('Split Console은 Classic과 같은 커서 광원 효과를 저장한다', async ({ page }) => {
   await openWithCleanPreferences(page);
   await page.getByRole('button', { name: '효과 설정 열기' }).click();
