@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="cp21-del-ko-title cp21-del-ko-desc">
+  <title id="cp21-del-ko-title">Gitea 전달</title>
+  <desc id="cp21-del-ko-desc">새로운 main 실행이 소스를 검증하고 멀티 플랫폼 index 하나를 게시합니다</desc>
+  <style>
+    .cp21-del-ko-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
+    .cp21-del-ko-root text{fill:#f0f6fc}
+    .cp21-del-ko-root .heading{font-size:16px;font-weight:600}
+    .cp21-del-ko-root .subtitle{font-size:11.5px;fill:#939da8}
+    .cp21-del-ko-root .card{fill:url(#cp21-del-ko-surface);stroke:#252d38;stroke-width:1}
+    .cp21-del-ko-root .lead{fill:url(#cp21-del-ko-lead);stroke:#33404f;stroke-width:1}
+    .cp21-del-ko-root .topline{stroke:rgba(255,255,255,.08);stroke-width:1}
+    .cp21-del-ko-root .card-title{font-size:13px;font-weight:500}
+    .cp21-del-ko-root .inner{fill:#1e2530;stroke:#252d38;stroke-width:1}
+    .cp21-del-ko-root .label{font-size:10px;fill:#939da8}
+    .cp21-del-ko-root .value{font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#c3ccd6}
+    .cp21-del-ko-root .badge{fill:rgba(124,159,255,.16);stroke:#33404f}
+    .cp21-del-ko-root .badge-text{font:9.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#7c9fff}
+    .cp21-del-ko-root .flow{fill:none;stroke:#7c9fff;stroke-width:1.6;stroke-dasharray:5 6;stroke-linecap:round;stroke-linejoin:round;animation:cp21-del-ko-move 2s linear infinite}
+    .cp21-del-ko-root .foot{font-size:11px;fill:#69717a}
+    @keyframes cp21-del-ko-move{to{stroke-dashoffset:-22}}
+    @media (prefers-reduced-motion:reduce){.cp21-del-ko-root .flow{animation:none}}
+  </style>
+  <defs>
+    <filter id="cp21-del-ko-sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="#000" flood-opacity=".5"/></filter>
+    <filter id="cp21-del-ko-shl" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="#000" flood-opacity=".58"/></filter>
+    <filter id="cp21-del-ko-gl" x="-60%" y="-90%" width="220%" height="280%"><feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#7c9fff" flood-opacity=".4"/><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>
+    <linearGradient id="cp21-del-ko-surface" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#1b222c"/><stop offset="1" stop-color="#151b23"/></linearGradient>
+    <linearGradient id="cp21-del-ko-lead" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#222b38"/><stop offset="1" stop-color="#19202a"/></linearGradient>
+    <marker id="cp21-del-ko-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#7c9fff"/></marker>
+    <marker id="cp21-del-ko-quiet" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#5b636d"/></marker>
+  </defs>
+  <g class="cp21-del-ko-root">
+    <rect width="960" height="540" fill="#0d1117"/>
+    <text class="heading" x="26" y="38">Gitea 전달</text>
+    <text class="subtitle" x="26" y="58">새로운 main 실행이 소스를 검증하고 멀티 플랫폼 index 하나를 게시합니다</text>
+  <path class="flow" d="M248 265 H263" marker-end="url(#cp21-del-ko-arrow)"/>
+  <path class="flow" d="M472 265 H487" marker-end="url(#cp21-del-ko-arrow)"/>
+  <path class="flow" d="M696 265 H711" marker-end="url(#cp21-del-ko-arrow)"/>
+  <g filter="url(#cp21-del-ko-sh)">
+    <rect class="card" x="44" y="152" width="200" height="226" rx="12"/>
+    <line class="topline" x1="58" y1="153" x2="230" y2="153"/>
+    <text class="card-title" x="62" y="186">소스</text>
+    <rect class="inner" x="62" y="210" width="164" height="48" rx="8"/>
+    <text class="label" x="74" y="230">PRIMARY</text>
+    <text class="value" x="74" y="248">main push</text>
+    <rect class="inner" x="62" y="268" width="164" height="48" rx="8"/>
+    <text class="label" x="74" y="288">BOUNDARY</text>
+    <text class="value" x="74" y="306">정확한 SHA</text>
+    <rect class="badge" x="62" y="336" width="92" height="18" rx="9"/>
+    <text class="badge-text" x="108" y="349" text-anchor="middle">VERIFIED</text>
+  </g>
+  <g filter="url(#cp21-del-ko-sh)">
+    <rect class="card" x="268" y="152" width="200" height="226" rx="12"/>
+    <line class="topline" x1="282" y1="153" x2="454" y2="153"/>
+    <text class="card-title" x="286" y="186">품질</text>
+    <rect class="inner" x="286" y="210" width="164" height="48" rx="8"/>
+    <text class="label" x="298" y="230">PRIMARY</text>
+    <text class="value" x="298" y="248">테스트 + 빌드</text>
+    <rect class="inner" x="286" y="268" width="164" height="48" rx="8"/>
+    <text class="label" x="298" y="288">BOUNDARY</text>
+    <text class="value" x="298" y="306">컨테이너 스모크</text>
+    <rect class="badge" x="286" y="336" width="92" height="18" rx="9"/>
+    <text class="badge-text" x="332" y="349" text-anchor="middle">VERIFIED</text>
+  </g>
+  <g filter="url(#cp21-del-ko-shl)">
+    <rect class="lead" x="492" y="152" width="200" height="226" rx="12"/>
+    <line class="topline" x1="506" y1="153" x2="678" y2="153"/>
+    <text class="card-title" x="510" y="186">Registry</text>
+    <rect class="inner" x="510" y="210" width="164" height="48" rx="8"/>
+    <text class="label" x="522" y="230">PRIMARY</text>
+    <text class="value" x="522" y="248">OCI index</text>
+    <rect class="inner" x="510" y="268" width="164" height="48" rx="8"/>
+    <text class="label" x="522" y="288">BOUNDARY</text>
+    <text class="value" x="522" y="306">amd64 + arm64</text>
+    <rect class="badge" x="510" y="336" width="92" height="18" rx="9" filter="url(#cp21-del-ko-gl)"/>
+    <text class="badge-text" x="556" y="349" text-anchor="middle">VERIFIED</text>
+  </g>
+  <g filter="url(#cp21-del-ko-sh)">
+    <rect class="card" x="716" y="152" width="200" height="226" rx="12"/>
+    <line class="topline" x1="730" y1="153" x2="902" y2="153"/>
+    <text class="card-title" x="734" y="186">GitOps</text>
+    <rect class="inner" x="734" y="210" width="164" height="48" rx="8"/>
+    <text class="label" x="746" y="230">PRIMARY</text>
+    <text class="value" x="746" y="248">격리 분기</text>
+    <rect class="inner" x="734" y="268" width="164" height="48" rx="8"/>
+    <text class="label" x="746" y="288">BOUNDARY</text>
+    <text class="value" x="746" y="306">조정자 전환</text>
+    <rect class="badge" x="734" y="336" width="92" height="18" rx="9"/>
+    <text class="badge-text" x="780" y="349" text-anchor="middle">VERIFIED</text>
+  </g>
+    <text class="foot" x="26" y="504">Seonology Clock Page · GTM-LIVE-21 · Relief</text>
+  </g>
+</svg>

@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  code: read
+
+concurrency:
+  group: clock-page-ci-${{ gitea.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the exact Gitea revision
+        uses: https://gitea.com/actions/checkout@v4
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          fetch-depth: 0
+
+      - name: Verify Node.js 24
+        run: node --version | grep -E '^v24\.'
+
+      - name: Install locked dependencies
+        run: |
+          set -euo pipefail
+          npm ci
+          npm ci --prefix api
+          npm ci --prefix toolkit-extension
+
+      - name: Verify repository policy
+        run: python3 verify.py --repository .
+
+      - name: Lint and run unit tests
+        run: |
+          set -euo pipefail
+          npm run lint
+          npm run test:unit
+          npm run test:api
+
+      - name: Install Chromium and run browser tests
+        run: |
+          set -euo pipefail
+          npm run build --prefix toolkit-extension
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Build production assets
+        run: npm run build
+
+      - name: Audit production dependencies
+        run: |
+          set -euo pipefail
+          npm audit --omit=dev --audit-level=high
+          npm audit --prefix api --omit=dev --audit-level=high
+          npm audit --prefix toolkit-extension --omit=dev --audit-level=high
+
+      - name: Verify the production container
+        run: npm run smoke:container

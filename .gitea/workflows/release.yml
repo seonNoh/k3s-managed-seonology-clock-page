@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing SemVer tag to publish
+        required: true
+
+permissions:
+  code: read
+  packages: write
+  releases: write
+
+env:
+  REGISTRY: git.seonology.com
+  IMAGE: git.seonology.com/seonology/seonology-clock-page
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the exact Gitea revision
+        uses: https://gitea.com/actions/checkout@v4
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          fetch-depth: 0
+
+      - name: Resolve and verify the release tag
+        id: release
+        env:
+          EVENT_NAME: ${{ gitea.event_name }}
+          REF_NAME: ${{ gitea.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = push ]; then tag="$REF_NAME"; else tag="$INPUT_TAG"; fi
+          printf '%s\n' "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
+          test "${tag#v}" = "$(tr -d '[:space:]' < VERSION)"
+          printf 'tag=%s\n' "$tag" >> "$GITEA_OUTPUT"
+
+      - name: Verify repository policy
+        run: python3 verify.py --repository .
+
+      - name: Configure a multi-platform builder
+        env:
+          BUILDER: clock-page-release-${{ gitea.run_id }}
+        run: |
+          set -euo pipefail
+          docker run --privileged --rm tonistiigi/binfmt --install arm64
+          docker buildx create --name "$BUILDER" --driver docker-container --use
+          docker buildx inspect --bootstrap
+
+      - name: Log in to Gitea Registry
+        env:
+          PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
+        run: printf '%s' "$CI_TOKEN" | docker login "$REGISTRY" --username "$PACKAGE_USER" --password-stdin
+
+      - name: Publish an immutable release image when absent
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! docker buildx imagetools inspect "$IMAGE:$TAG" >/dev/null 2>&1; then
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --build-arg "APP_VERSION=${TAG#v}" \
+              --tag "$IMAGE:$TAG" \
+              --provenance=false \
+              --push \
+              .
+          fi
+          raw=$(docker buildx imagetools inspect "$IMAGE:$TAG" --raw)
+          printf '%s' "$raw" | jq -e '.manifests | any(.platform.architecture == "amd64" and .platform.os == "linux")' >/dev/null
+          printf '%s' "$raw" | jq -e '.manifests | any(.platform.architecture == "arm64" and .platform.os == "linux")' >/dev/null
+
+      - name: Create the Gitea release when absent
+        env:
+          API_URL: ${{ gitea.api_url }}
+          REPOSITORY: ${{ gitea.repository }}
+          TAG: ${{ steps.release.outputs.tag }}
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
+        run: |
+          set -euo pipefail
+          work_dir=$(mktemp -d)
+          trap 'find "$work_dir" -type f -exec unlink {} \;; rmdir "$work_dir"' EXIT
+          umask 077
+          printf 'Authorization: token %s\n' "$CI_TOKEN" > "$work_dir/auth"
+          unset CI_TOKEN
+          code=$(curl -sS -o "$work_dir/response" -w '%{http_code}' -H @"$work_dir/auth" "$API_URL/repos/$REPOSITORY/releases/tags/$TAG")
+          [ "$code" = 200 ] && exit 0
+          [ "$code" = 404 ]
+          git log -n 50 "$TAG" --pretty=format:'- %s (%h)' > "$work_dir/notes"
+          jq -n --arg tag "$TAG" --rawfile body "$work_dir/notes" '{tag_name:$tag,target_commitish:$tag,name:$tag,body:$body,draft:false,prerelease:false}' > "$work_dir/payload"
+          curl -fsS -X POST -H @"$work_dir/auth" -H 'Content-Type: application/json' "$API_URL/repos/$REPOSITORY/releases" --data-binary @"$work_dir/payload" > "$work_dir/response"

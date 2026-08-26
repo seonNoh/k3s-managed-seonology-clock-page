@@ -1,67 +1,87 @@
 # Seonology Clock Page
 
-Seonology Clock Page는 React/Vite 웹 화면, Express API, Chrome extension으로 구성된 개인 운영 도구입니다. 웹과 API는 하나의 컨테이너에서 nginx를 통해 제공됩니다.
+[English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md)
 
-## 요구 환경
+Seonology Clock Page combines a React dashboard, an Express API, and browser extensions in one private operations workspace. The production container serves the Vite build through nginx and supervises the API in the same image. Read the architecture, local development, and verification sections first; use the remaining sections as an operations reference.
 
-- Node.js 24 LTS (`.nvmrc` 기준)
-- npm lockfile을 지원하는 npm
-- E2E 또는 컨테이너 검증 시 Docker
+![Seonology Clock Page architecture](docs/svg/architecture.svg)
+
+## One container serves the dashboard and API
+
+The browser loads React from nginx on port `8080`. nginx forwards `/api` and `/health` to Express on port `3001`. Kubernetes mounts bookmark data at `/data` and injects credentials through Secrets. The image runs as UID and GID `10001` with a read-only root filesystem.
+
+| Path | Responsibility |
+|---|---|
+| `src/` | Dashboard, clock, launcher, tools, and shared web UI |
+| `api/` | Bookmarks, cloud storage, weather, infrastructure data, and integrations |
+| `toolkit-extension/` | Vite-based extension built from the shared tool catalog |
+| `packages/toolkit-core/` | Shared catalog and Markdown utilities |
+| `k8s/` | Reference manifests, not the live desired-state source |
+
+## The launcher groups daily tools behind one surface
+
+The dashboard combines time, weather, bookmarks, search, status, and visual effects. The launcher opens conversion, text, network, infrastructure, cloud, and productivity tools without leaving the page. Web and extension implementations share stable tool identifiers.
+
+![Clock Page tool landscape](docs/svg/tool-landscape.svg)
+
+## Local development uses three locked dependency sets
+
+Node.js `24.15` or a compatible `24.x` release is required. Install the root, API, and extension lockfiles independently.
 
 ```sh
-nvm use
 npm ci
-npm run dev
-```
-
-API를 함께 실행하려면 별도 터미널에서 다음을 실행합니다.
-
-```sh
 npm ci --prefix api
+npm ci --prefix toolkit-extension
+npm run dev
 npm run dev --prefix api
 ```
 
-기본 API 포트는 `3001`이며, Vite 개발 서버는 기존 프런트엔드 설정을 따릅니다. 환경변수와 운영 절차는 [운영 문서](docs/runbook.md)를 확인하십시오.
+The Vite server provides the frontend during development. The API listens on `3001` by default. Never place access tokens or passwords in files that can be committed.
 
-## 검증
+## Verification covers code, runtime, and migration policy
 
-통합 후 제공되는 품질 명령은 다음과 같습니다.
+Run the repository contract before the same quality commands used by Gitea Actions.
 
 ```sh
+python3 verify.py --repository .
 npm run lint
 npm run test:unit
 npm run test:api
 npm run test:e2e
-npm run verify
+npm run build
+npm run smoke:container
 ```
 
-extension은 독립적으로 lockfile을 설치하고 빌드합니다.
+`verify.py` checks the three README files, twelve Relief SVG files, governance files, issue templates, workflow boundaries, multi-architecture declarations, policy violations, and the original GitHub workflow checksums.
 
-```sh
-npm ci --prefix toolkit-extension
-npm run build --prefix toolkit-extension
-```
+## Runtime settings stay outside the image
 
-## 컨테이너 상태 확인
+`BOOKMARKS_DIR` selects persistent storage. `CLOUD_TOKEN_ENCRYPTION_KEY` protects cloud tokens. Optional integrations use catalog, generative service, Tailscale, NAS, Google Drive, OneDrive, and Grafana credentials. Live values come from External Secrets and Kubernetes Secrets; logs, fixtures, issues, and workflow output must never contain them.
 
-`/health`는 nginx 정적 파일이 아니라 API health 응답을 프록시합니다. 따라서 API가 중지되면 Kubernetes readiness도 실패해야 합니다.
+## Gitea owns CI, OCI images, and releases
 
-```sh
-docker build -t seonology-clock-page:local .
-docker run --rm -d --name seonology-clock-page-smoke -p 127.0.0.1::8080 seonology-clock-page:local
-docker port seonology-clock-page-smoke 8080
-curl --fail --silent --show-error http://127.0.0.1:<published-port>/health
-docker exec seonology-clock-page-smoke sh -c 'for pid in $(pidof node); do if grep -F -q "/app/api/server.js" "/proc/$pid/cmdline" 2>/dev/null; then kill -TERM "$pid"; exit 0; fi; done; exit 1'
-curl --fail --silent --show-error http://127.0.0.1:<published-port>/health
-docker rm -f seonology-clock-page-smoke
-```
+A push to Gitea `main` runs source and runtime verification. The image workflow publishes a Gitea Registry OCI index tagged `main` and `sha-<commit>` without overwriting existing SemVer images. A `vX.Y.Z` tag creates the matching immutable image and Gitea release.
 
-두 번째 `curl`은 실패해야 정상입니다. Docker의 동적 host 포트를 사용하면 다른 로컬 프로젝트와 포트가 충돌하지 않습니다.
+![Gitea delivery pipeline](docs/svg/delivery.svg)
 
-## 문서
+| Workflow | Result |
+|---|---|
+| `.gitea/workflows/ci.yml` | Full source and runtime verification |
+| `.gitea/workflows/image.yml` | `linux/amd64` and `linux/arm64` OCI index |
+| `.gitea/workflows/release.yml` | SemVer image and Gitea release |
 
-- [아키텍처](docs/architecture.md)
-- [보안 경계](docs/security.md)
-- [운영 및 롤백 절차](docs/runbook.md)
+The original `.github/workflows/` files remain byte-identical migration evidence. New delivery changes belong only in `.gitea/workflows/`.
 
-`k8s/`는 참고용 manifest이며 라이브 배포의 SSOT가 아닙니다. 실제 desired state는 `seonology-k3s`의 Argo CD Application 및 Kustomization에서 관리합니다.
+## Live changes are prepared on an isolated GitOps branch
+
+The desired state for `clock.seonology.com` lives in `seonology/seonology-k3s` under `workloads/seonology-clock-page`. Migration work uses `parallel/GTM-LIVE-21/k3s-managed-seonology-clock-page` and never updates central `main`. Argo CD synchronization, cutover, and live validation remain coordinator actions.
+
+![Live security and data boundaries](docs/svg/security-boundaries.svg)
+
+Traefik protects the public route. The container drops capabilities, forbids privilege escalation, and runs without root. External URLs, OAuth transactions, NAS paths, token storage, CORS, uploads, and browser messages have focused tests.
+
+## Contributions keep documentation and delivery aligned
+
+Use an English Conventional Commit title and a Korean body that explains the reason and impact. Do not add automated authorship signatures. Keep all three README files structurally aligned and update all three language variants plus the same pedia records when a diagram changes.
+
+The project uses the [MIT License](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md), [README_STRUCTURE.md](README_STRUCTURE.md), [docs/architecture.md](docs/architecture.md), [docs/security.md](docs/security.md), and [docs/runbook.md](docs/runbook.md).

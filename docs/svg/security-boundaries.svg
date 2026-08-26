@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="cp21-sec-en-title cp21-sec-en-desc">
+  <title id="cp21-sec-en-title">Live security boundaries</title>
+  <desc id="cp21-sec-en-desc">Access, runtime, data, and external integrations remain separately controlled</desc>
+  <style>
+    .cp21-sec-en-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
+    .cp21-sec-en-root text{fill:#f0f6fc}
+    .cp21-sec-en-root .heading{font-size:16px;font-weight:600}
+    .cp21-sec-en-root .subtitle{font-size:11.5px;fill:#939da8}
+    .cp21-sec-en-root .card{fill:url(#cp21-sec-en-surface);stroke:#252d38;stroke-width:1}
+    .cp21-sec-en-root .lead{fill:url(#cp21-sec-en-lead);stroke:#33404f;stroke-width:1}
+    .cp21-sec-en-root .topline{stroke:rgba(255,255,255,.08);stroke-width:1}
+    .cp21-sec-en-root .card-title{font-size:13px;font-weight:500}
+    .cp21-sec-en-root .inner{fill:#1e2530;stroke:#252d38;stroke-width:1}
+    .cp21-sec-en-root .label{font-size:10px;fill:#939da8}
+    .cp21-sec-en-root .value{font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#c3ccd6}
+    .cp21-sec-en-root .badge{fill:rgba(124,159,255,.16);stroke:#33404f}
+    .cp21-sec-en-root .badge-text{font:9.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#7c9fff}
+    .cp21-sec-en-root .flow{fill:none;stroke:#7c9fff;stroke-width:1.6;stroke-dasharray:5 6;stroke-linecap:round;stroke-linejoin:round;animation:cp21-sec-en-move 2s linear infinite}
+    .cp21-sec-en-root .foot{font-size:11px;fill:#69717a}
+    @keyframes cp21-sec-en-move{to{stroke-dashoffset:-22}}
+    @media (prefers-reduced-motion:reduce){.cp21-sec-en-root .flow{animation:none}}
+  </style>
+  <defs>
+    <filter id="cp21-sec-en-sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="#000" flood-opacity=".5"/></filter>
+    <filter id="cp21-sec-en-shl" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="#000" flood-opacity=".58"/></filter>
+    <filter id="cp21-sec-en-gl" x="-60%" y="-90%" width="220%" height="280%"><feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#7c9fff" flood-opacity=".4"/><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>
+    <linearGradient id="cp21-sec-en-surface" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#1b222c"/><stop offset="1" stop-color="#151b23"/></linearGradient>
+    <linearGradient id="cp21-sec-en-lead" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#222b38"/><stop offset="1" stop-color="#19202a"/></linearGradient>
+    <marker id="cp21-sec-en-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#7c9fff"/></marker>
+    <marker id="cp21-sec-en-quiet" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#5b636d"/></marker>
+  </defs>
+  <g class="cp21-sec-en-root">
+    <rect width="960" height="540" fill="#0d1117"/>
+    <text class="heading" x="26" y="38">Live security boundaries</text>
+    <text class="subtitle" x="26" y="58">Access, runtime, data, and external integrations remain separately controlled</text>
+  <path class="flow" d="M304 265 H351" marker-end="url(#cp21-sec-en-arrow)"/>
+  <path class="flow" d="M608 265 H655" marker-end="url(#cp21-sec-en-arrow)"/>
+  <g filter="url(#cp21-sec-en-sh)">
+    <rect class="card" x="52" y="152" width="248" height="226" rx="12"/>
+    <line class="topline" x1="66" y1="153" x2="286" y2="153"/>
+    <text class="card-title" x="70" y="186">Edge policy</text>
+    <rect class="inner" x="70" y="210" width="212" height="48" rx="8"/>
+    <text class="label" x="82" y="230">PRIMARY</text>
+    <text class="value" x="82" y="248">Traefik + TLS</text>
+    <rect class="inner" x="70" y="268" width="212" height="48" rx="8"/>
+    <text class="label" x="82" y="288">BOUNDARY</text>
+    <text class="value" x="82" y="306">authenticated route</text>
+    <rect class="badge" x="70" y="336" width="92" height="18" rx="9"/>
+    <text class="badge-text" x="116" y="349" text-anchor="middle">VERIFIED</text>
+  </g>
+  <g filter="url(#cp21-sec-en-shl)">
+    <rect class="lead" x="356" y="152" width="248" height="226" rx="12"/>
+    <line class="topline" x1="370" y1="153" x2="590" y2="153"/>
+    <text class="card-title" x="374" y="186">Runtime</text>
+    <rect class="inner" x="374" y="210" width="212" height="48" rx="8"/>
+    <text class="label" x="386" y="230">PRIMARY</text>
+    <text class="value" x="386" y="248">UID 10001</text>
+    <rect class="inner" x="374" y="268" width="212" height="48" rx="8"/>
+    <text class="label" x="386" y="288">BOUNDARY</text>
+    <text class="value" x="386" y="306">read-only root</text>
+    <rect class="badge" x="374" y="336" width="92" height="18" rx="9" filter="url(#cp21-sec-en-gl)"/>
+    <text class="badge-text" x="420" y="349" text-anchor="middle">VERIFIED</text>
+  </g>
+  <g filter="url(#cp21-sec-en-sh)">
+    <rect class="card" x="660" y="152" width="248" height="226" rx="12"/>
+    <line class="topline" x1="674" y1="153" x2="894" y2="153"/>
+    <text class="card-title" x="678" y="186">Data boundary</text>
+    <rect class="inner" x="678" y="210" width="212" height="48" rx="8"/>
+    <text class="label" x="690" y="230">PRIMARY</text>
+    <text class="value" x="690" y="248">Secrets + PVC</text>
+    <rect class="inner" x="678" y="268" width="212" height="48" rx="8"/>
+    <text class="label" x="690" y="288">BOUNDARY</text>
+    <text class="value" x="690" y="306">allowlisted egress</text>
+    <rect class="badge" x="678" y="336" width="92" height="18" rx="9"/>
+    <text class="badge-text" x="724" y="349" text-anchor="middle">VERIFIED</text>
+  </g>
+    <text class="foot" x="26" y="504">Seonology Clock Page · GTM-LIVE-21 · Relief</text>
+  </g>
+</svg>

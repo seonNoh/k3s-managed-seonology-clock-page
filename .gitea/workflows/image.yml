@@ -1,0 +1,72 @@
+name: Image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  code: read
+  packages: write
+
+concurrency:
+  group: clock-page-image-${{ gitea.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: git.seonology.com
+  IMAGE: git.seonology.com/seonology/seonology-clock-page
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the exact Gitea revision
+        uses: https://gitea.com/actions/checkout@v4
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          fetch-depth: 0
+
+      - name: Verify repository policy
+        run: python3 verify.py --repository .
+
+      - name: Configure a multi-platform builder
+        env:
+          BUILDER: clock-page-${{ gitea.run_id }}
+        run: |
+          set -euo pipefail
+          docker run --privileged --rm tonistiigi/binfmt --install arm64
+          docker buildx create --name "$BUILDER" --driver docker-container --use
+          docker buildx inspect --bootstrap
+
+      - name: Log in to Gitea Registry
+        env:
+          PACKAGE_USER: ${{ secrets.PACKAGE_USER }}
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
+        run: printf '%s' "$CI_TOKEN" | docker login "$REGISTRY" --username "$PACKAGE_USER" --password-stdin
+
+      - name: Build and publish the OCI index
+        env:
+          REVISION: ${{ gitea.sha }}
+        run: |
+          set -euo pipefail
+          short_revision=$(printf '%s' "$REVISION" | cut -c1-12)
+          version=$(tr -d '[:space:]' < VERSION)
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg "APP_VERSION=$version" \
+            --tag "$IMAGE:main" \
+            --tag "$IMAGE:sha-$short_revision" \
+            --provenance=false \
+            --push \
+            .
+
+      - name: Verify both published platforms
+        env:
+          REVISION: ${{ gitea.sha }}
+        run: |
+          set -euo pipefail
+          short_revision=$(printf '%s' "$REVISION" | cut -c1-12)
+          raw=$(docker buildx imagetools inspect "$IMAGE:sha-$short_revision" --raw)
+          printf '%s' "$raw" | jq -e '.manifests | any(.platform.architecture == "amd64" and .platform.os == "linux")' >/dev/null
+          printf '%s' "$raw" | jq -e '.manifests | any(.platform.architecture == "arm64" and .platform.os == "linux")' >/dev/null

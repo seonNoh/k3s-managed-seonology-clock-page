@@ -1,0 +1,33 @@
+name: Feature request
+about: Propose a focused improvement to a tool, API, or delivery path
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options: [React dashboard, Express API, Browser extension, Shared toolkit, Container image, Gitea workflow, Live deployment]
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Delivery impact
+      options:
+        - label: The public API or stored data changes
+        - label: A multi-architecture image must be rebuilt
+        - label: The isolated seonology-k3s branch needs a matching change
+        - label: User-facing documentation changes
