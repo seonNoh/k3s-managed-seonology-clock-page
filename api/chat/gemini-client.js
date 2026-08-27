@@ -1,5 +1,9 @@
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const MODEL_ID_PATTERN = /^[A-Za-z0-9._-]+$/;
+const FREE_TIER_CHAT_MODEL_IDS = new Set([
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+]);
 
 class GeminiClientError extends Error {
   constructor(message, { code = 'GEMINI_ERROR', status = 502 } = {}) {
@@ -67,6 +71,9 @@ function createGeminiClient({ apiKey, fetchImpl = global.fetch, timeoutMs = 3000
       return (Array.isArray(data.models) ? data.models : [])
         .filter(model => Array.isArray(model.supportedGenerationMethods)
           && model.supportedGenerationMethods.includes('generateContent'))
+        .filter(model => FREE_TIER_CHAT_MODEL_IDS.has(
+          String(model.name || '').replace(/^models\//, ''),
+        ))
         .map(model => ({
           id: String(model.name || '').replace(/^models\//, ''),
           name: model.displayName || String(model.name || '').replace(/^models\//, ''),
@@ -77,9 +84,16 @@ function createGeminiClient({ apiKey, fetchImpl = global.fetch, timeoutMs = 3000
     },
 
     async generate({ model, messages, signal } = {}) {
-      if (!MODEL_ID_PATTERN.test(String(model || ''))) {
+      const modelId = String(model || '');
+      if (!MODEL_ID_PATTERN.test(modelId)) {
         throw new GeminiClientError('지원하지 않는 Gemini 모델 ID입니다.', {
           code: 'GEMINI_INVALID_MODEL',
+          status: 422,
+        });
+      }
+      if (!FREE_TIER_CHAT_MODEL_IDS.has(modelId)) {
+        throw new GeminiClientError('무료 등급으로 허용된 Gemini 모델이 아닙니다.', {
+          code: 'GEMINI_MODEL_NOT_ALLOWED',
           status: 422,
         });
       }
@@ -100,7 +114,7 @@ function createGeminiClient({ apiKey, fetchImpl = global.fetch, timeoutMs = 3000
       if (systemInstruction) {
         body.systemInstruction = { parts: [{ text: String(systemInstruction.content || '') }] };
       }
-      const data = await request(`${GEMINI_API_BASE}/models/${model}:generateContent`, {
+      const data = await request(`${GEMINI_API_BASE}/models/${modelId}:generateContent`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
@@ -112,7 +126,7 @@ function createGeminiClient({ apiKey, fetchImpl = global.fetch, timeoutMs = 3000
       if (!content) {
         throw new GeminiClientError('Gemini가 텍스트 응답을 반환하지 않았습니다.');
       }
-      return { content, model, usage: data.usageMetadata || null };
+      return { content, model: modelId, usage: data.usageMetadata || null };
     },
   };
 }

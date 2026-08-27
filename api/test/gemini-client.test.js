@@ -10,7 +10,7 @@ function jsonResponse(body, init = {}) {
   });
 }
 
-test('Gemini model discovery exposes only models that support generateContent', async () => {
+test('Gemini model discovery exposes only the approved free-tier chat models', async () => {
   const client = createGeminiClient({
     apiKey: 'test-key',
     fetchImpl: async () => jsonResponse({
@@ -19,6 +19,26 @@ test('Gemini model discovery exposes only models that support generateContent', 
           name: 'models/gemini-2.5-flash',
           displayName: 'Gemini 2.5 Flash',
           supportedGenerationMethods: ['generateContent', 'countTokens'],
+        },
+        {
+          name: 'models/gemini-2.5-pro',
+          displayName: 'Gemini 2.5 Pro',
+          supportedGenerationMethods: ['generateContent', 'countTokens'],
+        },
+        {
+          name: 'models/gemini-2.5-flash-preview-tts',
+          displayName: 'Gemini 2.5 Flash Preview TTS',
+          supportedGenerationMethods: ['generateContent'],
+        },
+        {
+          name: 'models/gemini-2.5-flash-image',
+          displayName: 'Gemini 2.5 Flash Image',
+          supportedGenerationMethods: ['generateContent'],
+        },
+        {
+          name: 'models/gemini-3.1-pro-preview',
+          displayName: 'Gemini 3.1 Pro Preview',
+          supportedGenerationMethods: ['generateContent'],
         },
         {
           name: 'models/text-embedding-004',
@@ -36,7 +56,33 @@ test('Gemini model discovery exposes only models that support generateContent', 
       provider: 'gemini',
       desc: 'Google Gemini API',
     },
+    {
+      id: 'gemini-2.5-pro',
+      name: 'Gemini 2.5 Pro',
+      provider: 'gemini',
+      desc: 'Google Gemini API',
+    },
   ]);
+});
+
+test('Gemini chat rejects models outside the approved free-tier list before calling Google', async () => {
+  let requestCount = 0;
+  const client = createGeminiClient({
+    apiKey: 'test-key',
+    fetchImpl: async () => {
+      requestCount += 1;
+      return jsonResponse({});
+    },
+  });
+
+  await assert.rejects(
+    client.generate({
+      model: 'gemini-2.5-flash-preview-tts',
+      messages: [{ role: 'user', content: '테스트' }],
+    }),
+    error => error.code === 'GEMINI_MODEL_NOT_ALLOWED' && error.status === 422,
+  );
+  assert.equal(requestCount, 0);
 });
 
 test('Gemini chat preserves system, user and assistant roles in generateContent payload', async () => {
