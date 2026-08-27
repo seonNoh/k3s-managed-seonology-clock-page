@@ -56,12 +56,6 @@ test('Gemini model discovery exposes only the approved free-tier chat models', a
       provider: 'gemini',
       desc: 'Google Gemini API',
     },
-    {
-      id: 'gemini-2.5-pro',
-      name: 'Gemini 2.5 Pro',
-      provider: 'gemini',
-      desc: 'Google Gemini API',
-    },
   ]);
 });
 
@@ -78,6 +72,26 @@ test('Gemini chat rejects models outside the approved free-tier list before call
   await assert.rejects(
     client.generate({
       model: 'gemini-2.5-flash-preview-tts',
+      messages: [{ role: 'user', content: '테스트' }],
+    }),
+    error => error.code === 'GEMINI_MODEL_NOT_ALLOWED' && error.status === 422,
+  );
+  assert.equal(requestCount, 0);
+});
+
+test('Gemini chat rejects a free-tier model that Google no longer serves to this project', async () => {
+  let requestCount = 0;
+  const client = createGeminiClient({
+    apiKey: 'test-key',
+    fetchImpl: async () => {
+      requestCount += 1;
+      return jsonResponse({});
+    },
+  });
+
+  await assert.rejects(
+    client.generate({
+      model: 'gemini-2.5-pro',
       messages: [{ role: 'user', content: '테스트' }],
     }),
     error => error.code === 'GEMINI_MODEL_NOT_ALLOWED' && error.status === 422,

@@ -2,7 +2,6 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const MODEL_ID_PATTERN = /^[A-Za-z0-9._-]+$/;
 const FREE_TIER_CHAT_MODEL_IDS = new Set([
   'gemini-2.5-flash',
-  'gemini-2.5-pro',
 ]);
 
 class GeminiClientError extends Error {
