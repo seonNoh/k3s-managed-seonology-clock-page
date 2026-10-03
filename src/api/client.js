@@ -31,7 +31,7 @@ export async function apiFetch(input, options = {}) {
     if (!authenticationRecoveryStarted) {
       authenticationRecoveryStarted = true;
       authenticationAbortController.abort(error);
-      globalThis.location.assign(globalThis.location.href);
+      globalThis.location.reload();
     }
     throw error;
   }

@@ -11,7 +11,7 @@ test('an explicit API auth response navigates once and stops pending polling', a
     apiRequests += 1;
     await route.fulfill({ status: 401, headers: { 'X-Forward-Auth-Required': '1' }, body: '' });
   });
-  await page.goto('/auth-recovery-fixture?view=clock');
+  await page.goto('/auth-recovery-fixture?view=clock#today');
   await page.evaluate(async () => {
     const { apiFetch } = await import('/src/api/client.js');
     const poll = async () => {
@@ -24,7 +24,7 @@ test('an explicit API auth response navigates once and stops pending polling', a
   await page.waitForTimeout(150);
   expect(documentRequests).toBe(2);
   expect(apiRequests).toBe(1);
-  await expect(page).toHaveURL(/\/auth-recovery-fixture\?view=clock$/);
+  await expect(page).toHaveURL(/\/auth-recovery-fixture\?view=clock#today$/);
 });
 
 test('an ordinary failed API response leaves the document in place', async ({ page }) => {

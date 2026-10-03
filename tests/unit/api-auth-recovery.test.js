@@ -11,7 +11,7 @@ beforeEach(async () => {
     hostname: 'clock.seonology.com',
     origin: 'https://clock.seonology.com',
     href: 'https://clock.seonology.com/?layout=classic#today',
-    assign: navigate,
+    reload: navigate,
   });
   ({ apiFetch, requestJson } = await import('../../src/api/client.js'));
 });
@@ -27,7 +27,7 @@ describe('API authentication recovery', () => {
     await expect(apiFetch('/api/todos')).rejects.toMatchObject({ name: 'AuthenticationRequiredError' });
     await expect(apiFetch('/api/browser-stats')).rejects.toMatchObject({ name: 'AuthenticationRequiredError' });
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(navigate).toHaveBeenCalledExactlyOnceWith('https://clock.seonology.com/?layout=classic#today');
+    expect(navigate).toHaveBeenCalledExactlyOnceWith();
   });
 
   it('recognizes the exact API root without matching unrelated prefixes', async () => {
