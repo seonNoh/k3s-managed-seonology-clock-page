@@ -17,8 +17,9 @@ test('an explicit API auth response navigates once and stops pending polling', a
     const poll = async () => {
       try { await apiFetch('/api/auth-recovery-probe'); } catch { /* Navigation ends this document. */ }
     };
-    setInterval(poll, 20);
-    void poll();
+    void apiFetch('/api/auth-recovery-probe').catch(() => {
+      for (let attempt = 0; attempt < 5; attempt += 1) void poll();
+    });
   });
   await expect.poll(() => documentRequests).toBe(2);
   await page.waitForTimeout(150);
