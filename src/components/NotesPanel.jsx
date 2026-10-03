@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './NotesPanel.css';
 
@@ -20,7 +21,7 @@ function NotesPanel({ isOpen, onClose }) {
 
   const fetchNotes = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/notes`);
+      const res = await apiFetch(`${API_BASE}/api/notes`);
       const data = await res.json();
       setNotes(data.notes || []);
       if (!activeNoteId && data.notes?.length > 0) {
@@ -59,7 +60,7 @@ function NotesPanel({ isOpen, onClose }) {
 
   const createNote = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/notes`, { method: 'POST' });
+      const res = await apiFetch(`${API_BASE}/api/notes`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         setNotes(prev => [data.note, ...prev]);
@@ -74,7 +75,7 @@ function NotesPanel({ isOpen, onClose }) {
   const updateNote = useCallback(async (id, content) => {
     setSaving(true);
     try {
-      await fetch(`${API_BASE}/api/notes/${id}`, {
+      await apiFetch(`${API_BASE}/api/notes/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
@@ -98,7 +99,7 @@ function NotesPanel({ isOpen, onClose }) {
 
   const deleteNote = async (id) => {
     try {
-      await fetch(`${API_BASE}/api/notes/${id}`, { method: 'DELETE' });
+      await apiFetch(`${API_BASE}/api/notes/${id}`, { method: 'DELETE' });
       setNotes(prev => {
         const remaining = prev.filter(n => n.id !== id);
         if (activeNoteId === id) {

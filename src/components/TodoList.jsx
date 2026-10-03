@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect } from 'react';
 import LoadingProgress from './LoadingProgress.jsx';
 import './TodoList.css';
@@ -11,7 +12,7 @@ function TodoList() {
 
   const fetchTodos = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/todos`);
+      const res = await apiFetch(`${API_BASE}/api/todos`);
       const data = await res.json();
       setTodos(data.todos || []);
     } catch (err) {
@@ -26,7 +27,7 @@ function TodoList() {
   const addTodo = async (e) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
-    await fetch(`${API_BASE}/api/todos`, {
+    await apiFetch(`${API_BASE}/api/todos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: inputValue.trim() }),
@@ -36,7 +37,7 @@ function TodoList() {
   };
 
   const toggleTodo = async (id, completed) => {
-    await fetch(`${API_BASE}/api/todos/${id}`, {
+    await apiFetch(`${API_BASE}/api/todos/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ completed: !completed }),
@@ -45,12 +46,12 @@ function TodoList() {
   };
 
   const deleteTodo = async (id) => {
-    await fetch(`${API_BASE}/api/todos/${id}`, { method: 'DELETE' });
+    await apiFetch(`${API_BASE}/api/todos/${id}`, { method: 'DELETE' });
     fetchTodos();
   };
 
   const clearCompleted = async () => {
-    await fetch(`${API_BASE}/api/todos`, { method: 'DELETE' });
+    await apiFetch(`${API_BASE}/api/todos`, { method: 'DELETE' });
     fetchTodos();
   };
 

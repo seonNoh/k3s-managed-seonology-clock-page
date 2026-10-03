@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { parseCloudStatusResponse } from '../features/tool-launcher/cloudStatus.js';
 import LoadingProgress from './LoadingProgress.jsx';
@@ -51,7 +52,7 @@ function CloudBrowser({ isOpen, onClose, provider }) {
     setChecking(true);
     setStatusError('');
     try {
-      const res = await fetch(`${API_BASE}${cfg.status}`);
+      const res = await apiFetch(`${API_BASE}${cfg.status}`);
       const data = await parseCloudStatusResponse(res);
       setConnected(data.connected);
       setConfigured(data.configured);
@@ -65,7 +66,7 @@ function CloudBrowser({ isOpen, onClose, provider }) {
   const fetchFiles = useCallback(async (folderId) => {
     setLoading(true); setError(''); setSelected(null);
     try {
-      const res = await fetch(`${API}/files?folderId=${encodeURIComponent(folderId)}`);
+      const res = await apiFetch(`${API}/files?folderId=${encodeURIComponent(folderId)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setFiles(data.files || []);
@@ -95,7 +96,7 @@ function CloudBrowser({ isOpen, onClose, provider }) {
   const handleConnect = () => {
     window.open(`${API_BASE}${cfg.auth}`, '_blank', 'width=500,height=600');
     const interval = setInterval(async () => {
-      const res = await fetch(`${API_BASE}${cfg.status}`);
+      const res = await apiFetch(`${API_BASE}${cfg.status}`);
       const data = await res.json();
       if (data.connected) { setConnected(true); clearInterval(interval); }
     }, 2000);
@@ -105,7 +106,7 @@ function CloudBrowser({ isOpen, onClose, provider }) {
   const handleMkdir = async () => {
     if (!newName.trim()) return;
     try {
-      const res = await fetch(`${API}/mkdir`, {
+      const res = await apiFetch(`${API}/mkdir`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parentId: currentFolderId, name: newName.trim() }),
       });
@@ -117,7 +118,7 @@ function CloudBrowser({ isOpen, onClose, provider }) {
   const handleRename = async () => {
     if (!renameVal.trim() || !renaming) return;
     try {
-      const res = await fetch(`${API}/rename`, {
+      const res = await apiFetch(`${API}/rename`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileId: renaming, name: renameVal.trim() }),
       });
@@ -128,7 +129,7 @@ function CloudBrowser({ isOpen, onClose, provider }) {
 
   const handleDelete = async (fileId) => {
     try {
-      const res = await fetch(`${API}/delete`, {
+      const res = await apiFetch(`${API}/delete`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileId }),
       });
@@ -151,7 +152,7 @@ function CloudBrowser({ isOpen, onClose, provider }) {
       form.append('size', String(file.size));
       form.append('file', file);
       const uploadQuery = new URLSearchParams({ parentId: currentFolderId, size: String(file.size) });
-      const res = await fetch(`${API}/upload?${uploadQuery}`, {
+      const res = await apiFetch(`${API}/upload?${uploadQuery}`, {
         method: 'POST',
         headers: { 'X-Upload-Parent-Id': currentFolderId, 'X-Upload-Size': String(file.size) },
         body: form,

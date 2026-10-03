@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import LoadingProgress from './LoadingProgress.jsx';
 import './NasBrowser.css';
@@ -36,7 +37,7 @@ function NasBrowser({ isOpen, onClose }) {
   const fetchShares = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${API}/shares`);
+      const res = await apiFetch(`${API}/shares`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setShares(data.shares || []);
@@ -46,7 +47,7 @@ function NasBrowser({ isOpen, onClose }) {
   const fetchFiles = useCallback(async (p) => {
     setLoading(true); setError(''); setSelected(null);
     try {
-      const res = await fetch(`${API}/files?path=${encodeURIComponent(p)}`);
+      const res = await apiFetch(`${API}/files?path=${encodeURIComponent(p)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setFiles(data.files || []);
@@ -71,7 +72,7 @@ function NasBrowser({ isOpen, onClose }) {
   const handleMkdir = async () => {
     if (!newName.trim()) return;
     try {
-      const res = await fetch(`${API}/mkdir`, {
+      const res = await apiFetch(`${API}/mkdir`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folderPath: path, name: newName.trim() }),
       });
@@ -83,7 +84,7 @@ function NasBrowser({ isOpen, onClose }) {
   const handleRename = async () => {
     if (!renameVal.trim() || !renaming) return;
     try {
-      const res = await fetch(`${API}/rename`, {
+      const res = await apiFetch(`${API}/rename`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: renaming, name: renameVal.trim() }),
       });
@@ -94,7 +95,7 @@ function NasBrowser({ isOpen, onClose }) {
 
   const handleDelete = async (filePath) => {
     try {
-      const res = await fetch(`${API}/delete`, {
+      const res = await apiFetch(`${API}/delete`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: filePath }),
       });
@@ -112,7 +113,7 @@ function NasBrowser({ isOpen, onClose }) {
       form.append('path', path);
       form.append('file', file);
       const uploadQuery = new URLSearchParams({ path });
-      const res = await fetch(`${API}/upload?${uploadQuery}`, {
+      const res = await apiFetch(`${API}/upload?${uploadQuery}`, {
         method: 'POST',
         headers: { 'X-Upload-Path': path },
         body: form,

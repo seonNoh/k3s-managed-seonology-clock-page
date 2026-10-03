@@ -1,7 +1,7 @@
-import { API_BASE, getSafeExternalUrl } from '../../api/client.js';
+import { API_BASE, getSafeExternalUrl, apiFetch } from '../../api/client.js';
 
 async function requestBookmarkJson(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await apiFetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       Accept: 'application/json',

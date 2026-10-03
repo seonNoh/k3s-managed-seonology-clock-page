@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Holidays from 'date-holidays';
 import { RefreshCw, X, MapPin, Users, CalendarDays } from 'lucide-react';
 import { FlagKR, FlagJP } from './Flags';
-import { getSafeExternalUrl } from '../api/client';
+import { getSafeExternalUrl, apiFetch } from '../api/client';
 import LoadingProgress from './LoadingProgress.jsx';
 import './Calendar.css';
 
@@ -49,7 +49,7 @@ function Calendar() {
       });
       if (forceRefresh) params.set('refresh', 'true');
 
-      const res = await fetch(`${API_BASE}/api/sapporo-events/all?${params.toString()}`);
+      const res = await apiFetch(`${API_BASE}/api/sapporo-events/all?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setSapporoEvents(data.events || []);

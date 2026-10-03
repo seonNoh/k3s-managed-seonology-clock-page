@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './RepoCatalog.css';
-import { getSafeExternalUrl } from '../api/client';
+import { getSafeExternalUrl, apiFetch } from '../api/client';
 import LoadingProgress from './LoadingProgress.jsx';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -26,7 +26,7 @@ function RepoCatalog({ isOpen, onClose }) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/github/repos`);
+      const res = await apiFetch(`${API_BASE}/api/github/repos`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
       setSnapshot(data);
@@ -57,7 +57,7 @@ function RepoCatalog({ isOpen, onClose }) {
 
   const refresh = async () => {
     setLoading(true);
-    try { await fetch(`${API_BASE}/api/github/repos/refresh`, { method: 'POST' }); } catch { /* ignore */ }
+    try { await apiFetch(`${API_BASE}/api/github/repos/refresh`, { method: 'POST' }); } catch { /* ignore */ }
     setLoading(false);
   };
 

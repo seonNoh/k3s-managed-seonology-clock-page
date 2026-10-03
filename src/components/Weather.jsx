@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useRef } from 'react';
 import {
   Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain,
@@ -138,7 +139,7 @@ function Weather() {
         let jma = null;
         if (office) {
           try {
-            const r = await fetch(`${API_BASE}/api/jma/forecast?code=${office}`);
+            const r = await apiFetch(`${API_BASE}/api/jma/forecast?code=${office}`);
             if (r.ok) jma = parseJma(await r.json());
           } catch { /* JMA 실패 → Open-Meteo 폴백 */ }
         }

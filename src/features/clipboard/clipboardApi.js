@@ -1,4 +1,4 @@
-import { API_BASE, requestJson } from '../../api/client.js';
+import { API_BASE, requestJson, apiFetch } from '../../api/client.js';
 
 function segment(value) {
   return encodeURIComponent(String(value));
@@ -18,7 +18,7 @@ export function listClipboardImages(options = {}) {
 }
 
 export async function uploadClipboardImage(blob) {
-  const response = await fetch(`${API_BASE}/api/clipboard/images`, {
+  const response = await apiFetch(`${API_BASE}/api/clipboard/images`, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': blob.type },
     body: blob,
@@ -30,7 +30,7 @@ export async function uploadClipboardImage(blob) {
 }
 
 export async function deleteClipboardImage(id) {
-  const response = await fetch(clipboardImageUrl(id), {
+  const response = await apiFetch(clipboardImageUrl(id), {
     method: 'DELETE',
     headers: { Accept: 'application/json' },
   });
@@ -40,7 +40,7 @@ export async function deleteClipboardImage(id) {
 }
 
 export async function fetchClipboardImageBlob(id) {
-  const response = await fetch(clipboardImageUrl(id));
+  const response = await apiFetch(clipboardImageUrl(id));
   if (!response.ok) {
     throw new Error(`이미지를 불러오지 못했습니다 (상태 ${response.status}).`);
   }

@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import './BriefingPanel.css';
 
@@ -119,7 +120,7 @@ async function fetchAllPages(path) {
   let cursor = '';
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const query = `limit=${PAGE_LIMIT}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
-    const response = await fetch(`${API_BASE}${path}?${query}`);
+    const response = await apiFetch(`${API_BASE}${path}?${query}`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     items.push(...(data.items || []));
@@ -156,7 +157,7 @@ function BriefingPanel() {
 
     (async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/briefing/latest`);
+        const response = await apiFetch(`${API_BASE}/api/briefing/latest`);
         if (!response.ok) {
           if (!cancelled) setError(`브리핑을 불러오지 못했습니다 (HTTP ${response.status})`);
           return;

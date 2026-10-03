@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { renderSafeMarkdown } from '../utils/markdown';
 import {
@@ -56,7 +57,7 @@ function ChatPanel({ isOpen, onClose }) {
 
   const fetchHistory = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/chat/history`);
+      const response = await apiFetch(`${API_BASE}/api/chat/history`);
       if (!response.ok) throw new Error('대화 기록을 불러오지 못했습니다.');
       const data = await response.json();
       setConversations(Array.isArray(data.conversations) ? data.conversations : []);
@@ -71,7 +72,7 @@ function ChatPanel({ isOpen, onClose }) {
     if (!isOpen) return;
     const fetchModels = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/chat/models`);
+        const res = await apiFetch(`${API_BASE}/api/chat/models`);
         if (!res.ok) throw new Error('Failed to fetch models');
         const data = await res.json();
         const models = Array.isArray(data.models) ? data.models : [];
@@ -136,7 +137,7 @@ function ChatPanel({ isOpen, onClose }) {
     ];
 
     try {
-      const res = await fetch(`${API_BASE}/api/chat/${model.provider}`, {
+      const res = await apiFetch(`${API_BASE}/api/chat/${model.provider}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: apiMessages, model: model.id }),
@@ -164,7 +165,7 @@ function ChatPanel({ isOpen, onClose }) {
       const id = conversationId || `chat-${Date.now()}`;
       if (!conversationId) setConversationId(id);
 
-      const response = await fetch(`${API_BASE}/api/chat/history`, {
+      const response = await apiFetch(`${API_BASE}/api/chat/history`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, title, model: model.id, provider: model.provider, messages: msgs }),
@@ -191,7 +192,7 @@ function ChatPanel({ isOpen, onClose }) {
     setHistoryLoading(true);
     setHistoryError('');
     try {
-      const response = await fetch(`${API_BASE}/api/chat/history/${encodeURIComponent(id)}`);
+      const response = await apiFetch(`${API_BASE}/api/chat/history/${encodeURIComponent(id)}`);
       if (!response.ok) throw new Error('Failed to load conversation');
       const conversation = await response.json();
       setMessages(Array.isArray(conversation.messages) ? conversation.messages : []);

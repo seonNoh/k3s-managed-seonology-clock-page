@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useRef } from 'react';
 import { Sunrise } from 'lucide-react';
 import './BriefingCard.css';
@@ -18,7 +19,7 @@ function BriefingCard({ onClick }) {
 
   const load = async () => {
     try {
-      const r = await fetch(`${API_BASE}/api/briefing/latest`);
+      const r = await apiFetch(`${API_BASE}/api/briefing/latest`);
       if (!r.ok) { setUnavailable(true); return; }
       const data = await r.json();
       setLatest(data);

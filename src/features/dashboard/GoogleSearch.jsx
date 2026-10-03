@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { API_BASE, openExternalUrl } from '../../api/client.js';
+import { API_BASE, openExternalUrl, apiFetch } from '../../api/client.js';
 
 export default function GoogleSearch({ variant = 'split' }) {
   const [query, setQuery] = useState('');
@@ -35,7 +35,7 @@ export default function GoogleSearch({ variant = 'split' }) {
       const controller = new AbortController();
       controllerRef.current = controller;
       try {
-        const response = await fetch(`${API_BASE}/api/suggest?q=${encodeURIComponent(nextQuery)}`, { signal: controller.signal });
+        const response = await apiFetch(`${API_BASE}/api/suggest?q=${encodeURIComponent(nextQuery)}`, { signal: controller.signal });
         if (!response.ok) throw new Error(`Suggestion request failed: ${response.status}`);
         const result = await response.json();
         const nextSuggestions = Array.isArray(result) ? result.filter((item) => typeof item === 'string').slice(0, 8) : [];

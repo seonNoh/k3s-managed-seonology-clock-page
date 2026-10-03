@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect } from 'react';
 import { AppWindow } from 'lucide-react';
 import './BrowserStats.css';
@@ -11,7 +12,7 @@ function BrowserStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/browser-stats`);
+        const res = await apiFetch(`${API_BASE}/api/browser-stats`);
         const data = await res.json();
         if (data.available) {
           setStats(data);

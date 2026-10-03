@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import LoadingProgress from './LoadingProgress.jsx';
 import './InfraDashboard.css';
@@ -57,7 +58,7 @@ function InfraDashboard({ isOpen, onClose }) {
     setLoading(prev => ({ ...prev, [key]: true }));
     setErrors(prev => ({ ...prev, [key]: '' }));
     try {
-      const res = await fetch(`${API_BASE}${url}`);
+      const res = await apiFetch(`${API_BASE}${url}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
       return data;

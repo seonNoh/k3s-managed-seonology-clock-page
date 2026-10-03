@@ -12,7 +12,7 @@ import ExchangeRate from '../components/ExchangeRate';
 import LoadingProgress from '../components/LoadingProgress';
 import BrowserStats from '../components/BrowserStats';
 import { SpeedTestMini } from '../components/SpeedTestMini';
-import { API_BASE, getSafeExternalUrl, requestJson } from '../api/client';
+import { API_BASE, getSafeExternalUrl, requestJson, apiFetch } from '../api/client';
 import { closeTopDialog, filterToolCatalog, openToolDialog, openToolLauncher } from '../features/tool-launcher/dialog-state';
 import {
   getLoadedWebToolComponent,
@@ -138,7 +138,7 @@ function TodoPreview({ onClick }) {
   useEffect(() => {
     const fetchTodos = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/todos`);
+        const res = await apiFetch(`${API_BASE}/api/todos`);
         const data = await res.json();
         const pending = (data.todos || []).filter(t => !t.completed).slice(0, 3);
         setTodos(pending);

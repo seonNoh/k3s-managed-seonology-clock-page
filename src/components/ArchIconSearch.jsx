@@ -1,3 +1,4 @@
+import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { X, Check } from 'lucide-react';
 import LoadingProgress from './LoadingProgress.jsx';
@@ -43,7 +44,7 @@ export default function ArchIconSearch({ isOpen, onClose }) {
     if (!isOpen || catalog) return;
     setLoading(true);
     setError(null);
-    fetch(`${API_BASE}/api/icons/index`)
+    apiFetch(`${API_BASE}/api/icons/index`)
       .then((r) => { if (!r.ok) throw new Error('아이콘 카탈로그를 불러올 수 없습니다'); return r.json(); })
       .then((d) => setCatalog(d))
       .catch((e) => setError(e.message))
@@ -86,7 +87,7 @@ export default function ArchIconSearch({ isOpen, onClose }) {
 
   const copySvg = useCallback(async (p) => {
     try {
-      const r = await fetch(iconUrl(p));
+      const r = await apiFetch(iconUrl(p));
       const txt = await r.text();
       await navigator.clipboard.writeText(txt);
       setCopied(true);
@@ -95,7 +96,7 @@ export default function ArchIconSearch({ isOpen, onClose }) {
   }, []);
 
   const downloadSvg = useCallback(async (ic) => {
-    const r = await fetch(iconUrl(ic.p));
+    const r = await apiFetch(iconUrl(ic.p));
     const txt = await r.text();
     const blob = new Blob([txt], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
