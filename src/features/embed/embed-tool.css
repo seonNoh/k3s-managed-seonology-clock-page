@@ -1,0 +1,131 @@
+/*
+ * Embed mode (?embed=1&tool=<id>): one tool fills the frame of the embedding window.
+ * Tool components render as `<overlay><modal>…</modal></overlay>`; the rules below turn
+ * that pair into an in-flow surface. Selectors start with :root[data-embed="tool"] and
+ * the shell classes so they outrank styles/modal-system.css and the tools' own CSS.
+ */
+:root[data-embed="tool"] {
+  --embed-bg: rgb(255, 255, 255);
+  --embed-text: #1f2328;
+  --embed-muted: #59636e;
+  color-scheme: light;
+}
+
+:root[data-embed="tool"][data-color-mode="dark"] {
+  --embed-bg: rgb(30, 30, 30);
+  --embed-text: #f0f6fc;
+  --embed-muted: #939da8;
+  color-scheme: dark;
+}
+
+:root[data-embed="tool"],
+:root[data-embed="tool"] body,
+:root[data-embed="tool"] #root {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--embed-bg);
+  color: var(--embed-text);
+}
+
+.embed-shell {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  background: var(--embed-bg);
+  color: var(--embed-text);
+}
+
+.embed-tool-host {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.embed-tool-loading {
+  display: grid;
+  flex: 1 1 auto;
+  place-items: center;
+}
+
+.embed-tool-missing {
+  margin: 0;
+  color: var(--embed-muted);
+  font: 500 0.82rem/1.5 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* Overlay: no backdrop, no fixed positioning, no viewport padding. */
+:root[data-embed="tool"] body .embed-shell .embed-tool-host > * {
+  position: relative !important;
+  inset: auto !important;
+  z-index: auto !important;
+  display: flex !important;
+  flex: 1 1 auto;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  animation: none !important;
+}
+
+/* Modal: fill the frame and blend into the window background. Scrolling stays inside the tool. */
+:root[data-embed="tool"] body .embed-shell .embed-tool-host > * > :is([class$="-modal"], [class$="-panel"], [class$="-container"]) {
+  flex: 1 1 auto;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 !important;
+  overflow: auto;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--embed-bg) !important;
+  box-shadow: none !important;
+  color: var(--embed-text);
+  animation: none !important;
+  transform: none !important;
+}
+
+/* The embedding window provides the close control. */
+:root[data-embed="tool"] body .embed-shell .embed-tool-host :is(
+  .archi-close,
+  .b64-close-btn,
+  .cicd-close,
+  .clip-close-btn,
+  .cpick-close-btn,
+  .cron-close-btn,
+  .dns-close-btn,
+  .e2m-close,
+  .ep-close-btn,
+  .gl2gh-close,
+  .infra-close-btn,
+  .ip-close-btn,
+  .jf-close-btn,
+  .md-close-btn,
+  .mm-close-btn,
+  .nb-close-btn,
+  .pwgen-close-btn,
+  .rbac-close,
+  .repocat-btn[title="Close"],
+  .rx-close-btn,
+  .slo-close-btn,
+  .speed-close-btn,
+  .subnet-close-btn,
+  .tc-close-btn,
+  .tfp-close,
+  .uc-close-btn
+) {
+  display: none !important;
+}

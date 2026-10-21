@@ -3,12 +3,23 @@ import LoadingProgress from './components/LoadingProgress.jsx';
 import SplitConsoleDashboard from './layouts/SplitConsoleDashboard.jsx';
 import { usePersistentPreference } from './hooks/usePersistentPreference.js';
 import { startUiTransition } from './ui/startUiTransition.js';
+import EmbeddedTool from './features/embed/EmbeddedTool.jsx';
+import { currentEmbedRequest } from './features/embed/embedRequest.js';
 import './app-shell.css';
 import './styles/modal-system.css';
 
 const ClassicDashboard = lazy(() => import('./layouts/ClassicDashboard.jsx'));
 
+// Read once at startup: embed mode renders a single tool without the dashboard shell,
+// so layout-wide effects (geolocation, notifications, briefing SSE, background effects) never start.
+const EMBED_REQUEST = currentEmbedRequest();
+
 function App() {
+  if (EMBED_REQUEST) return <EmbeddedTool toolId={EMBED_REQUEST.toolId} />;
+  return <DashboardApp />;
+}
+
+function DashboardApp() {
   const [layout, setLayout] = usePersistentPreference('layout');
   const [colorMode, setColorMode] = usePersistentPreference('colorMode');
   const [clockTheme, setClockTheme] = usePersistentPreference('clockTheme');
