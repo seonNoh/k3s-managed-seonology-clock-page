@@ -24,6 +24,8 @@ Seonology Clock Page는 React 대시보드, Express API, 브라우저 확장을 
 
 ![Clock Page 도구 구성](docs/svg/tool-landscape.ko.svg)
 
+`/?embed=1&tool=<id>` 로 열면 헤더, 레이아웃, 시계 없이 웹 도구 하나만 화면 전체에 표시되므로 다른 페이지의 iframe 에 넣을 수 있습니다.
+
 ## 로컬 개발에서는 잠금 파일 세 개를 각각 설치합니다
 
 Node.js `24.15` 또는 호환되는 `24.x` 버전이 필요합니다. 루트, API, 브라우저 확장의 잠금 파일을 각각 설치합니다.

@@ -24,6 +24,8 @@ Seonology Clock Pageは、Reactのダッシュボード、Express API、ブラ�
 
 ![Clock Pageのツール構成](docs/svg/tool-landscape.ja.svg)
 
+`/?embed=1&tool=<id>` で開くと、ヘッダー、レイアウト、時計を表示せずにWebツールを一つだけ画面全体に表示するため、ほかのページのiframeに埋め込めます。
+
 ## ローカル開発では三つのロックファイルを個別にインストールします
 
 Node.js `24.15`、または互換性のある`24.x`が必要です。ルート、API、ブラウザー拡張の依存関係を、それぞれのロックファイルからインストールします。

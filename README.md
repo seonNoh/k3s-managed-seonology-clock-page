@@ -24,6 +24,8 @@ The dashboard combines time, weather, bookmarks, search, status, and visual effe
 
 ![Clock Page tool landscape](docs/svg/tool-landscape.svg)
 
+Opening `/?embed=1&tool=<id>` renders a single web tool across the whole frame, without the header, layout, or clock, so another page can embed it in an iframe.
+
 ## Local development uses three locked dependency sets
 
 Node.js `24.15` or a compatible `24.x` release is required. Install the root, API, and extension lockfiles independently.
