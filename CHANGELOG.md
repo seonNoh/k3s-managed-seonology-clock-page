@@ -1,3 +1,9 @@
+## [1.61.1] - 2026-10-21
+
+### Fixes
+
+- fix: read JMA warnings from the r8 report list
+
 ## [1.61.0] - 2026-10-21
 
 ### Features
