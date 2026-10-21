@@ -1,3 +1,9 @@
+## [1.61.0] - 2026-10-21
+
+### Features
+
+- feat: render a single web tool in embed mode
+
 ## [1.60.0] - 2026-09-08
 
 ### Features
