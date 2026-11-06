@@ -2,7 +2,7 @@
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md)
 
-Seonology Clock Pageは、時計、ブックマーク、開発ツール、インフラ情報、ファイルブラウザー、チャットを備えた個人向けの運用ダッシュボードです。nginxを使う一つのコンテナでReactとExpress APIを実行します。リポジトリにはSeonology Toolkit拡張と、タブ統計を収集する別のブラウザー拡張もあります。
+Seonology Clock Pageは、時計、ブックマーク、開発ツール、インフラ情報、ファイルブラウザー、チャットを備えた個人向けの運用ダッシュボードです。nginxを使う一つのコンテナでReactとExpress APIを実行します。リポジトリにはSeonology Toolkit拡張と、独立したSeonology Bookmark Sync拡張もあります。Bookmark Syncは選択したChromeフォルダーのブックマークを同期し、タブ統計とタブ切り替えも提供します。
 
 管理元はGiteaの`seonology/k3s-managed-seonology-clock-page`です。push mirrorは`sync_on_commit: true`でブランチとタグをGitHubの`seonNoh/k3s-managed-seonology-clock-page`にコピーします。
 
@@ -18,7 +18,7 @@ nginxはポート`8080`でViteのビルドを配信し、`/api/`と`/health`を`
 | `api/` | Expressルート、連携クライアント、JSON・画像の永続ストレージ |
 | `packages/toolkit-core/` | ツール情報、表示場所、Markdownユーティリティー |
 | `toolkit-extension/` | ポップアップ、新しいタブ、コンテキストメニューを備えたManifest V3拡張 |
-| `chrome-extension/` | タブ統計の収集とタブ切り替え用の独立した拡張 |
+| `chrome-extension/` | Seonology Bookmark Sync：選択フォルダーのブックマーク同期、タブ統計、タブ切り替え |
 | `scripts/` | コンテナのスモークテスト、リリース計画・公開、トークンのバックアップ復元 |
 | `k8s/` | 参照用マニフェストです。Argo CDは後述の中央GitOpsパスを使用します。 |
 
@@ -29,6 +29,19 @@ SplitとClassicには検索、天気、ブックマーク、視覚効果があ�
 ![ツールの表示場所対応表](docs/svg/tool-landscape.ja.svg)
 
 `/?embed=1&tool=<id>`または`/?embed=true&tool=<id>`で開くと、ダッシュボードを表示せずにWebツールを一つ開きます。たとえば`/?embed=1&tool=json`はJSONフォーマッターを開きます。埋め込みにはWebツールのIDを使います。Toolkit拡張は`npm run build --prefix toolkit-extension`で生成した`toolkit-extension/dist`から読み込みます。
+
+Bookmark Syncは`chrome-extension/`からパッケージ化されていない拡張として読み込みます。Toolkitはビルドした`toolkit-extension/dist`を使います。
+
+各ツールの表示場所は次のとおりです。
+
+| ツールID | Web | ポップアップ | 新しいタブ | コンテキストメニュー |
+|---|---|---|---|---|
+| `regex` | 対応 | 対応 | 対応 | 非対応 |
+| `unit` | 対応 | 対応 | 対応 | 非対応 |
+| `cron` | 対応 | 対応 | 対応 | 非対応 |
+| `markdown` | 対応 | 非対応 | 対応 | 非対応 |
+| `rbac` | 対応 | 非対応 | 対応 | 非対応 |
+| `textcount` | 非対応 | 対応 | 対応 | 対応 |
 
 | API | 用途 |
 |---|---|
@@ -58,7 +71,7 @@ npm ci --prefix api
 npm ci --prefix toolkit-extension
 npm run dev
 # In another terminal
-npm run dev --prefix api
+BOOKMARKS_DIR="${TMPDIR:-/tmp}/seonology-clock-page-local" npm run dev --prefix api
 ```
 
 `http://localhost:5173`を開きます。WebのAPIクライアントは、ホスト名が`localhost`のときに`http://localhost:3001`を使います。ViteにはAPIプロキシがありません。APIの既定ポートは`3001`で、`PORT`で変更します。実行時設定はプロセスの環境変数から読み込みます。認証情報は追跡対象のファイルに保存しないでください。
@@ -66,6 +79,16 @@ npm run dev --prefix api
 ## 品質チェック
 
 リポジトリ契約は、READMEの構造、同一のコマンドブロック、言語別の画像リンク、SVGの配置規則を検査します。管理ファイル、ワークフローの境界、GitHubワークフローのチェックサムも対象です。Gitea CIはリンター、単体・API・ブラウザーテスト、ビルド、実行時依存関係の監査、コンテナのスモークテストも実行します。
+
+| 専用テスト | 対象 |
+|---|---|
+| `api/test/bookmark-url-security.test.js` | 外部ブックマークURL |
+| `api/test/oauth-transaction.test.js` | 一度だけ使えるOAuthトランザクション |
+| `api/test/nas-path-policy.test.js` | 許可されたNASパス |
+| `api/test/cloud-token-store.test.js` | クラウドトークンの暗号化保存 |
+| `api/test/cors-policy.test.js` | ブラウザーのオリジン許可（CORS） |
+| `api/test/upload-boundaries.test.js` | アップロードのサイズ・件数・保存先 |
+| `tests/unit/browser-message-security.test.js` | ブラウザーメッセージのオリジンと送信元 |
 
 ```sh
 python3 verify.py --repository .
@@ -83,6 +106,11 @@ npm run smoke:container
 `npm run test:e2e`は`pretest:e2e`でToolkit拡張をビルドします。ブラウザーテストにはPlaywright Chromiumが必要です。コンテナのスモークテストにはDockerが必要です。HTTPの状態、読み取り専用マウント、API停止後の状態リクエスト失敗を確認します。CIは実行時依存関係の監査で、深刻度high以上の指摘があると失敗します。
 
 ## 実行時設定
+
+
+`CLOUD_TOKEN_ENCRYPTION_KEY`は、デコード後に正確に32バイトになる値が必要です。64桁の16進数、末尾が`=`の44文字のBase64、または正確に32バイトのUTF-8文字列を受け付けます。Google Driveには`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`、登録先と一致する`GOOGLE_REDIRECT_URI`、暗号化トークンストアが必要です。OneDriveには対応する`MS_CLIENT_ID`、`MS_CLIENT_SECRET`、`MS_REDIRECT_URI`と同じストアが必要です。プロバイダーが未設定の場合、OAuth開始ルートと`/api/gdrive/files`、`/api/onedrive/files`などのファイル操作はHTTP `503`を返します。状態照会の`/api/gdrive/status`と`/api/onedrive/status`は、HTTP `200`と`connected: false`、`configured: false`を返します。設定と接続の状態は、このJSONフィールドで判断してください。ほかのAPI機能は引き続き利用できます。ローカルのコールバックURLをOAuthプロバイダーに登録し、環境変数のリダイレクト先と一致させてください。
+
+認証情報をログ、fixture、Issue、CI・ワークフローの出力に残さないでください。
 
 | 変数 | 既定値または用途 |
 |---|---|
@@ -117,6 +145,20 @@ npm run smoke:container
 
 Giteaワークフローはバージョンの増分を計算しません。`scripts/release-gate.mjs`の計画処理は、`feat`をマイナー、`fix`・`chore`・`refactor`・`docs`・`perf`をパッチとして扱います。互換性のない変更は1.x以降でメジャー、0.xではマイナーです。ビルドのバージョンは`VERSION`から読み込みます。非公開パッケージの`package.json`は`0.0.0`を維持します。
 
+| ワークフローのソース | 実際のステップ名と順序 |
+|---|---|
+| [ci.yml](.gitea/workflows/ci.yml#L21) | `Check out the exact Gitea revision` → `Verify Node.js 24` → `Install locked dependencies` → `Verify repository policy` → `Lint and run unit tests` → `Install Chromium and run browser tests` → `Build production assets` → `Audit production dependencies` → `Verify the production container` |
+| [image.yml](.gitea/workflows/image.yml#L24) | `Check out the exact Gitea revision` → `Verify repository policy` → `Configure a multi-platform builder` → `Log in to Gitea Registry` → `Build and publish the OCI index` → `Verify both published platforms` |
+| [release.yml](.gitea/workflows/release.yml#L25) | `Check out the exact Gitea revision` → `Resolve and verify the release tag` → `Verify repository policy` → `Configure a multi-platform builder` → `Log in to Gitea Registry` → `Publish an immutable release image when absent` → `Create the Gitea release when absent` |
+
+イメージ照会が成功すればリリースイメージのビルドを省略し、失敗すればビルドします。両方の経路で、その後に`amd64`と`arm64`を確認します。Giteaリリースの照会はHTTP `200`で終了し、`404`で作成します。ほかのステータスでは失敗します。
+
+| Actions Secret | 使用するワークフローと用途 |
+|---|---|
+| `CI_TOKEN` | CI・Image・Releaseのチェックアウト、Image・Releaseのレジストリログイン、Release APIの認証 |
+| `PACKAGE_USER` | Image・Releaseのレジストリログイン名 |
+
+
 ## 中央GitOpsによるデプロイ
 
 Argo CD Application `seonology-clock-page`は、`https://git.seonology.com/seonology/seonology-k3s.git`のリビジョン`HEAD`、パス`workloads/seonology-clock-page`を読み込みます。デプロイ先は名前空間`seonology-apps`です。自動同期は`prune`と`selfHeal`を使います。Kustomizationは`git.seonology.com/seonology/seonology-clock-page:sha-7192892f4d21`を指定します。
@@ -131,8 +173,29 @@ Deploymentはレプリカ1個、`Recreate`、UID/GID `10001`、capabilityの全�
 
 Agent Platformの`agent-api-ingress` NetworkPolicyは、名前空間`seonology-apps`で`app: seonology-clock-page`ラベルを持つPodから、Agent APIのTCP `8080`への接続を許可します。
 
+クラスターの読み取り権限とレジストリへのアクセス権がある環境で、次のコマンドを使います。Application、ワークロード、ログ、配信中のイメージ、ローカルの状態応答、OCIプラットフォームを参照します。
+
+```sh
+# Gitea source repository
+git clone https://git.seonology.com/seonology/k3s-managed-seonology-clock-page.git
+cd k3s-managed-seonology-clock-page
+git remote get-url origin
+
+# Read-only workload inspection
+kubectl -n argocd get application seonology-clock-page
+kubectl -n seonology-apps get deployment,service seonology-clock-page
+kubectl -n seonology-apps get pods -l app=seonology-clock-page
+kubectl -n seonology-apps rollout status deployment/seonology-clock-page --timeout=60s
+kubectl -n seonology-apps logs deployment/seonology-clock-page --tail=100
+kubectl -n seonology-apps get deployment seonology-clock-page -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n seonology-apps exec deployment/seonology-clock-page -- node -e 'fetch("http://127.0.0.1:8080/health").then(async r => { console.log(r.status, await r.text()); if (!r.ok) process.exitCode = 1; })'
+docker buildx imagetools inspect git.seonology.com/seonology/seonology-clock-page:main
+```
+
 ## コントリビューションとライセンス
 
-コミットタイトルは英語のConventional Commit形式で、本文は変更理由と影響を韓国語で記載します。READMEの節順、コマンドブロック、図ごとの3言語版をそろえてください。図は既存のファイル名とpediaの項目を使って更新します。
+コミットタイトルは英語のConventional Commit形式で、本文は変更理由と影響を韓国語で記載します。READMEの節順、コマンドブロック、図ごとの3言語版をそろえてください。図は既存のファイル名とpediaの項目を使って更新します。 自動作成者の署名や共同作成者のトレーラーは追加しないでください。
 
 [MIT License](LICENSE)を適用します。貢献方法は[CONTRIBUTING.md](CONTRIBUTING.md)、文書の構造は[README_STRUCTURE.md](README_STRUCTURE.md)に記載しています。
+
+実装の詳細は[フロントエンドのモジュール境界](docs/architecture.md#프런트엔드-모듈-경계)、[秘密情報の設定](docs/security.md#비밀값과-구성)、[入出力の境界](docs/security.md#입력-및-출력-경계)、[トークンバックアップの復元](docs/runbook.md#cloud-token-%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98-%EB%B3%B5%EA%B5%AC)、[ロールバック](docs/runbook.md#롤백)を参照してください。

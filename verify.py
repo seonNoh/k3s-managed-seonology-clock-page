@@ -69,7 +69,7 @@ def main() -> int:
         metrics[name] = (len(h2), len(linked), len(blocks))
         code_blocks[name] = blocks
         images[name] = linked
-        check(f"{name} structure", sum(item.startswith("# ") for item in headings) == 1 and metrics[name] == (8, 4, 2), metrics[name])
+        check(f"{name} structure", sum(item.startswith("# ") for item in headings) == 1 and metrics[name] == (8, 4, 3), metrics[name])
         check(f"{name} language switcher", switcher in text.splitlines()[:6], "present")
         missing_links = []
         for target in re.findall(r"(?<!!)\[[^]]+\]\(([^)]+)\)", text):

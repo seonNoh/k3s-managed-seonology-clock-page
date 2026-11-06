@@ -2,7 +2,7 @@
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md)
 
-Seonology Clock Page는 시계, 북마크, 개발 도구, 인프라 현황, 파일 탐색기와 채팅을 제공하는 개인 운영 대시보드입니다. nginx 기반 컨테이너 하나에서 React와 Express API를 실행합니다. 저장소에는 Seonology Toolkit 브라우저 확장과 별도의 탭 통계 확장도 있습니다.
+Seonology Clock Page는 시계, 북마크, 개발 도구, 인프라 현황, 파일 탐색기와 채팅을 제공하는 개인 운영 대시보드입니다. nginx 기반 컨테이너 하나에서 React와 Express API를 실행합니다. 저장소에는 Seonology Toolkit 브라우저 확장과 별도의 Seonology Bookmark Sync 확장도 있습니다. Bookmark Sync는 선택한 Chrome 폴더의 북마크를 동기화하며 탭 통계와 탭 활성화도 제공합니다.
 
 기준 저장소는 Gitea `seonology/k3s-managed-seonology-clock-page`입니다. push mirror는 `sync_on_commit: true`로 브랜치와 태그를 GitHub `seonNoh/k3s-managed-seonology-clock-page`에 복사합니다.
 
@@ -18,7 +18,7 @@ nginx는 `8080` 포트에서 Vite 빌드를 제공하고 `/api/`와 `/health`를
 | `api/` | Express 라우트, 연동 클라이언트와 JSON·이미지 영구 저장소 |
 | `packages/toolkit-core/` | 도구 메타데이터, 표시 위치와 Markdown 유틸리티 |
 | `toolkit-extension/` | 팝업, 새 탭, 문맥 메뉴를 제공하는 Manifest V3 확장 |
-| `chrome-extension/` | 별도의 탭 통계 수집·탭 활성화 확장 |
+| `chrome-extension/` | Seonology Bookmark Sync: 선택 폴더의 북마크 동기화, 탭 통계와 탭 활성화 |
 | `scripts/` | 컨테이너 스모크, 릴리스 계획·게시와 토큰 백업 복구 |
 | `k8s/` | 참고용 매니페스트이며 Argo CD는 아래 중앙 GitOps 경로를 사용합니다. |
 
@@ -29,6 +29,19 @@ Split과 Classic 레이아웃은 검색, 날씨, 북마크와 시각 효과를 �
 ![도구 표시 위치 대응표](docs/svg/tool-landscape.ko.svg)
 
 `/?embed=1&tool=<id>` 또는 `/?embed=true&tool=<id>`로 열면 대시보드 없이 웹 도구 하나를 표시합니다. 예를 들어 `/?embed=1&tool=json`은 JSON 포매터를 엽니다. 임베디드 경로에는 웹 도구 ID를 사용합니다. Toolkit 확장은 `npm run build --prefix toolkit-extension`으로 만든 `toolkit-extension/dist`를 불러옵니다.
+
+Bookmark Sync는 `chrome-extension/`을 압축 해제된 확장으로 불러옵니다. Toolkit은 빌드한 `toolkit-extension/dist`를 사용합니다.
+
+도구별 표시 위치는 다음과 같습니다.
+
+| 도구 ID | 웹 | 팝업 | 새 탭 | 문맥 메뉴 |
+|---|---|---|---|---|
+| `regex` | 지원 | 지원 | 지원 | 미지원 |
+| `unit` | 지원 | 지원 | 지원 | 미지원 |
+| `cron` | 지원 | 지원 | 지원 | 미지원 |
+| `markdown` | 지원 | 미지원 | 지원 | 미지원 |
+| `rbac` | 지원 | 미지원 | 지원 | 미지원 |
+| `textcount` | 미지원 | 지원 | 지원 | 지원 |
 
 | API | 용도 |
 |---|---|
@@ -58,7 +71,7 @@ npm ci --prefix api
 npm ci --prefix toolkit-extension
 npm run dev
 # In another terminal
-npm run dev --prefix api
+BOOKMARKS_DIR="${TMPDIR:-/tmp}/seonology-clock-page-local" npm run dev --prefix api
 ```
 
 `http://localhost:5173`에 접속합니다. 웹 API 클라이언트는 호스트 이름이 `localhost`이면 `http://localhost:3001`을 사용합니다. Vite에는 API 프록시가 없습니다. API 기본 포트는 `3001`이며 `PORT`로 변경합니다. 런타임 설정은 프로세스 환경 변수에서 읽습니다. 자격증명은 추적 대상 파일 밖에서 관리합니다.
@@ -66,6 +79,16 @@ npm run dev --prefix api
 ## 품질 검사
 
 저장소 계약은 README 구조, 동일한 명령 블록, 언어별 이미지 링크, SVG 배치 규칙, 관리 파일, 워크플로 경계와 GitHub 워크플로 체크섬을 검사합니다. Gitea CI는 린트, 단위·API·브라우저 검사, 빌드, 운영 의존성 감사와 컨테이너 스모크도 실행합니다.
+
+| 전용 테스트 | 대상 |
+|---|---|
+| `api/test/bookmark-url-security.test.js` | 외부 북마크 URL |
+| `api/test/oauth-transaction.test.js` | 일회성 OAuth 트랜잭션 |
+| `api/test/nas-path-policy.test.js` | 허용된 NAS 경로 |
+| `api/test/cloud-token-store.test.js` | 클라우드 토큰 암호화 저장 |
+| `api/test/cors-policy.test.js` | 브라우저 출처 허용 정책(CORS) |
+| `api/test/upload-boundaries.test.js` | 업로드 크기·개수·대상 경계 |
+| `tests/unit/browser-message-security.test.js` | 브라우저 메시지의 출처와 발신 창 |
 
 ```sh
 python3 verify.py --repository .
@@ -83,6 +106,11 @@ npm run smoke:container
 `npm run test:e2e`는 `pretest:e2e`에서 Toolkit 확장을 빌드합니다. 브라우저 검사에는 Playwright Chromium이 필요합니다. 컨테이너 스모크에는 Docker가 필요하며 HTTP 상태, 읽기 전용 마운트와 API 종료 후 상태 요청 실패를 확인합니다. CI는 운영 의존성 감사에서 심각도가 high 이상인 항목을 허용하지 않습니다.
 
 ## 런타임 설정
+
+
+`CLOUD_TOKEN_ENCRYPTION_KEY`는 디코딩한 결과가 정확히 32바이트여야 합니다. 64자리 16진수, 끝이 `=`인 44자리 Base64 또는 정확히 32바이트인 UTF-8 문자열을 받습니다. Google Drive에는 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, 등록 주소와 일치하는 `GOOGLE_REDIRECT_URI`와 암호화 토큰 저장소가 필요합니다. OneDrive에는 대응하는 `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_REDIRECT_URI`와 같은 저장소가 필요합니다. 제공자가 미설정 상태이면 OAuth 시작 경로와 `/api/gdrive/files`, `/api/onedrive/files` 등의 파일 작업 경로는 HTTP `503`을 반환합니다. 상태 조회 경로 `/api/gdrive/status`와 `/api/onedrive/status`는 HTTP `200`과 `connected: false`, `configured: false`를 반환합니다. 설정·연결 상태는 이 JSON 필드로 판단합니다. 다른 API 기능은 계속 사용할 수 있습니다. 로컬 콜백 주소는 OAuth 제공자에 등록하고 환경 변수의 리디렉션 주소와 일치시킵니다.
+
+자격증명을 로그, fixture, 이슈와 CI·워크플로 출력에 남기지 않습니다.
 
 | 변수 | 기본값 또는 용도 |
 |---|---|
@@ -117,6 +145,20 @@ npm run smoke:container
 
 Gitea 워크플로는 버전 증가를 계산하지 않습니다. `scripts/release-gate.mjs`의 계획기는 `feat`에 마이너, `fix`·`chore`·`refactor`·`docs`·`perf`에 패치를 적용합니다. 호환성을 깨는 변경은 1.x부터 메이저, 0.x에서는 마이너를 적용합니다. 빌드 버전은 `VERSION`에서 읽으며 비공개 패키지인 `package.json`은 `0.0.0`을 유지합니다.
 
+| 워크플로 소스 | 실제 스텝 이름과 순서 |
+|---|---|
+| [ci.yml](.gitea/workflows/ci.yml#L21) | `Check out the exact Gitea revision` → `Verify Node.js 24` → `Install locked dependencies` → `Verify repository policy` → `Lint and run unit tests` → `Install Chromium and run browser tests` → `Build production assets` → `Audit production dependencies` → `Verify the production container` |
+| [image.yml](.gitea/workflows/image.yml#L24) | `Check out the exact Gitea revision` → `Verify repository policy` → `Configure a multi-platform builder` → `Log in to Gitea Registry` → `Build and publish the OCI index` → `Verify both published platforms` |
+| [release.yml](.gitea/workflows/release.yml#L25) | `Check out the exact Gitea revision` → `Resolve and verify the release tag` → `Verify repository policy` → `Configure a multi-platform builder` → `Log in to Gitea Registry` → `Publish an immutable release image when absent` → `Create the Gitea release when absent` |
+
+이미지 조회가 성공하면 릴리스 이미지 빌드를 건너뛰고, 실패하면 빌드합니다. 두 경로 모두 이후 `amd64`와 `arm64`를 확인합니다. Gitea 릴리스 조회는 HTTP `200`이면 종료하고 `404`이면 생성하며 다른 상태이면 실패합니다.
+
+| Actions Secret | 사용하는 워크플로와 용도 |
+|---|---|
+| `CI_TOKEN` | CI·Image·Release 체크아웃, Image·Release 레지스트리 로그인, Release API 인증 |
+| `PACKAGE_USER` | Image·Release 레지스트리 로그인 계정 |
+
+
 ## 중앙 GitOps 배포
 
 Argo CD Application `seonology-clock-page`는 `https://git.seonology.com/seonology/seonology-k3s.git`의 리비전 `HEAD`, 경로 `workloads/seonology-clock-page`를 읽고 `seonology-apps` 네임스페이스에 배포합니다. 자동 동기화는 `prune`과 `selfHeal`을 사용합니다. Kustomization은 `git.seonology.com/seonology/seonology-clock-page:sha-7192892f4d21`을 지정합니다.
@@ -131,8 +173,29 @@ Deployment는 복제본 1개, `Recreate`, UID/GID `10001`, capability 전체 제
 
 Agent Platform의 `agent-api-ingress` NetworkPolicy는 `seonology-apps` 네임스페이스에서 `app: seonology-clock-page` 레이블을 가진 Pod가 Agent API의 TCP `8080`에 접근하도록 허용합니다.
 
+클러스터 읽기 권한과 레지스트리 접근 권한이 있는 환경에서 다음 명령으로 Application, 워크로드, 로그, 배포 이미지, 로컬 상태 응답과 OCI 플랫폼을 조회합니다.
+
+```sh
+# Gitea source repository
+git clone https://git.seonology.com/seonology/k3s-managed-seonology-clock-page.git
+cd k3s-managed-seonology-clock-page
+git remote get-url origin
+
+# Read-only workload inspection
+kubectl -n argocd get application seonology-clock-page
+kubectl -n seonology-apps get deployment,service seonology-clock-page
+kubectl -n seonology-apps get pods -l app=seonology-clock-page
+kubectl -n seonology-apps rollout status deployment/seonology-clock-page --timeout=60s
+kubectl -n seonology-apps logs deployment/seonology-clock-page --tail=100
+kubectl -n seonology-apps get deployment seonology-clock-page -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n seonology-apps exec deployment/seonology-clock-page -- node -e 'fetch("http://127.0.0.1:8080/health").then(async r => { console.log(r.status, await r.text()); if (!r.ok) process.exitCode = 1; })'
+docker buildx imagetools inspect git.seonology.com/seonology/seonology-clock-page:main
+```
+
 ## 기여와 라이선스
 
-커밋 제목은 영어 Conventional Commit 형식으로 작성하고 본문에는 변경 이유와 영향을 한국어로 적습니다. README 절 순서, 명령 블록과 그림별 세 언어판을 일치시킵니다. 그림은 기존 파일 이름과 pedia 항목으로 갱신합니다.
+커밋 제목은 영어 Conventional Commit 형식으로 작성하고 본문에는 변경 이유와 영향을 한국어로 적습니다. README 절 순서, 명령 블록과 그림별 세 언어판을 일치시킵니다. 그림은 기존 파일 이름과 pedia 항목으로 갱신합니다. 자동 작성자 서명이나 공동 작성자 트레일러를 추가하지 않습니다.
 
 [MIT License](LICENSE)를 적용합니다. 기여 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)에 있으며 문서 구조는 [README_STRUCTURE.md](README_STRUCTURE.md)에 정의합니다.
+
+구현 관련 자료는 [프런트엔드 모듈 경계](docs/architecture.md#프런트엔드-모듈-경계), [비밀값 구성](docs/security.md#비밀값과-구성), [입력·출력 경계](docs/security.md#입력-및-출력-경계), [토큰 백업 복구](docs/runbook.md#cloud-token-%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98-%EB%B3%B5%EA%B5%AC), [롤백](docs/runbook.md#롤백)에 있습니다.

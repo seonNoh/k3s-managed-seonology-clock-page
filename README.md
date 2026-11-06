@@ -2,7 +2,7 @@
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md)
 
-Seonology Clock Page is a personal operations dashboard with clocks, bookmarks, developer tools, infrastructure views, file browsers, and chat. React and an Express API run in one nginx-based container. The repository also contains the Seonology Toolkit browser extension and a separate browser tab statistics extension.
+Seonology Clock Page is a personal operations dashboard with clocks, bookmarks, developer tools, infrastructure views, file browsers, and chat. React and an Express API run in one nginx-based container. The repository also contains the Seonology Toolkit browser extension and the separate Seonology Bookmark Sync extension, which synchronizes bookmarks from selected Chrome folders and also provides tab statistics and tab activation.
 
 Gitea `seonology/k3s-managed-seonology-clock-page` is the source repository. Its push mirror copies branches and tags to GitHub `seonNoh/k3s-managed-seonology-clock-page` with `sync_on_commit: true`.
 
@@ -18,7 +18,7 @@ nginx serves the Vite build on `8080` and forwards `/api/` and `/health` to Expr
 | `api/` | Express routes, integration clients and persistent JSON/image storage |
 | `packages/toolkit-core/` | Tool metadata, supported surfaces and Markdown utilities |
 | `toolkit-extension/` | Manifest V3 extension with popup, new tab and context actions |
-| `chrome-extension/` | Separate tab statistics and tab activation extension |
+| `chrome-extension/` | Seonology Bookmark Sync: selected-folder bookmark synchronization, tab statistics and tab activation |
 | `scripts/` | Container smoke, release planning/publishing and token backup recovery |
 | `k8s/` | Reference manifests; Argo CD uses the central GitOps path below |
 
@@ -29,6 +29,19 @@ Split and Classic layouts provide search, weather, bookmarks and visual effects.
 ![Tool surface mapping](docs/svg/tool-landscape.svg)
 
 `/?embed=1&tool=<id>` or `/?embed=true&tool=<id>` opens one web tool without the dashboard shell. For example, `/?embed=1&tool=json` opens the JSON formatter. The embedding route uses web tool IDs. The Toolkit extension loads from `toolkit-extension/dist` after `npm run build --prefix toolkit-extension`.
+
+Load Bookmark Sync as an unpacked extension from `chrome-extension/`; Toolkit uses the built `toolkit-extension/dist` directory.
+
+These tools use the following surfaces.
+
+| Tool ID | Web | Popup | New tab | Context menu |
+|---|---|---|---|---|
+| `regex` | Yes | Yes | Yes | No |
+| `unit` | Yes | Yes | Yes | No |
+| `cron` | Yes | Yes | Yes | No |
+| `markdown` | Yes | No | Yes | No |
+| `rbac` | Yes | No | Yes | No |
+| `textcount` | No | Yes | Yes | Yes |
 
 | API | Purpose |
 |---|---|
@@ -58,7 +71,7 @@ npm ci --prefix api
 npm ci --prefix toolkit-extension
 npm run dev
 # In another terminal
-npm run dev --prefix api
+BOOKMARKS_DIR="${TMPDIR:-/tmp}/seonology-clock-page-local" npm run dev --prefix api
 ```
 
 Open `http://localhost:5173`; the web API client uses `http://localhost:3001` when the hostname is `localhost`. Vite has no API proxy. The API defaults to port `3001`, and `PORT` changes it. Runtime settings are read from the process environment. Keep credentials outside tracked files.
@@ -66,6 +79,16 @@ Open `http://localhost:5173`; the web API client uses `http://localhost:3001` wh
 ## Quality checks
 
 The repository contract checks README structure, identical command blocks, localized image links, SVG layout rules, governance files, workflow boundaries and GitHub workflow checksums. Gitea CI also runs lint, unit/API/browser checks, builds, production dependency audits and container smoke.
+
+| Focused suite | Scope |
+|---|---|
+| `api/test/bookmark-url-security.test.js` | External bookmark URLs |
+| `api/test/oauth-transaction.test.js` | One-time OAuth transactions |
+| `api/test/nas-path-policy.test.js` | Allowed NAS paths |
+| `api/test/cloud-token-store.test.js` | Encrypted cloud token storage |
+| `api/test/cors-policy.test.js` | Allowed browser origins (CORS) |
+| `api/test/upload-boundaries.test.js` | Upload size/count/target boundaries |
+| `tests/unit/browser-message-security.test.js` | Browser message origin/source |
 
 ```sh
 python3 verify.py --repository .
@@ -83,6 +106,11 @@ npm run smoke:container
 `npm run test:e2e` builds the Toolkit extension through `pretest:e2e`. Browser checks require Playwright Chromium. Container smoke requires Docker and checks HTTP health, read-only mounts, and health failure after stopping the API. CI rejects production dependency audit findings at high severity or above.
 
 ## Runtime configuration
+
+
+`CLOUD_TOKEN_ENCRYPTION_KEY` must decode to exactly 32 bytes: 64 hexadecimal digits, 44-character Base64 ending in `=`, or a UTF-8 string of exactly 32 bytes. Google Drive requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, a matching `GOOGLE_REDIRECT_URI` and the encrypted token store. OneDrive requires the corresponding `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_REDIRECT_URI` and the same store. When a provider is not configured, its OAuth start route and file operations such as `/api/gdrive/files` or `/api/onedrive/files` return HTTP `503`. The status routes `/api/gdrive/status` and `/api/onedrive/status` instead return HTTP `200` with `connected: false` and `configured: false`. Read those JSON fields to determine configuration and connection status. Other API features remain available. Register local callback URLs with the OAuth provider and set the matching redirect environment variable.
+
+Keep credentials out of logs, fixtures, issues and CI/workflow output.
 
 | Variable | Default or role |
 |---|---|
@@ -117,6 +145,20 @@ CI and Image start independently on a `main` push. There is no cross-workflow su
 
 The Gitea workflows do not calculate a version bump. `scripts/release-gate.mjs` contains the native planner: `feat` selects minor; `fix`, `chore`, `refactor`, `docs`, `perf` select patch; breaking changes select major from 1.x and minor for 0.x. `VERSION` supplies the build version; `package.json` is private and keeps `0.0.0`.
 
+| Workflow source | Exact step names, in order |
+|---|---|
+| [ci.yml](.gitea/workflows/ci.yml#L21) | `Check out the exact Gitea revision` → `Verify Node.js 24` → `Install locked dependencies` → `Verify repository policy` → `Lint and run unit tests` → `Install Chromium and run browser tests` → `Build production assets` → `Audit production dependencies` → `Verify the production container` |
+| [image.yml](.gitea/workflows/image.yml#L24) | `Check out the exact Gitea revision` → `Verify repository policy` → `Configure a multi-platform builder` → `Log in to Gitea Registry` → `Build and publish the OCI index` → `Verify both published platforms` |
+| [release.yml](.gitea/workflows/release.yml#L25) | `Check out the exact Gitea revision` → `Resolve and verify the release tag` → `Verify repository policy` → `Configure a multi-platform builder` → `Log in to Gitea Registry` → `Publish an immutable release image when absent` → `Create the Gitea release when absent` |
+
+Image inspection succeeds: skip the release image build; inspection fails: build it. Both paths then check `amd64` and `arm64`. The Gitea release lookup ends on HTTP `200`, creates on `404`, and fails on other statuses.
+
+| Actions secret | Workflows and purpose |
+|---|---|
+| `CI_TOKEN` | CI, Image and Release checkout; Image/Release registry login; Release API authentication |
+| `PACKAGE_USER` | Image and Release registry login username |
+
+
 ## Central GitOps deployment
 
 Argo CD Application `seonology-clock-page` reads `https://git.seonology.com/seonology/seonology-k3s.git`, revision `HEAD`, path `workloads/seonology-clock-page`, namespace `seonology-apps`. Automatic synchronization enables `prune` and `selfHeal`. Its Kustomization selects `git.seonology.com/seonology/seonology-clock-page:sha-7192892f4d21`.
@@ -131,8 +173,29 @@ The Deployment uses one replica with `Recreate`, UID/GID `10001`, dropped capabi
 
 The Agent Platform `agent-api-ingress` NetworkPolicy allows TCP `8080` from pods labeled `app: seonology-clock-page` in namespace `seonology-apps` to the Agent API.
 
+With cluster read permissions and registry access, inspect the Application, workload, logs, deployed image, local health response and OCI platforms with these commands.
+
+```sh
+# Gitea source repository
+git clone https://git.seonology.com/seonology/k3s-managed-seonology-clock-page.git
+cd k3s-managed-seonology-clock-page
+git remote get-url origin
+
+# Read-only workload inspection
+kubectl -n argocd get application seonology-clock-page
+kubectl -n seonology-apps get deployment,service seonology-clock-page
+kubectl -n seonology-apps get pods -l app=seonology-clock-page
+kubectl -n seonology-apps rollout status deployment/seonology-clock-page --timeout=60s
+kubectl -n seonology-apps logs deployment/seonology-clock-page --tail=100
+kubectl -n seonology-apps get deployment seonology-clock-page -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n seonology-apps exec deployment/seonology-clock-page -- node -e 'fetch("http://127.0.0.1:8080/health").then(async r => { console.log(r.status, await r.text()); if (!r.ok) process.exitCode = 1; })'
+docker buildx imagetools inspect git.seonology.com/seonology/seonology-clock-page:main
+```
+
 ## Contributions and license
 
-Use an English Conventional Commit title and a Korean body describing the reason and impact. Keep the README sections, command blocks and three language variants of each diagram aligned. Update diagrams using the existing filenames and pedia records.
+Use an English Conventional Commit title and a Korean body describing the reason and impact. Keep the README sections, command blocks and three language variants of each diagram aligned. Update diagrams using the existing filenames and pedia records. Do not add automated authorship signatures or co-author trailers.
 
 The project uses the [MIT License](LICENSE). Contribution details are in [CONTRIBUTING.md](CONTRIBUTING.md); documentation layout is defined in [README_STRUCTURE.md](README_STRUCTURE.md).
+
+Related implementation details: [frontend module boundaries](docs/architecture.md#프런트엔드-모듈-경계), [secret configuration](docs/security.md#비밀값과-구성), [input/output boundaries](docs/security.md#입력-및-출력-경계), [token backup recovery](docs/runbook.md#cloud-token-%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98-%EB%B3%B5%EA%B5%AC) and [rollback](docs/runbook.md#롤백).

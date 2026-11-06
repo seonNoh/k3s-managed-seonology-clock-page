@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" lang="ja" role="img" aria-labelledby="cp58dja-title cp58dja-desc">
-<title id="cp58dja-title">独立したワークフロー分岐</title>
-<desc id="cp58dja-desc">イベントが直接起動し、ImageはCIの完了を待ちません。</desc>
+<title id="cp58dja-title">ワークフローのイベントとリリース分岐</title>
+<desc id="cp58dja-desc">mainはCIとImageを独立実行し、PRはCIだけを実行します。</desc>
 <style>
   svg{
     --bg:#0d1117; --surface-a:#1b222c; --surface-b:#151b23;
@@ -82,54 +82,66 @@
   </style>
 <g class="cp58dja-root">
 <rect x="0" y="0" width="960" height="540" fill="var(--bg)"/>
-<text x="32" y="40" class="cp58dja-title">独立したワークフロー分岐</text>
-<text x="32" y="66" class="cp58dja-sub">イベントが直接起動し、ImageはCIの完了を待ちません。</text>
-<text x="52" y="112" class="cp58dja-name">イベント</text>
-<text x="340" y="112" class="cp58dja-name">ジョブ</text>
-<text x="724" y="112" class="cp58dja-name">結果</text>
-<rect id="cp58dja-event0" data-kind="card" x="32" y="136" width="208" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
-<path d="M48,137 H224" class="cp58dja-highlight"/>
-<text x="52" y="168" class="cp58dja-label" data-box="cp58dja-event0">mainへのpush / PR</text>
-<text x="52" y="200" class="cp58dja-mono" data-box="cp58dja-event0">workflow_dispatch</text>
-<rect id="cp58dja-job0" data-kind="card" x="320" y="136" width="304" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
-<path d="M336,137 H608" class="cp58dja-highlight"/>
-<text x="340" y="164" class="cp58dja-mono" data-box="cp58dja-job0">quality · ci.yml</text>
-<text x="340" y="190" class="cp58dja-label" data-box="cp58dja-job0">リンター / テスト / 監査</text>
-<text x="340" y="212" class="cp58dja-label" data-box="cp58dja-job0">Web / 拡張ビルド</text>
-<rect id="cp58dja-result0" data-kind="card" x="704" y="136" width="224" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
-<path d="M720,137 H912" class="cp58dja-highlight"/>
-<text x="724" y="172" class="cp58dja-label" data-box="cp58dja-result0">コンテナスモークテスト</text>
-<path class="cp58dja-quiet" d="M240,184 L320,184" marker-end="url(#cp58dja-tq)" data-from="cp58dja-event0" data-to="cp58dja-job0" data-pts="240,184;320,184"/>
-<path class="cp58dja-quiet" d="M624,184 L704,184" marker-end="url(#cp58dja-tq)" data-from="cp58dja-job0" data-to="cp58dja-result0" data-pts="624,184;704,184"/>
-<rect id="cp58dja-event1" data-kind="card" x="32" y="256" width="208" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
-<path d="M48,257 H224" class="cp58dja-highlight"/>
-<text x="52" y="288" class="cp58dja-label" data-box="cp58dja-event1">mainへのpush</text>
-<text x="52" y="320" class="cp58dja-mono" data-box="cp58dja-event1">workflow_dispatch</text>
-<rect id="cp58dja-job1" data-kind="card" x="320" y="256" width="304" height="96" rx="12" class="cp58dja-lead" filter="url(#cp58dja-shl)"/>
-<path d="M336,257 H608" class="cp58dja-highlight"/>
-<text x="340" y="284" class="cp58dja-mono" data-box="cp58dja-job1">publish · image.yml</text>
-<text x="340" y="310" class="cp58dja-label" data-box="cp58dja-job1">linux/amd64 + linux/arm64</text>
-<text x="340" y="332" class="cp58dja-label" data-box="cp58dja-job1">OCIインデックス</text>
-<rect id="cp58dja-result1" data-kind="card" x="704" y="256" width="224" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
-<path d="M720,257 H912" class="cp58dja-highlight"/>
-<text x="724" y="292" class="cp58dja-label" data-box="cp58dja-result1">main / sha-&lt;12 hex&gt;</text>
-<path class="cp58dja-quiet" d="M240,304 L320,304" marker-end="url(#cp58dja-tq)" data-from="cp58dja-event1" data-to="cp58dja-job1" data-pts="240,304;320,304"/>
-<path class="cp58dja-flow" d="M624,304 L704,304" marker-end="url(#cp58dja-t)" data-from="cp58dja-job1" data-to="cp58dja-result1" data-pts="624,304;704,304"/>
-<rect id="cp58dja-event2" data-kind="card" x="32" y="376" width="208" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
-<path d="M48,377 H224" class="cp58dja-highlight"/>
-<text x="52" y="408" class="cp58dja-label" data-box="cp58dja-event2">vX.Y.Zタグのpush</text>
-<text x="52" y="440" class="cp58dja-mono" data-box="cp58dja-event2">workflow_dispatch</text>
-<rect id="cp58dja-job2" data-kind="card" x="320" y="376" width="304" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
-<path d="M336,377 H608" class="cp58dja-highlight"/>
-<text x="340" y="404" class="cp58dja-mono" data-box="cp58dja-job2">release · release.yml</text>
-<text x="340" y="430" class="cp58dja-label" data-box="cp58dja-job2">vX.Y.Z</text>
-<text x="340" y="452" class="cp58dja-label" data-box="cp58dja-job2">tag = v + VERSION</text>
-<rect id="cp58dja-result2" data-kind="card" x="704" y="376" width="224" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
-<path d="M720,377 H912" class="cp58dja-highlight"/>
-<text x="724" y="412" class="cp58dja-label" data-box="cp58dja-result2">vX.Y.Z / Giteaリリース</text>
-<text x="724" y="440" class="cp58dja-label" data-box="cp58dja-result2">イメージ / リリース不在時のみ</text>
-<path class="cp58dja-quiet" d="M240,424 L320,424" marker-end="url(#cp58dja-tq)" data-from="cp58dja-event2" data-to="cp58dja-job2" data-pts="240,424;320,424"/>
-<path class="cp58dja-flow" d="M624,424 L704,424" marker-end="url(#cp58dja-t)" data-from="cp58dja-job2" data-to="cp58dja-result2" data-pts="624,424;704,424"/>
-<text x="32" y="516" class="cp58dja-foot">すべてworkflow_dispatchに対応し、Releaseはtag = v + VERSIONを要求します。</text>
+<text x="32" y="40" class="cp58dja-title">ワークフローのイベントとリリース分岐</text>
+<text x="32" y="66" class="cp58dja-sub">mainはCIとImageを独立実行し、PRはCIだけを実行します。</text>
+<rect id="cp58dja-main" data-kind="card" x="32" y="88" width="160" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M48,89 H176" class="cp58dja-highlight"/>
+<text x="52" y="120" class="cp58dja-label" data-box="cp58dja-main">push: main</text>
+<rect id="cp58dja-ci" data-kind="card" x="320" y="88" width="320" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M336,89 H624" class="cp58dja-highlight"/>
+<text x="340" y="120" class="cp58dja-label" data-box="cp58dja-ci">ci.yml · quality</text>
+<rect id="cp58dja-pr" data-kind="card" x="736" y="88" width="192" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M752,89 H912" class="cp58dja-highlight"/>
+<text x="756" y="120" class="cp58dja-label" data-box="cp58dja-pr">PR: main</text>
+<rect id="cp58dja-image" data-kind="card" x="320" y="176" width="320" height="56" rx="12" class="cp58dja-lead" filter="url(#cp58dja-shl)"/>
+<path d="M336,177 H624" class="cp58dja-highlight"/>
+<text x="340" y="208" class="cp58dja-label" data-box="cp58dja-image">image.yml · publish</text>
+<rect id="cp58dja-tags" data-kind="card" x="736" y="176" width="192" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M752,177 H912" class="cp58dja-highlight"/>
+<text x="756" y="208" class="cp58dja-label" data-box="cp58dja-tags">main / sha-&lt;12 hex&gt;</text>
+<path class="cp58dja-quiet" d="M192,116 L320,116" marker-end="url(#cp58dja-tq)" data-from="cp58dja-main" data-to="cp58dja-ci" data-pts="192,116;320,116"/>
+<path class="cp58dja-flow" d="M192,116 L252.0,116.0 Q256,116 256.0,120.0 L256.0,200.0 Q256,204 260.0,204.0 L320,204" marker-end="url(#cp58dja-t)" data-from="cp58dja-main" data-to="cp58dja-image" data-pts="192,116;256,116;256,204;320,204"/>
+<path class="cp58dja-quiet" d="M736,116 L640,116" marker-end="url(#cp58dja-tq)" data-from="cp58dja-pr" data-to="cp58dja-ci" data-pts="736,116;640,116"/>
+<path class="cp58dja-quiet" d="M640,204 L736,204" marker-end="url(#cp58dja-tq)" data-from="cp58dja-image" data-to="cp58dja-tags" data-pts="640,204;736,204"/>
+<text x="32" y="248" class="cp58dja-mono">workflow_dispatch · CI / Image / Release · tag = v + VERSION</text>
+<rect id="cp58dja-release" data-kind="region" x="24" y="264" width="912" height="264" rx="12" class="cp58dja-region"/>
+<text x="44" y="296" class="cp58dja-mono" data-box="cp58dja-release">release.yml</text>
+<rect id="cp58dja-tag" data-kind="card" x="40" y="312" width="144" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M56,313 H168" class="cp58dja-highlight"/>
+<text x="60" y="344" class="cp58dja-label" data-box="cp58dja-tag">vX.Y.Z</text>
+<rect id="cp58dja-lookup" data-kind="card" x="232" y="312" width="160" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M248,313 H376" class="cp58dja-highlight"/>
+<text x="252" y="344" class="cp58dja-label" data-box="cp58dja-lookup">イメージ照会</text>
+<rect id="cp58dja-build" data-kind="card" x="448" y="312" width="192" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M464,313 H624" class="cp58dja-highlight"/>
+<text x="468" y="344" class="cp58dja-label" data-box="cp58dja-build">ビルドと公開</text>
+<rect id="cp58dja-platform" data-kind="card" x="704" y="312" width="208" height="56" rx="12" class="cp58dja-lead" filter="url(#cp58dja-shl)"/>
+<path d="M720,313 H896" class="cp58dja-highlight"/>
+<text x="724" y="344" class="cp58dja-label" data-box="cp58dja-platform">プラットフォーム確認</text>
+<rect id="cp58dja-stop" data-kind="card" x="40" y="448" width="144" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M56,449 H168" class="cp58dja-highlight"/>
+<text x="60" y="480" class="cp58dja-label" data-box="cp58dja-stop">停止</text>
+<rect id="cp58dja-create" data-kind="card" x="232" y="448" width="160" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M248,449 H376" class="cp58dja-highlight"/>
+<text x="252" y="480" class="cp58dja-label" data-box="cp58dja-create">リリース作成</text>
+<rect id="cp58dja-done" data-kind="card" x="448" y="448" width="192" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M464,449 H624" class="cp58dja-highlight"/>
+<text x="468" y="480" class="cp58dja-label" data-box="cp58dja-done">完了</text>
+<rect id="cp58dja-releaseLookup" data-kind="card" x="704" y="448" width="208" height="56" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M720,449 H896" class="cp58dja-highlight"/>
+<text x="724" y="480" class="cp58dja-label" data-box="cp58dja-releaseLookup">リリース照会</text>
+<path class="cp58dja-quiet" d="M184,340 L232,340" marker-end="url(#cp58dja-tq)" data-from="cp58dja-tag" data-to="cp58dja-lookup" data-pts="184,340;232,340"/>
+<path class="cp58dja-quiet" d="M392,340 L448,340" marker-end="url(#cp58dja-tq)" data-from="cp58dja-lookup" data-to="cp58dja-build" data-pts="392,340;448,340"/>
+<text x="420" y="329" class="cp58dja-label" text-anchor="middle">失敗</text>
+<path class="cp58dja-flow" d="M640,340 L704,340" marker-end="url(#cp58dja-t)" data-from="cp58dja-build" data-to="cp58dja-platform" data-pts="640,340;704,340"/>
+<path class="cp58dja-quiet" d="M312,368 L312.0,396.0 Q312,400 316.0,400.0 L804.0,400.0 Q808,400 808.0,396.0 L808,368" marker-end="url(#cp58dja-tq)" data-from="cp58dja-lookup" data-to="cp58dja-platform" data-pts="312,368;312,400;808,400;808,368"/>
+<text x="520" y="389" class="cp58dja-label" text-anchor="middle">成功 · ビルドを省略</text>
+<path class="cp58dja-quiet" d="M872,368 L872,448" marker-end="url(#cp58dja-tq)" data-from="cp58dja-platform" data-to="cp58dja-releaseLookup" data-pts="872,368;872,448"/>
+<path class="cp58dja-quiet" d="M704,476 L640,476" marker-end="url(#cp58dja-tq)" data-from="cp58dja-releaseLookup" data-to="cp58dja-done" data-pts="704,476;640,476"/>
+<text x="672" y="465" class="cp58dja-mono" text-anchor="middle">200</text>
+<path class="cp58dja-quiet" d="M744,504 L744.0,516.0 Q744,520 740.0,520.0 L316.0,520.0 Q312,520 312.0,516.0 L312,504" marker-end="url(#cp58dja-tq)" data-from="cp58dja-releaseLookup" data-to="cp58dja-create" data-pts="744,504;744,520;312,520;312,504"/>
+<text x="672" y="509" class="cp58dja-mono" text-anchor="middle">404</text>
+<path class="cp58dja-quiet" d="M704,464 L700.0,464.0 Q696,464 696.0,460.0 L696.0,428.0 Q696,424 692.0,424.0 L116.0,424.0 Q112,424 112.0,428.0 L112,448" marker-end="url(#cp58dja-tq)" data-from="cp58dja-releaseLookup" data-to="cp58dja-stop" data-pts="704,464;696,464;696,424;112,424;112,448"/>
+<text x="176" y="413" class="cp58dja-label" text-anchor="middle">その他の状態</text>
 </g>
 </svg>

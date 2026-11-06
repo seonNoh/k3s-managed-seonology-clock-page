@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" lang="ja" role="img" aria-labelledby="cp58aja-title cp58aja-desc">
-<title id="cp58aja-title">実行時アーキテクチャ</title>
-<desc id="cp58aja-desc">nginxとExpressは一つのイメージ内に置き、永続データを別にマウントします。</desc>
+<title id="cp58aja-title">実行時の依存関係</title>
+<desc id="cp58aja-desc">ブラウザー、イメージ内プロセス、外部サービスとクラスターマウント</desc>
 <style>
   svg{
     --bg:#0d1117; --surface-a:#1b222c; --surface-b:#151b23;
@@ -82,36 +82,48 @@
   </style>
 <g class="cp58aja-root">
 <rect x="0" y="0" width="960" height="540" fill="var(--bg)"/>
-<text x="32" y="40" class="cp58aja-title">実行時アーキテクチャ</text>
-<text x="32" y="66" class="cp58aja-sub">nginxとExpressは一つのイメージ内に置き、永続データを別にマウントします。</text>
-<rect id="cp58aja-image" data-kind="region" x="256" y="112" width="672" height="304" rx="12" class="cp58aja-region"/>
-<text x="280" y="144" class="cp58aja-name" data-box="cp58aja-image">コンテナイメージ</text>
-<text x="280" y="384" class="cp58aja-mono" data-box="cp58aja-image">Dockerfile · tini</text>
-<rect id="cp58aja-browser" data-kind="card" x="32" y="192" width="176" height="120" rx="12" class="cp58aja-surface" filter="url(#cp58aja-sh)"/>
-<path d="M48,193 H192" class="cp58aja-highlight"/>
-<text x="52" y="224" class="cp58aja-name" data-box="cp58aja-browser">ブラウザー</text>
-<text x="52" y="256" class="cp58aja-label" data-box="cp58aja-browser">Reactダッシュボード</text>
-<text x="52" y="284" class="cp58aja-mono" data-box="cp58aja-browser">HTTPS</text>
-<rect id="cp58aja-nginx" data-kind="card" x="288" y="192" width="208" height="120" rx="12" class="cp58aja-surface" filter="url(#cp58aja-sh)"/>
-<path d="M304,193 H480" class="cp58aja-highlight"/>
-<text x="308" y="224" class="cp58aja-name" data-box="cp58aja-nginx">nginx :8080</text>
-<text x="308" y="256" class="cp58aja-label" data-box="cp58aja-nginx">Viteの静的ファイル</text>
-<text x="308" y="284" class="cp58aja-mono" data-box="cp58aja-nginx">/usr/share/nginx/html</text>
-<rect id="cp58aja-express" data-kind="card" x="624" y="192" width="256" height="120" rx="12" class="cp58aja-lead" filter="url(#cp58aja-shl)"/>
-<path d="M640,193 H864" class="cp58aja-highlight"/>
-<text x="644" y="224" class="cp58aja-name" data-box="cp58aja-express">Express :3001</text>
-<text x="644" y="256" class="cp58aja-label" data-box="cp58aja-express">APIプロセス</text>
-<text x="644" y="284" class="cp58aja-mono" data-box="cp58aja-express">api/server.js</text>
-<path class="cp58aja-flow" d="M208,248 L288,248" marker-end="url(#cp58aja-t)" data-from="cp58aja-browser" data-to="cp58aja-nginx" data-pts="208,248;288,248"/>
-<path class="cp58aja-quiet" d="M496,248 L624,248" marker-end="url(#cp58aja-tq)" data-from="cp58aja-nginx" data-to="cp58aja-express" data-pts="496,248;624,248"/>
-<text x="248" y="237" class="cp58aja-label" text-anchor="middle">リクエスト</text>
-<text x="560" y="237" class="cp58aja-label" text-anchor="middle">ローカルプロキシ</text>
-<rect id="cp58aja-data" data-kind="card" x="576" y="448" width="304" height="72" rx="12" class="cp58aja-surface" filter="url(#cp58aja-sh)"/>
-<path d="M592,449 H864" class="cp58aja-highlight"/>
-<text x="596" y="480" class="cp58aja-name" data-box="cp58aja-data">永続ストレージのマウント</text>
-<text x="596" y="500" class="cp58aja-mono" data-box="cp58aja-data">/data · JSON / 画像</text>
-<path class="cp58aja-quiet" d="M728,312 L728,448" marker-end="url(#cp58aja-tq)" data-from="cp58aja-express" data-to="cp58aja-data" data-pts="728,312;728,448"/>
-<text x="32" y="472" class="cp58aja-foot">nginx.conf · /api/ · /health</text>
-<text x="32" y="500" class="cp58aja-foot">deployment.yaml · bookmarks-data</text>
+<text x="32" y="40" class="cp58aja-title">実行時の依存関係</text>
+<text x="32" y="66" class="cp58aja-sub">ブラウザー、イメージ内プロセス、外部サービスとクラスターマウント</text>
+<rect id="cp58aja-image" data-kind="region" x="240" y="104" width="456" height="232" rx="12" class="cp58aja-region"/>
+<text x="264" y="136" class="cp58aja-name" data-box="cp58aja-image">コンテナイメージ</text>
+<text x="264" y="304" class="cp58aja-mono" data-box="cp58aja-image">Dockerfile · tini · api/server.js</text>
+<rect id="cp58aja-browser" data-kind="card" x="32" y="160" width="160" height="88" rx="12" class="cp58aja-surface" filter="url(#cp58aja-sh)"/>
+<path d="M48,161 H176" class="cp58aja-highlight"/>
+<text x="52" y="192" class="cp58aja-name" data-box="cp58aja-browser">ブラウザー</text>
+<text x="52" y="220" class="cp58aja-mono" data-box="cp58aja-browser">React</text>
+<rect id="cp58aja-nginx" data-kind="card" x="264" y="160" width="144" height="88" rx="12" class="cp58aja-surface" filter="url(#cp58aja-sh)"/>
+<path d="M280,161 H392" class="cp58aja-highlight"/>
+<text x="284" y="192" class="cp58aja-name" data-box="cp58aja-nginx">nginx</text>
+<text x="284" y="220" class="cp58aja-mono" data-box="cp58aja-nginx">:8080</text>
+<rect id="cp58aja-express" data-kind="card" x="544" y="160" width="128" height="88" rx="12" class="cp58aja-lead" filter="url(#cp58aja-shl)"/>
+<path d="M560,161 H656" class="cp58aja-highlight"/>
+<text x="564" y="192" class="cp58aja-name" data-box="cp58aja-express">Express</text>
+<text x="564" y="220" class="cp58aja-mono" data-box="cp58aja-express">:3001</text>
+<path class="cp58aja-flow" d="M192,204 L264,204" marker-end="url(#cp58aja-t)" data-from="cp58aja-browser" data-to="cp58aja-nginx" data-pts="192,204;264,204"/>
+<path class="cp58aja-quiet" d="M408,204 L544,204" marker-end="url(#cp58aja-tq)" data-from="cp58aja-nginx" data-to="cp58aja-express" data-pts="408,204;544,204"/>
+<text x="228" y="193" class="cp58aja-label" text-anchor="middle">リクエスト</text>
+<text x="476" y="193" class="cp58aja-label" text-anchor="middle">ローカルプロキシ</text>
+<rect id="cp58aja-external" data-kind="card" x="752" y="160" width="176" height="112" rx="12" class="cp58aja-surface" filter="url(#cp58aja-sh)"/>
+<path d="M768,161 H912" class="cp58aja-highlight"/>
+<text x="772" y="192" class="cp58aja-name" data-box="cp58aja-external">外部API</text>
+<text x="772" y="220" class="cp58aja-label" data-box="cp58aja-external">Google / Microsoft</text>
+<text x="772" y="248" class="cp58aja-label" data-box="cp58aja-external">NAS</text>
+<path class="cp58aja-quiet" d="M672,204 L752,204" marker-end="url(#cp58aja-tq)" data-from="cp58aja-express" data-to="cp58aja-external" data-pts="672,204;752,204"/>
+<rect id="cp58aja-agent" data-kind="card" x="752" y="368" width="176" height="88" rx="12" class="cp58aja-surface" filter="url(#cp58aja-sh)"/>
+<path d="M768,369 H912" class="cp58aja-highlight"/>
+<text x="772" y="400" class="cp58aja-name" data-box="cp58aja-agent">Agent API</text>
+<text x="772" y="428" class="cp58aja-label" data-box="cp58aja-agent">クラスター内部</text>
+<path class="cp58aja-quiet" d="M648,248 L648.0,348.0 Q648,352 652.0,352.0 L724.0,352.0 Q728,352 728.0,356.0 L728.0,408.0 Q728,412 732.0,412.0 L752,412" marker-end="url(#cp58aja-tq)" data-from="cp58aja-express" data-to="cp58aja-agent" data-pts="648,248;648,352;728,352;728,412;752,412"/>
+<rect id="cp58aja-data" data-kind="card" x="240" y="408" width="192" height="88" rx="12" class="cp58aja-surface" filter="url(#cp58aja-sh)"/>
+<path d="M256,409 H416" class="cp58aja-highlight"/>
+<text x="260" y="440" class="cp58aja-name" data-box="cp58aja-data">/data</text>
+<text x="260" y="468" class="cp58aja-label" data-box="cp58aja-data">JSON / 画像</text>
+<path class="cp58aja-quiet" d="M576,248 L576.0,356.0 Q576,360 572.0,360.0 L340.0,360.0 Q336,360 336.0,364.0 L336,408" marker-end="url(#cp58aja-tq)" data-from="cp58aja-express" data-to="cp58aja-data" data-pts="576,248;576,360;336,360;336,408"/>
+<rect id="cp58aja-secret" data-kind="card" x="480" y="408" width="216" height="88" rx="12" class="cp58aja-surface" filter="url(#cp58aja-sh)"/>
+<path d="M496,409 H680" class="cp58aja-highlight"/>
+<text x="500" y="440" class="cp58aja-name" data-box="cp58aja-secret">Secretの環境変数</text>
+<text x="500" y="468" class="cp58aja-mono" data-box="cp58aja-secret">clock-page-secrets</text>
+<path class="cp58aja-quiet" d="M608,408 L608,248" marker-end="url(#cp58aja-tq)" data-from="cp58aja-secret" data-to="cp58aja-express" data-pts="608,408;608,248"/>
+<text x="32" y="520" class="cp58aja-foot">nginx.conf · /api/ · /health</text>
 </g>
 </svg>
