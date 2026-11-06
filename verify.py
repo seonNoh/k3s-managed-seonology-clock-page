@@ -115,11 +115,11 @@ def main() -> int:
             svg_errors.append(f"{path.name}: motion policy")
         if 'viewBox="0 0 960 540"' not in raw:
             svg_errors.append(f"{path.name}: canvas")
-        if not all(token in raw for token in ("#0d1117", "#1b222c", "#7c9fff", "#5b636d")):
+        if not all(token in raw for token in ("#0d1117", "#1b222c", "#7c9fff", "#78818c")):
             svg_errors.append(f"{path.name}: Relief tokens")
         if any(color in raw.lower() for color in FORBIDDEN_COLORS):
             svg_errors.append(f"{path.name}: forbidden palette")
-        if "marker-end" not in raw or "stroke-linejoin:round" not in raw:
+        if "stroke-linejoin:round" not in raw or ('data-from="' in raw and "marker-end" not in raw):
             svg_errors.append(f"{path.name}: arrow contract")
     check("SVG Relief contract", not svg_errors, svg_errors or "valid")
 

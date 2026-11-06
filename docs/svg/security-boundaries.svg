@@ -1,79 +1,120 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="cp21-sec-en-title cp21-sec-en-desc">
-  <title id="cp21-sec-en-title">Live security boundaries</title>
-  <desc id="cp21-sec-en-desc">Access, runtime, data, and external integrations remain separately controlled</desc>
-  <style>
-    .cp21-sec-en-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
-    .cp21-sec-en-root text{fill:#f0f6fc}
-    .cp21-sec-en-root .heading{font-size:16px;font-weight:600}
-    .cp21-sec-en-root .subtitle{font-size:11.5px;fill:#939da8}
-    .cp21-sec-en-root .card{fill:url(#cp21-sec-en-surface);stroke:#252d38;stroke-width:1}
-    .cp21-sec-en-root .lead{fill:url(#cp21-sec-en-lead);stroke:#33404f;stroke-width:1}
-    .cp21-sec-en-root .topline{stroke:rgba(255,255,255,.08);stroke-width:1}
-    .cp21-sec-en-root .card-title{font-size:13px;font-weight:500}
-    .cp21-sec-en-root .inner{fill:#1e2530;stroke:#252d38;stroke-width:1}
-    .cp21-sec-en-root .label{font-size:10px;fill:#939da8}
-    .cp21-sec-en-root .value{font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#c3ccd6}
-    .cp21-sec-en-root .badge{fill:rgba(124,159,255,.16);stroke:#33404f}
-    .cp21-sec-en-root .badge-text{font:9.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#7c9fff}
-    .cp21-sec-en-root .flow{fill:none;stroke:#7c9fff;stroke-width:1.6;stroke-dasharray:5 6;stroke-linecap:round;stroke-linejoin:round;animation:cp21-sec-en-move 2s linear infinite}
-    .cp21-sec-en-root .foot{font-size:11px;fill:#69717a}
-    @keyframes cp21-sec-en-move{to{stroke-dashoffset:-22}}
-    @media (prefers-reduced-motion:reduce){.cp21-sec-en-root .flow{animation:none}}
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" lang="en" role="img" aria-labelledby="cp58sen-title cp58sen-desc">
+<title id="cp58sen-title">Access and storage boundaries</title>
+<desc id="cp58sen-desc">Routing policies and volume placement in the central GitOps manifests</desc>
+<style>
+  svg{
+    --bg:#0d1117; --surface-a:#1b222c; --surface-b:#151b23;
+    --lead-a:#222b38; --lead-b:#19202a;
+    --inner:#1e2530; --inner-lead:#232c39;
+    --line:#252d38; --line-lead:#33404f;
+    --text:#f0f6fc; --body:#c3ccd6; --dim:#a2abb5; --faint:#8d959f;
+    --accent:#7c9fff; --accent-bg:rgba(124,159,255,.16);
+    --ok:#4ac97e; --warn:#e0a740; --bad:#f2705e; --off:#8b939d;
+    --quiet:#78818c;
+    --sh:#000; --sh-op:.50; --shl-op:.58; --shs-op:.40;
+    --glow-op:.40; --glow-cast:.45; --hl:rgba(255,255,255,.05);
+  }
+  @media (prefers-color-scheme: light){
+    svg{
+      --bg:#f6f8fa; --surface-a:#ffffff; --surface-b:#fafbfc;
+      --lead-a:#ffffff; --lead-b:#f5f8ff;
+      --inner:#eef1f4; --inner-lead:#e9f0fe;
+      --line:#d8dee4; --line-lead:#b8c9ee;
+      --text:#1f2328; --body:#3d444d; --dim:#59636e; --faint:#656d7a;
+      --accent:#2f62d4; --accent-bg:rgba(47,98,212,.10);
+      --ok:#187734; --warn:#8e5f00; --bad:#cf222e; --off:#5f6773;
+      --quiet:#6e7781;
+      --sh:#1f2328; --sh-op:.13; --shl-op:.18; --shs-op:.12;
+      --glow-op:.35; --glow-cast:.14; --hl:transparent;
+    }
+  }
+  .cp58sen-flow{fill:none;stroke:var(--accent);stroke-width:1.6;
+          stroke-linecap:round;stroke-linejoin:round;
+          stroke-dasharray:5 6;animation:cp58sen-move 2s linear infinite}
+  .cp58sen-quiet{fill:none;stroke:var(--quiet);stroke-width:1.4;
+           stroke-linecap:round;stroke-linejoin:round}
+  @keyframes cp58sen-move{to{stroke-dashoffset:-22}}
+  @media (prefers-reduced-motion:reduce){.cp58sen-flow{animation:none}}
+</style>
+<defs>
+  <filter id="cp58sen-sh" x="-30%" y="-30%" width="160%" height="170%">
+    <feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="var(--sh)" flood-opacity="var(--sh-op)"/>
+  </filter>
+  <filter id="cp58sen-shl" x="-30%" y="-30%" width="160%" height="180%">
+    <feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="var(--sh)" flood-opacity="var(--shl-op)"/>
+  </filter>
+  <filter id="cp58sen-shs" x="-30%" y="-30%" width="160%" height="170%">
+    <feDropShadow dx="-2" dy="4" stdDeviation="4" flood-color="var(--sh)" flood-opacity="var(--shs-op)"/>
+  </filter>
+  <filter id="cp58sen-gl" x="-60%" y="-90%" width="220%" height="280%">
+    <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="var(--accent)" flood-opacity="var(--glow-op)"/>
+    <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="var(--sh)" flood-opacity="var(--glow-cast)"/>
+  </filter>
+  <linearGradient id="cp58sen-s" x1="0" y1="0" x2=".3" y2="1">
+    <stop offset="0" stop-color="var(--surface-a)"/><stop offset="1" stop-color="var(--surface-b)"/>
+  </linearGradient>
+  <linearGradient id="cp58sen-sl" x1="0" y1="0" x2=".3" y2="1">
+    <stop offset="0" stop-color="var(--lead-a)"/><stop offset="1" stop-color="var(--lead-b)"/>
+  </linearGradient>
+  <marker id="cp58sen-t" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/>
+  </marker>
+  <marker id="cp58sen-tq" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--quiet)"/>
+  </marker>
+</defs>
+<style>
+  .cp58sen-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
+  .cp58sen-root{fill:var(--body)}
+  .cp58sen-title{font-size:20px;font-weight:600;fill:var(--text)}
+  .cp58sen-sub{font-size:13.5px;fill:var(--dim)}
+  .cp58sen-name{font-size:15px;font-weight:500}
+  .cp58sen-label{font-size:13px}
+  .cp58sen-mono{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+  .cp58sen-foot{font-size:13px;fill:var(--faint)}
+  .cp58sen-surface{fill:url(#cp58sen-s);stroke:var(--line);stroke-width:1}
+  .cp58sen-lead{fill:url(#cp58sen-sl);stroke:var(--line-lead);stroke-width:1}
+  .cp58sen-region{fill:var(--inner);stroke:var(--line);stroke-width:1}
+  .cp58sen-cell{fill:var(--inner);stroke:var(--line);stroke-width:1}
+  .cp58sen-highlight{stroke:var(--hl);stroke-width:1}
+  .cp58sen-support{fill:var(--accent)}
+  .cp58sen-off{fill:var(--faint)}
   </style>
-  <defs>
-    <filter id="cp21-sec-en-sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="#000" flood-opacity=".5"/></filter>
-    <filter id="cp21-sec-en-shl" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="#000" flood-opacity=".58"/></filter>
-    <filter id="cp21-sec-en-gl" x="-60%" y="-90%" width="220%" height="280%"><feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#7c9fff" flood-opacity=".4"/><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>
-    <linearGradient id="cp21-sec-en-surface" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#1b222c"/><stop offset="1" stop-color="#151b23"/></linearGradient>
-    <linearGradient id="cp21-sec-en-lead" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#222b38"/><stop offset="1" stop-color="#19202a"/></linearGradient>
-    <marker id="cp21-sec-en-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#7c9fff"/></marker>
-    <marker id="cp21-sec-en-quiet" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#5b636d"/></marker>
-  </defs>
-  <g class="cp21-sec-en-root">
-    <rect width="960" height="540" fill="#0d1117"/>
-    <text class="heading" x="26" y="38">Live security boundaries</text>
-    <text class="subtitle" x="26" y="58">Access, runtime, data, and external integrations remain separately controlled</text>
-  <path class="flow" d="M304 265 H351" marker-end="url(#cp21-sec-en-arrow)"/>
-  <path class="flow" d="M608 265 H655" marker-end="url(#cp21-sec-en-arrow)"/>
-  <g filter="url(#cp21-sec-en-sh)">
-    <rect class="card" x="52" y="152" width="248" height="226" rx="12"/>
-    <line class="topline" x1="66" y1="153" x2="286" y2="153"/>
-    <text class="card-title" x="70" y="186">Edge policy</text>
-    <rect class="inner" x="70" y="210" width="212" height="48" rx="8"/>
-    <text class="label" x="82" y="230">PRIMARY</text>
-    <text class="value" x="82" y="248">Traefik + TLS</text>
-    <rect class="inner" x="70" y="268" width="212" height="48" rx="8"/>
-    <text class="label" x="82" y="288">BOUNDARY</text>
-    <text class="value" x="82" y="306">authenticated route</text>
-    <rect class="badge" x="70" y="336" width="92" height="18" rx="9"/>
-    <text class="badge-text" x="116" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-  <g filter="url(#cp21-sec-en-shl)">
-    <rect class="lead" x="356" y="152" width="248" height="226" rx="12"/>
-    <line class="topline" x1="370" y1="153" x2="590" y2="153"/>
-    <text class="card-title" x="374" y="186">Runtime</text>
-    <rect class="inner" x="374" y="210" width="212" height="48" rx="8"/>
-    <text class="label" x="386" y="230">PRIMARY</text>
-    <text class="value" x="386" y="248">UID 10001</text>
-    <rect class="inner" x="374" y="268" width="212" height="48" rx="8"/>
-    <text class="label" x="386" y="288">BOUNDARY</text>
-    <text class="value" x="386" y="306">read-only root</text>
-    <rect class="badge" x="374" y="336" width="92" height="18" rx="9" filter="url(#cp21-sec-en-gl)"/>
-    <text class="badge-text" x="420" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-  <g filter="url(#cp21-sec-en-sh)">
-    <rect class="card" x="660" y="152" width="248" height="226" rx="12"/>
-    <line class="topline" x1="674" y1="153" x2="894" y2="153"/>
-    <text class="card-title" x="678" y="186">Data boundary</text>
-    <rect class="inner" x="678" y="210" width="212" height="48" rx="8"/>
-    <text class="label" x="690" y="230">PRIMARY</text>
-    <text class="value" x="690" y="248">Secrets + PVC</text>
-    <rect class="inner" x="678" y="268" width="212" height="48" rx="8"/>
-    <text class="label" x="690" y="288">BOUNDARY</text>
-    <text class="value" x="690" y="306">allowlisted egress</text>
-    <rect class="badge" x="678" y="336" width="92" height="18" rx="9"/>
-    <text class="badge-text" x="724" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-    <text class="foot" x="26" y="504">Seonology Clock Page · GTM-LIVE-21 · Relief</text>
-  </g>
+<g class="cp58sen-root">
+<rect x="0" y="0" width="960" height="540" fill="var(--bg)"/>
+<text x="32" y="40" class="cp58sen-title">Access and storage boundaries</text>
+<text x="32" y="66" class="cp58sen-sub">Routing policies and volume placement in the central GitOps manifests</text>
+<rect id="cp58sen-edge" data-kind="region" x="32" y="96" width="896" height="128" rx="12" class="cp58sen-region"/>
+<text x="52" y="132" class="cp58sen-name" data-box="cp58sen-edge">Traefik · keycloak-auth</text>
+<text x="52" y="164" class="cp58sen-mono" data-box="cp58sen-edge">clock.seonology.com</text>
+<text x="52" y="196" class="cp58sen-mono" data-box="cp58sen-edge">seonology-tls-no-mtls</text>
+<rect id="cp58sen-api" data-kind="card" x="336" y="120" width="264" height="80" rx="12" class="cp58sen-surface" filter="url(#cp58sen-sh)"/>
+<path d="M352,121 H584" class="cp58sen-highlight"/>
+<text x="356" y="152" class="cp58sen-name" data-box="cp58sen-api">API / health</text>
+<text x="356" y="180" class="cp58sen-label" data-box="cp58sen-api">Priority 200 · app headers</text>
+<rect id="cp58sen-ui" data-kind="card" x="624" y="120" width="280" height="80" rx="12" class="cp58sen-surface" filter="url(#cp58sen-sh)"/>
+<path d="M640,121 H888" class="cp58sen-highlight"/>
+<text x="644" y="152" class="cp58sen-name" data-box="cp58sen-ui">UI</text>
+<text x="644" y="180" class="cp58sen-label" data-box="cp58sen-ui">Priority 10 · console embed</text>
+<rect id="cp58sen-pod" data-kind="region" x="32" y="248" width="896" height="232" rx="12" class="cp58sen-region"/>
+<text x="52" y="280" class="cp58sen-name" data-box="cp58sen-pod">Pod · UID/GID 10001</text>
+<rect id="cp58sen-root" data-kind="card" x="56" y="312" width="256" height="144" rx="12" class="cp58sen-surface" filter="url(#cp58sen-sh)"/>
+<path d="M72,313 H296" class="cp58sen-highlight"/>
+<text x="76" y="344" class="cp58sen-name" data-box="cp58sen-root">Read-only root</text>
+<rect id="cp58sen-data" data-kind="card" x="336" y="312" width="256" height="144" rx="12" class="cp58sen-lead" filter="url(#cp58sen-shl)"/>
+<path d="M352,313 H576" class="cp58sen-highlight"/>
+<text x="356" y="344" class="cp58sen-name" data-box="cp58sen-data">Persistent data</text>
+<rect id="cp58sen-tmp" data-kind="card" x="616" y="312" width="288" height="144" rx="12" class="cp58sen-surface" filter="url(#cp58sen-sh)"/>
+<path d="M632,313 H888" class="cp58sen-highlight"/>
+<text x="636" y="344" class="cp58sen-name" data-box="cp58sen-tmp">Temporary volumes</text>
+<text x="76" y="376" class="cp58sen-mono" data-box="cp58sen-root">/app</text>
+<text x="76" y="404" class="cp58sen-mono" data-box="cp58sen-root">/usr/share/nginx/html</text>
+<text x="356" y="376" class="cp58sen-mono" data-box="cp58sen-data">/data</text>
+<text x="356" y="404" class="cp58sen-label" data-box="cp58sen-data">Clock data · 64 MiB PVC</text>
+<text x="356" y="432" class="cp58sen-label" data-box="cp58sen-data">Velero: bookmarks-data</text>
+<text x="636" y="376" class="cp58sen-mono" data-box="cp58sen-tmp">/tmp</text>
+<text x="636" y="404" class="cp58sen-mono" data-box="cp58sen-tmp">/var/cache/nginx</text>
+<text x="636" y="432" class="cp58sen-mono" data-box="cp58sen-tmp">/var/run/nginx</text>
+<text x="32" y="516" class="cp58sen-foot">Source: central ingressroute.yaml and deployment.yaml</text>
+</g>
 </svg>

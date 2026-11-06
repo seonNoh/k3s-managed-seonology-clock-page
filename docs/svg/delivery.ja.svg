@@ -1,93 +1,135 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="cp21-del-ja-title cp21-del-ja-desc">
-  <title id="cp21-del-ja-title">Giteaデリバリー</title>
-  <desc id="cp21-del-ja-desc">mainの新規実行でソースを検証しマルチプラットフォームindexを公開します</desc>
-  <style>
-    .cp21-del-ja-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
-    .cp21-del-ja-root text{fill:#f0f6fc}
-    .cp21-del-ja-root .heading{font-size:16px;font-weight:600}
-    .cp21-del-ja-root .subtitle{font-size:11.5px;fill:#939da8}
-    .cp21-del-ja-root .card{fill:url(#cp21-del-ja-surface);stroke:#252d38;stroke-width:1}
-    .cp21-del-ja-root .lead{fill:url(#cp21-del-ja-lead);stroke:#33404f;stroke-width:1}
-    .cp21-del-ja-root .topline{stroke:rgba(255,255,255,.08);stroke-width:1}
-    .cp21-del-ja-root .card-title{font-size:13px;font-weight:500}
-    .cp21-del-ja-root .inner{fill:#1e2530;stroke:#252d38;stroke-width:1}
-    .cp21-del-ja-root .label{font-size:10px;fill:#939da8}
-    .cp21-del-ja-root .value{font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#c3ccd6}
-    .cp21-del-ja-root .badge{fill:rgba(124,159,255,.16);stroke:#33404f}
-    .cp21-del-ja-root .badge-text{font:9.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#7c9fff}
-    .cp21-del-ja-root .flow{fill:none;stroke:#7c9fff;stroke-width:1.6;stroke-dasharray:5 6;stroke-linecap:round;stroke-linejoin:round;animation:cp21-del-ja-move 2s linear infinite}
-    .cp21-del-ja-root .foot{font-size:11px;fill:#69717a}
-    @keyframes cp21-del-ja-move{to{stroke-dashoffset:-22}}
-    @media (prefers-reduced-motion:reduce){.cp21-del-ja-root .flow{animation:none}}
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" lang="ja" role="img" aria-labelledby="cp58dja-title cp58dja-desc">
+<title id="cp58dja-title">独立したワークフロー分岐</title>
+<desc id="cp58dja-desc">イベントが直接起動し、ImageはCIの完了を待ちません。</desc>
+<style>
+  svg{
+    --bg:#0d1117; --surface-a:#1b222c; --surface-b:#151b23;
+    --lead-a:#222b38; --lead-b:#19202a;
+    --inner:#1e2530; --inner-lead:#232c39;
+    --line:#252d38; --line-lead:#33404f;
+    --text:#f0f6fc; --body:#c3ccd6; --dim:#a2abb5; --faint:#8d959f;
+    --accent:#7c9fff; --accent-bg:rgba(124,159,255,.16);
+    --ok:#4ac97e; --warn:#e0a740; --bad:#f2705e; --off:#8b939d;
+    --quiet:#78818c;
+    --sh:#000; --sh-op:.50; --shl-op:.58; --shs-op:.40;
+    --glow-op:.40; --glow-cast:.45; --hl:rgba(255,255,255,.05);
+  }
+  @media (prefers-color-scheme: light){
+    svg{
+      --bg:#f6f8fa; --surface-a:#ffffff; --surface-b:#fafbfc;
+      --lead-a:#ffffff; --lead-b:#f5f8ff;
+      --inner:#eef1f4; --inner-lead:#e9f0fe;
+      --line:#d8dee4; --line-lead:#b8c9ee;
+      --text:#1f2328; --body:#3d444d; --dim:#59636e; --faint:#656d7a;
+      --accent:#2f62d4; --accent-bg:rgba(47,98,212,.10);
+      --ok:#187734; --warn:#8e5f00; --bad:#cf222e; --off:#5f6773;
+      --quiet:#6e7781;
+      --sh:#1f2328; --sh-op:.13; --shl-op:.18; --shs-op:.12;
+      --glow-op:.35; --glow-cast:.14; --hl:transparent;
+    }
+  }
+  .cp58dja-flow{fill:none;stroke:var(--accent);stroke-width:1.6;
+          stroke-linecap:round;stroke-linejoin:round;
+          stroke-dasharray:5 6;animation:cp58dja-move 2s linear infinite}
+  .cp58dja-quiet{fill:none;stroke:var(--quiet);stroke-width:1.4;
+           stroke-linecap:round;stroke-linejoin:round}
+  @keyframes cp58dja-move{to{stroke-dashoffset:-22}}
+  @media (prefers-reduced-motion:reduce){.cp58dja-flow{animation:none}}
+</style>
+<defs>
+  <filter id="cp58dja-sh" x="-30%" y="-30%" width="160%" height="170%">
+    <feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="var(--sh)" flood-opacity="var(--sh-op)"/>
+  </filter>
+  <filter id="cp58dja-shl" x="-30%" y="-30%" width="160%" height="180%">
+    <feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="var(--sh)" flood-opacity="var(--shl-op)"/>
+  </filter>
+  <filter id="cp58dja-shs" x="-30%" y="-30%" width="160%" height="170%">
+    <feDropShadow dx="-2" dy="4" stdDeviation="4" flood-color="var(--sh)" flood-opacity="var(--shs-op)"/>
+  </filter>
+  <filter id="cp58dja-gl" x="-60%" y="-90%" width="220%" height="280%">
+    <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="var(--accent)" flood-opacity="var(--glow-op)"/>
+    <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="var(--sh)" flood-opacity="var(--glow-cast)"/>
+  </filter>
+  <linearGradient id="cp58dja-s" x1="0" y1="0" x2=".3" y2="1">
+    <stop offset="0" stop-color="var(--surface-a)"/><stop offset="1" stop-color="var(--surface-b)"/>
+  </linearGradient>
+  <linearGradient id="cp58dja-sl" x1="0" y1="0" x2=".3" y2="1">
+    <stop offset="0" stop-color="var(--lead-a)"/><stop offset="1" stop-color="var(--lead-b)"/>
+  </linearGradient>
+  <marker id="cp58dja-t" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/>
+  </marker>
+  <marker id="cp58dja-tq" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--quiet)"/>
+  </marker>
+</defs>
+<style>
+  .cp58dja-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
+  .cp58dja-root{fill:var(--body)}
+  .cp58dja-title{font-size:20px;font-weight:600;fill:var(--text)}
+  .cp58dja-sub{font-size:13.5px;fill:var(--dim)}
+  .cp58dja-name{font-size:15px;font-weight:500}
+  .cp58dja-label{font-size:13px}
+  .cp58dja-mono{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+  .cp58dja-foot{font-size:13px;fill:var(--faint)}
+  .cp58dja-surface{fill:url(#cp58dja-s);stroke:var(--line);stroke-width:1}
+  .cp58dja-lead{fill:url(#cp58dja-sl);stroke:var(--line-lead);stroke-width:1}
+  .cp58dja-region{fill:var(--inner);stroke:var(--line);stroke-width:1}
+  .cp58dja-cell{fill:var(--inner);stroke:var(--line);stroke-width:1}
+  .cp58dja-highlight{stroke:var(--hl);stroke-width:1}
+  .cp58dja-support{fill:var(--accent)}
+  .cp58dja-off{fill:var(--faint)}
   </style>
-  <defs>
-    <filter id="cp21-del-ja-sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="#000" flood-opacity=".5"/></filter>
-    <filter id="cp21-del-ja-shl" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="#000" flood-opacity=".58"/></filter>
-    <filter id="cp21-del-ja-gl" x="-60%" y="-90%" width="220%" height="280%"><feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#7c9fff" flood-opacity=".4"/><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>
-    <linearGradient id="cp21-del-ja-surface" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#1b222c"/><stop offset="1" stop-color="#151b23"/></linearGradient>
-    <linearGradient id="cp21-del-ja-lead" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#222b38"/><stop offset="1" stop-color="#19202a"/></linearGradient>
-    <marker id="cp21-del-ja-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#7c9fff"/></marker>
-    <marker id="cp21-del-ja-quiet" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#5b636d"/></marker>
-  </defs>
-  <g class="cp21-del-ja-root">
-    <rect width="960" height="540" fill="#0d1117"/>
-    <text class="heading" x="26" y="38">Giteaデリバリー</text>
-    <text class="subtitle" x="26" y="58">mainの新規実行でソースを検証しマルチプラットフォームindexを公開します</text>
-  <path class="flow" d="M248 265 H263" marker-end="url(#cp21-del-ja-arrow)"/>
-  <path class="flow" d="M472 265 H487" marker-end="url(#cp21-del-ja-arrow)"/>
-  <path class="flow" d="M696 265 H711" marker-end="url(#cp21-del-ja-arrow)"/>
-  <g filter="url(#cp21-del-ja-sh)">
-    <rect class="card" x="44" y="152" width="200" height="226" rx="12"/>
-    <line class="topline" x1="58" y1="153" x2="230" y2="153"/>
-    <text class="card-title" x="62" y="186">ソース</text>
-    <rect class="inner" x="62" y="210" width="164" height="48" rx="8"/>
-    <text class="label" x="74" y="230">PRIMARY</text>
-    <text class="value" x="74" y="248">mainへのpush</text>
-    <rect class="inner" x="62" y="268" width="164" height="48" rx="8"/>
-    <text class="label" x="74" y="288">BOUNDARY</text>
-    <text class="value" x="74" y="306">正確なSHA</text>
-    <rect class="badge" x="62" y="336" width="92" height="18" rx="9"/>
-    <text class="badge-text" x="108" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-  <g filter="url(#cp21-del-ja-sh)">
-    <rect class="card" x="268" y="152" width="200" height="226" rx="12"/>
-    <line class="topline" x1="282" y1="153" x2="454" y2="153"/>
-    <text class="card-title" x="286" y="186">品質</text>
-    <rect class="inner" x="286" y="210" width="164" height="48" rx="8"/>
-    <text class="label" x="298" y="230">PRIMARY</text>
-    <text class="value" x="298" y="248">テスト + ビルド</text>
-    <rect class="inner" x="286" y="268" width="164" height="48" rx="8"/>
-    <text class="label" x="298" y="288">BOUNDARY</text>
-    <text class="value" x="298" y="306">コンテナ確認</text>
-    <rect class="badge" x="286" y="336" width="92" height="18" rx="9"/>
-    <text class="badge-text" x="332" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-  <g filter="url(#cp21-del-ja-shl)">
-    <rect class="lead" x="492" y="152" width="200" height="226" rx="12"/>
-    <line class="topline" x1="506" y1="153" x2="678" y2="153"/>
-    <text class="card-title" x="510" y="186">Registry</text>
-    <rect class="inner" x="510" y="210" width="164" height="48" rx="8"/>
-    <text class="label" x="522" y="230">PRIMARY</text>
-    <text class="value" x="522" y="248">OCI index</text>
-    <rect class="inner" x="510" y="268" width="164" height="48" rx="8"/>
-    <text class="label" x="522" y="288">BOUNDARY</text>
-    <text class="value" x="522" y="306">amd64 + arm64</text>
-    <rect class="badge" x="510" y="336" width="92" height="18" rx="9" filter="url(#cp21-del-ja-gl)"/>
-    <text class="badge-text" x="556" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-  <g filter="url(#cp21-del-ja-sh)">
-    <rect class="card" x="716" y="152" width="200" height="226" rx="12"/>
-    <line class="topline" x1="730" y1="153" x2="902" y2="153"/>
-    <text class="card-title" x="734" y="186">GitOps</text>
-    <rect class="inner" x="734" y="210" width="164" height="48" rx="8"/>
-    <text class="label" x="746" y="230">PRIMARY</text>
-    <text class="value" x="746" y="248">分離ブランチ</text>
-    <rect class="inner" x="734" y="268" width="164" height="48" rx="8"/>
-    <text class="label" x="746" y="288">BOUNDARY</text>
-    <text class="value" x="746" y="306">調整担当が切替</text>
-    <rect class="badge" x="734" y="336" width="92" height="18" rx="9"/>
-    <text class="badge-text" x="780" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-    <text class="foot" x="26" y="504">Seonology Clock Page · GTM-LIVE-21 · Relief</text>
-  </g>
+<g class="cp58dja-root">
+<rect x="0" y="0" width="960" height="540" fill="var(--bg)"/>
+<text x="32" y="40" class="cp58dja-title">独立したワークフロー分岐</text>
+<text x="32" y="66" class="cp58dja-sub">イベントが直接起動し、ImageはCIの完了を待ちません。</text>
+<text x="52" y="112" class="cp58dja-name">イベント</text>
+<text x="340" y="112" class="cp58dja-name">ジョブ</text>
+<text x="724" y="112" class="cp58dja-name">結果</text>
+<rect id="cp58dja-event0" data-kind="card" x="32" y="136" width="208" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M48,137 H224" class="cp58dja-highlight"/>
+<text x="52" y="168" class="cp58dja-label" data-box="cp58dja-event0">mainへのpush / PR</text>
+<text x="52" y="200" class="cp58dja-mono" data-box="cp58dja-event0">workflow_dispatch</text>
+<rect id="cp58dja-job0" data-kind="card" x="320" y="136" width="304" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M336,137 H608" class="cp58dja-highlight"/>
+<text x="340" y="164" class="cp58dja-mono" data-box="cp58dja-job0">quality · ci.yml</text>
+<text x="340" y="190" class="cp58dja-label" data-box="cp58dja-job0">リンター / テスト / 監査</text>
+<text x="340" y="212" class="cp58dja-label" data-box="cp58dja-job0">Web / 拡張ビルド</text>
+<rect id="cp58dja-result0" data-kind="card" x="704" y="136" width="224" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M720,137 H912" class="cp58dja-highlight"/>
+<text x="724" y="172" class="cp58dja-label" data-box="cp58dja-result0">コンテナスモークテスト</text>
+<path class="cp58dja-quiet" d="M240,184 L320,184" marker-end="url(#cp58dja-tq)" data-from="cp58dja-event0" data-to="cp58dja-job0" data-pts="240,184;320,184"/>
+<path class="cp58dja-quiet" d="M624,184 L704,184" marker-end="url(#cp58dja-tq)" data-from="cp58dja-job0" data-to="cp58dja-result0" data-pts="624,184;704,184"/>
+<rect id="cp58dja-event1" data-kind="card" x="32" y="256" width="208" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M48,257 H224" class="cp58dja-highlight"/>
+<text x="52" y="288" class="cp58dja-label" data-box="cp58dja-event1">mainへのpush</text>
+<text x="52" y="320" class="cp58dja-mono" data-box="cp58dja-event1">workflow_dispatch</text>
+<rect id="cp58dja-job1" data-kind="card" x="320" y="256" width="304" height="96" rx="12" class="cp58dja-lead" filter="url(#cp58dja-shl)"/>
+<path d="M336,257 H608" class="cp58dja-highlight"/>
+<text x="340" y="284" class="cp58dja-mono" data-box="cp58dja-job1">publish · image.yml</text>
+<text x="340" y="310" class="cp58dja-label" data-box="cp58dja-job1">linux/amd64 + linux/arm64</text>
+<text x="340" y="332" class="cp58dja-label" data-box="cp58dja-job1">OCIインデックス</text>
+<rect id="cp58dja-result1" data-kind="card" x="704" y="256" width="224" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M720,257 H912" class="cp58dja-highlight"/>
+<text x="724" y="292" class="cp58dja-label" data-box="cp58dja-result1">main / sha-&lt;12 hex&gt;</text>
+<path class="cp58dja-quiet" d="M240,304 L320,304" marker-end="url(#cp58dja-tq)" data-from="cp58dja-event1" data-to="cp58dja-job1" data-pts="240,304;320,304"/>
+<path class="cp58dja-flow" d="M624,304 L704,304" marker-end="url(#cp58dja-t)" data-from="cp58dja-job1" data-to="cp58dja-result1" data-pts="624,304;704,304"/>
+<rect id="cp58dja-event2" data-kind="card" x="32" y="376" width="208" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M48,377 H224" class="cp58dja-highlight"/>
+<text x="52" y="408" class="cp58dja-label" data-box="cp58dja-event2">vX.Y.Zタグのpush</text>
+<text x="52" y="440" class="cp58dja-mono" data-box="cp58dja-event2">workflow_dispatch</text>
+<rect id="cp58dja-job2" data-kind="card" x="320" y="376" width="304" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M336,377 H608" class="cp58dja-highlight"/>
+<text x="340" y="404" class="cp58dja-mono" data-box="cp58dja-job2">release · release.yml</text>
+<text x="340" y="430" class="cp58dja-label" data-box="cp58dja-job2">vX.Y.Z</text>
+<text x="340" y="452" class="cp58dja-label" data-box="cp58dja-job2">tag = v + VERSION</text>
+<rect id="cp58dja-result2" data-kind="card" x="704" y="376" width="224" height="96" rx="12" class="cp58dja-surface" filter="url(#cp58dja-sh)"/>
+<path d="M720,377 H912" class="cp58dja-highlight"/>
+<text x="724" y="412" class="cp58dja-label" data-box="cp58dja-result2">vX.Y.Z / Giteaリリース</text>
+<text x="724" y="440" class="cp58dja-label" data-box="cp58dja-result2">イメージ / リリース不在時のみ</text>
+<path class="cp58dja-quiet" d="M240,424 L320,424" marker-end="url(#cp58dja-tq)" data-from="cp58dja-event2" data-to="cp58dja-job2" data-pts="240,424;320,424"/>
+<path class="cp58dja-flow" d="M624,424 L704,424" marker-end="url(#cp58dja-t)" data-from="cp58dja-job2" data-to="cp58dja-result2" data-pts="624,424;704,424"/>
+<text x="32" y="516" class="cp58dja-foot">すべてworkflow_dispatchに対応し、Releaseはtag = v + VERSIONを要求します。</text>
+</g>
 </svg>

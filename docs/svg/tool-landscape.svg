@@ -1,79 +1,155 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="cp21-too-en-title cp21-too-en-desc">
-  <title id="cp21-too-en-title">Tool landscape</title>
-  <desc id="cp21-too-en-desc">Stable tool identifiers connect the dashboard and browser extension</desc>
-  <style>
-    .cp21-too-en-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
-    .cp21-too-en-root text{fill:#f0f6fc}
-    .cp21-too-en-root .heading{font-size:16px;font-weight:600}
-    .cp21-too-en-root .subtitle{font-size:11.5px;fill:#939da8}
-    .cp21-too-en-root .card{fill:url(#cp21-too-en-surface);stroke:#252d38;stroke-width:1}
-    .cp21-too-en-root .lead{fill:url(#cp21-too-en-lead);stroke:#33404f;stroke-width:1}
-    .cp21-too-en-root .topline{stroke:rgba(255,255,255,.08);stroke-width:1}
-    .cp21-too-en-root .card-title{font-size:13px;font-weight:500}
-    .cp21-too-en-root .inner{fill:#1e2530;stroke:#252d38;stroke-width:1}
-    .cp21-too-en-root .label{font-size:10px;fill:#939da8}
-    .cp21-too-en-root .value{font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#c3ccd6}
-    .cp21-too-en-root .badge{fill:rgba(124,159,255,.16);stroke:#33404f}
-    .cp21-too-en-root .badge-text{font:9.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#7c9fff}
-    .cp21-too-en-root .flow{fill:none;stroke:#7c9fff;stroke-width:1.6;stroke-dasharray:5 6;stroke-linecap:round;stroke-linejoin:round;animation:cp21-too-en-move 2s linear infinite}
-    .cp21-too-en-root .foot{font-size:11px;fill:#69717a}
-    @keyframes cp21-too-en-move{to{stroke-dashoffset:-22}}
-    @media (prefers-reduced-motion:reduce){.cp21-too-en-root .flow{animation:none}}
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" lang="en" role="img" aria-labelledby="cp58ten-title cp58ten-desc">
+<title id="cp58ten-title">Tool surface mapping</title>
+<desc id="cp58ten-desc">Selected catalog entries and their declared surfaces</desc>
+<style>
+  svg{
+    --bg:#0d1117; --surface-a:#1b222c; --surface-b:#151b23;
+    --lead-a:#222b38; --lead-b:#19202a;
+    --inner:#1e2530; --inner-lead:#232c39;
+    --line:#252d38; --line-lead:#33404f;
+    --text:#f0f6fc; --body:#c3ccd6; --dim:#a2abb5; --faint:#8d959f;
+    --accent:#7c9fff; --accent-bg:rgba(124,159,255,.16);
+    --ok:#4ac97e; --warn:#e0a740; --bad:#f2705e; --off:#8b939d;
+    --quiet:#78818c;
+    --sh:#000; --sh-op:.50; --shl-op:.58; --shs-op:.40;
+    --glow-op:.40; --glow-cast:.45; --hl:rgba(255,255,255,.05);
+  }
+  @media (prefers-color-scheme: light){
+    svg{
+      --bg:#f6f8fa; --surface-a:#ffffff; --surface-b:#fafbfc;
+      --lead-a:#ffffff; --lead-b:#f5f8ff;
+      --inner:#eef1f4; --inner-lead:#e9f0fe;
+      --line:#d8dee4; --line-lead:#b8c9ee;
+      --text:#1f2328; --body:#3d444d; --dim:#59636e; --faint:#656d7a;
+      --accent:#2f62d4; --accent-bg:rgba(47,98,212,.10);
+      --ok:#187734; --warn:#8e5f00; --bad:#cf222e; --off:#5f6773;
+      --quiet:#6e7781;
+      --sh:#1f2328; --sh-op:.13; --shl-op:.18; --shs-op:.12;
+      --glow-op:.35; --glow-cast:.14; --hl:transparent;
+    }
+  }
+  .cp58ten-flow{fill:none;stroke:var(--accent);stroke-width:1.6;
+          stroke-linecap:round;stroke-linejoin:round;
+          stroke-dasharray:5 6;animation:cp58ten-move 2s linear infinite}
+  .cp58ten-quiet{fill:none;stroke:var(--quiet);stroke-width:1.4;
+           stroke-linecap:round;stroke-linejoin:round}
+  @keyframes cp58ten-move{to{stroke-dashoffset:-22}}
+  @media (prefers-reduced-motion:reduce){.cp58ten-flow{animation:none}}
+</style>
+<defs>
+  <filter id="cp58ten-sh" x="-30%" y="-30%" width="160%" height="170%">
+    <feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="var(--sh)" flood-opacity="var(--sh-op)"/>
+  </filter>
+  <filter id="cp58ten-shl" x="-30%" y="-30%" width="160%" height="180%">
+    <feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="var(--sh)" flood-opacity="var(--shl-op)"/>
+  </filter>
+  <filter id="cp58ten-shs" x="-30%" y="-30%" width="160%" height="170%">
+    <feDropShadow dx="-2" dy="4" stdDeviation="4" flood-color="var(--sh)" flood-opacity="var(--shs-op)"/>
+  </filter>
+  <filter id="cp58ten-gl" x="-60%" y="-90%" width="220%" height="280%">
+    <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="var(--accent)" flood-opacity="var(--glow-op)"/>
+    <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="var(--sh)" flood-opacity="var(--glow-cast)"/>
+  </filter>
+  <linearGradient id="cp58ten-s" x1="0" y1="0" x2=".3" y2="1">
+    <stop offset="0" stop-color="var(--surface-a)"/><stop offset="1" stop-color="var(--surface-b)"/>
+  </linearGradient>
+  <linearGradient id="cp58ten-sl" x1="0" y1="0" x2=".3" y2="1">
+    <stop offset="0" stop-color="var(--lead-a)"/><stop offset="1" stop-color="var(--lead-b)"/>
+  </linearGradient>
+  <marker id="cp58ten-t" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/>
+  </marker>
+  <marker id="cp58ten-tq" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--quiet)"/>
+  </marker>
+</defs>
+<style>
+  .cp58ten-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
+  .cp58ten-root{fill:var(--body)}
+  .cp58ten-title{font-size:20px;font-weight:600;fill:var(--text)}
+  .cp58ten-sub{font-size:13.5px;fill:var(--dim)}
+  .cp58ten-name{font-size:15px;font-weight:500}
+  .cp58ten-label{font-size:13px}
+  .cp58ten-mono{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+  .cp58ten-foot{font-size:13px;fill:var(--faint)}
+  .cp58ten-surface{fill:url(#cp58ten-s);stroke:var(--line);stroke-width:1}
+  .cp58ten-lead{fill:url(#cp58ten-sl);stroke:var(--line-lead);stroke-width:1}
+  .cp58ten-region{fill:var(--inner);stroke:var(--line);stroke-width:1}
+  .cp58ten-cell{fill:var(--inner);stroke:var(--line);stroke-width:1}
+  .cp58ten-highlight{stroke:var(--hl);stroke-width:1}
+  .cp58ten-support{fill:var(--accent)}
+  .cp58ten-off{fill:var(--faint)}
   </style>
-  <defs>
-    <filter id="cp21-too-en-sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="#000" flood-opacity=".5"/></filter>
-    <filter id="cp21-too-en-shl" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="#000" flood-opacity=".58"/></filter>
-    <filter id="cp21-too-en-gl" x="-60%" y="-90%" width="220%" height="280%"><feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#7c9fff" flood-opacity=".4"/><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>
-    <linearGradient id="cp21-too-en-surface" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#1b222c"/><stop offset="1" stop-color="#151b23"/></linearGradient>
-    <linearGradient id="cp21-too-en-lead" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#222b38"/><stop offset="1" stop-color="#19202a"/></linearGradient>
-    <marker id="cp21-too-en-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#7c9fff"/></marker>
-    <marker id="cp21-too-en-quiet" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#5b636d"/></marker>
-  </defs>
-  <g class="cp21-too-en-root">
-    <rect width="960" height="540" fill="#0d1117"/>
-    <text class="heading" x="26" y="38">Tool landscape</text>
-    <text class="subtitle" x="26" y="58">Stable tool identifiers connect the dashboard and browser extension</text>
-  <path class="flow" d="M304 265 H351" marker-end="url(#cp21-too-en-arrow)"/>
-  <path class="flow" d="M608 265 H655" marker-end="url(#cp21-too-en-arrow)"/>
-  <g filter="url(#cp21-too-en-sh)">
-    <rect class="card" x="52" y="152" width="248" height="226" rx="12"/>
-    <line class="topline" x1="66" y1="153" x2="286" y2="153"/>
-    <text class="card-title" x="70" y="186">Observe</text>
-    <rect class="inner" x="70" y="210" width="212" height="48" rx="8"/>
-    <text class="label" x="82" y="230">PRIMARY</text>
-    <text class="value" x="82" y="248">Clock + weather</text>
-    <rect class="inner" x="70" y="268" width="212" height="48" rx="8"/>
-    <text class="label" x="82" y="288">BOUNDARY</text>
-    <text class="value" x="82" y="306">Status views</text>
-    <rect class="badge" x="70" y="336" width="92" height="18" rx="9"/>
-    <text class="badge-text" x="116" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-  <g filter="url(#cp21-too-en-shl)">
-    <rect class="lead" x="356" y="152" width="248" height="226" rx="12"/>
-    <line class="topline" x1="370" y1="153" x2="590" y2="153"/>
-    <text class="card-title" x="374" y="186">Transform</text>
-    <rect class="inner" x="374" y="210" width="212" height="48" rx="8"/>
-    <text class="label" x="386" y="230">PRIMARY</text>
-    <text class="value" x="386" y="248">Text + data</text>
-    <rect class="inner" x="374" y="268" width="212" height="48" rx="8"/>
-    <text class="label" x="386" y="288">BOUNDARY</text>
-    <text class="value" x="386" y="306">Network tools</text>
-    <rect class="badge" x="374" y="336" width="92" height="18" rx="9" filter="url(#cp21-too-en-gl)"/>
-    <text class="badge-text" x="420" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-  <g filter="url(#cp21-too-en-sh)">
-    <rect class="card" x="660" y="152" width="248" height="226" rx="12"/>
-    <line class="topline" x1="674" y1="153" x2="894" y2="153"/>
-    <text class="card-title" x="678" y="186">Operate</text>
-    <rect class="inner" x="678" y="210" width="212" height="48" rx="8"/>
-    <text class="label" x="690" y="230">PRIMARY</text>
-    <text class="value" x="690" y="248">Bookmarks + cloud</text>
-    <rect class="inner" x="678" y="268" width="212" height="48" rx="8"/>
-    <text class="label" x="690" y="288">BOUNDARY</text>
-    <text class="value" x="690" y="306">Infrastructure</text>
-    <rect class="badge" x="678" y="336" width="92" height="18" rx="9"/>
-    <text class="badge-text" x="724" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-    <text class="foot" x="26" y="504">Seonology Clock Page · GTM-LIVE-21 · Relief</text>
-  </g>
+<g class="cp58ten-root">
+<rect x="0" y="0" width="960" height="540" fill="var(--bg)"/>
+<text x="32" y="40" class="cp58ten-title">Tool surface mapping</text>
+<text x="32" y="66" class="cp58ten-sub">Selected catalog entries and their declared surfaces</text>
+<text x="52" y="112" class="cp58ten-name">Tool ID</text>
+<text x="448.0" y="112" class="cp58ten-name" text-anchor="middle">Web</text>
+<text x="584.0" y="112" class="cp58ten-name" text-anchor="middle">Popup</text>
+<text x="720.0" y="112" class="cp58ten-name" text-anchor="middle">New tab</text>
+<text x="856.0" y="112" class="cp58ten-name" text-anchor="middle">Context</text>
+<rect id="cp58ten-name0" data-kind="block" x="32" y="136" width="336" height="48" rx="8" class="cp58ten-cell"/>
+<text x="52" y="166" class="cp58ten-mono" data-box="cp58ten-name0">base64 / json / epoch</text>
+<rect id="cp58ten-cell00" data-kind="block" x="392" y="136" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="448.0" y="166" class="cp58ten-support" data-box="cp58ten-cell00" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell01" data-kind="block" x="528" y="136" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="584.0" y="166" class="cp58ten-support" data-box="cp58ten-cell01" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell02" data-kind="block" x="664" y="136" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="720.0" y="166" class="cp58ten-support" data-box="cp58ten-cell02" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell03" data-kind="block" x="800" y="136" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="856.0" y="166" class="cp58ten-support" data-box="cp58ten-cell03" text-anchor="middle">Available</text>
+<rect id="cp58ten-name1" data-kind="block" x="32" y="192" width="336" height="48" rx="8" class="cp58ten-cell"/>
+<text x="52" y="222" class="cp58ten-mono" data-box="cp58ten-name1">regex / unit / cron</text>
+<rect id="cp58ten-cell10" data-kind="block" x="392" y="192" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="448.0" y="222" class="cp58ten-support" data-box="cp58ten-cell10" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell11" data-kind="block" x="528" y="192" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="584.0" y="222" class="cp58ten-support" data-box="cp58ten-cell11" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell12" data-kind="block" x="664" y="192" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="720.0" y="222" class="cp58ten-support" data-box="cp58ten-cell12" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell13" data-kind="block" x="800" y="192" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="856.0" y="222" class="cp58ten-off" data-box="cp58ten-cell13" text-anchor="middle">Not listed</text>
+<rect id="cp58ten-name2" data-kind="block" x="32" y="248" width="336" height="48" rx="8" class="cp58ten-cell"/>
+<text x="52" y="278" class="cp58ten-mono" data-box="cp58ten-name2">markdown / rbac</text>
+<rect id="cp58ten-cell20" data-kind="block" x="392" y="248" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="448.0" y="278" class="cp58ten-support" data-box="cp58ten-cell20" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell21" data-kind="block" x="528" y="248" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="584.0" y="278" class="cp58ten-off" data-box="cp58ten-cell21" text-anchor="middle">Not listed</text>
+<rect id="cp58ten-cell22" data-kind="block" x="664" y="248" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="720.0" y="278" class="cp58ten-support" data-box="cp58ten-cell22" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell23" data-kind="block" x="800" y="248" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="856.0" y="278" class="cp58ten-off" data-box="cp58ten-cell23" text-anchor="middle">Not listed</text>
+<rect id="cp58ten-name3" data-kind="block" x="32" y="304" width="336" height="48" rx="8" class="cp58ten-cell"/>
+<text x="52" y="334" class="cp58ten-mono" data-box="cp58ten-name3">notes / chat / clipboard</text>
+<rect id="cp58ten-cell30" data-kind="block" x="392" y="304" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="448.0" y="334" class="cp58ten-support" data-box="cp58ten-cell30" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell31" data-kind="block" x="528" y="304" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="584.0" y="334" class="cp58ten-off" data-box="cp58ten-cell31" text-anchor="middle">Not listed</text>
+<rect id="cp58ten-cell32" data-kind="block" x="664" y="304" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="720.0" y="334" class="cp58ten-off" data-box="cp58ten-cell32" text-anchor="middle">Not listed</text>
+<rect id="cp58ten-cell33" data-kind="block" x="800" y="304" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="856.0" y="334" class="cp58ten-off" data-box="cp58ten-cell33" text-anchor="middle">Not listed</text>
+<rect id="cp58ten-name4" data-kind="block" x="32" y="360" width="336" height="48" rx="8" class="cp58ten-cell"/>
+<text x="52" y="390" class="cp58ten-mono" data-box="cp58ten-name4">textcount</text>
+<rect id="cp58ten-cell40" data-kind="block" x="392" y="360" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="448.0" y="390" class="cp58ten-off" data-box="cp58ten-cell40" text-anchor="middle">Not listed</text>
+<rect id="cp58ten-cell41" data-kind="block" x="528" y="360" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="584.0" y="390" class="cp58ten-support" data-box="cp58ten-cell41" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell42" data-kind="block" x="664" y="360" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="720.0" y="390" class="cp58ten-support" data-box="cp58ten-cell42" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell43" data-kind="block" x="800" y="360" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="856.0" y="390" class="cp58ten-support" data-box="cp58ten-cell43" text-anchor="middle">Available</text>
+<rect id="cp58ten-name5" data-kind="block" x="32" y="416" width="336" height="48" rx="8" class="cp58ten-cell"/>
+<text x="52" y="446" class="cp58ten-mono" data-box="cp58ten-name5">clock</text>
+<rect id="cp58ten-cell50" data-kind="block" x="392" y="416" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="448.0" y="446" class="cp58ten-off" data-box="cp58ten-cell50" text-anchor="middle">Not listed</text>
+<rect id="cp58ten-cell51" data-kind="block" x="528" y="416" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="584.0" y="446" class="cp58ten-off" data-box="cp58ten-cell51" text-anchor="middle">Not listed</text>
+<rect id="cp58ten-cell52" data-kind="block" x="664" y="416" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="720.0" y="446" class="cp58ten-support" data-box="cp58ten-cell52" text-anchor="middle">Available</text>
+<rect id="cp58ten-cell53" data-kind="block" x="800" y="416" width="112" height="48" rx="8" class="cp58ten-cell"/>
+<text x="856.0" y="446" class="cp58ten-off" data-box="cp58ten-cell53" text-anchor="middle">Not listed</text>
+<text x="32" y="512" class="cp58ten-foot">Source: packages/toolkit-core/src/catalog.js</text>
+<style>.cp58ten-support,.cp58ten-off{font-size:13px}</style>
+</g>
 </svg>

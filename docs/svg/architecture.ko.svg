@@ -1,79 +1,117 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="cp21-arc-ko-title cp21-arc-ko-desc">
-  <title id="cp21-arc-ko-title">런타임 아키텍처</title>
-  <desc id="cp21-arc-ko-desc">클러스터 경계 안에서 하나의 이미지가 브라우저와 API를 제공합니다</desc>
-  <style>
-    .cp21-arc-ko-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
-    .cp21-arc-ko-root text{fill:#f0f6fc}
-    .cp21-arc-ko-root .heading{font-size:16px;font-weight:600}
-    .cp21-arc-ko-root .subtitle{font-size:11.5px;fill:#939da8}
-    .cp21-arc-ko-root .card{fill:url(#cp21-arc-ko-surface);stroke:#252d38;stroke-width:1}
-    .cp21-arc-ko-root .lead{fill:url(#cp21-arc-ko-lead);stroke:#33404f;stroke-width:1}
-    .cp21-arc-ko-root .topline{stroke:rgba(255,255,255,.08);stroke-width:1}
-    .cp21-arc-ko-root .card-title{font-size:13px;font-weight:500}
-    .cp21-arc-ko-root .inner{fill:#1e2530;stroke:#252d38;stroke-width:1}
-    .cp21-arc-ko-root .label{font-size:10px;fill:#939da8}
-    .cp21-arc-ko-root .value{font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#c3ccd6}
-    .cp21-arc-ko-root .badge{fill:rgba(124,159,255,.16);stroke:#33404f}
-    .cp21-arc-ko-root .badge-text{font:9.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#7c9fff}
-    .cp21-arc-ko-root .flow{fill:none;stroke:#7c9fff;stroke-width:1.6;stroke-dasharray:5 6;stroke-linecap:round;stroke-linejoin:round;animation:cp21-arc-ko-move 2s linear infinite}
-    .cp21-arc-ko-root .foot{font-size:11px;fill:#69717a}
-    @keyframes cp21-arc-ko-move{to{stroke-dashoffset:-22}}
-    @media (prefers-reduced-motion:reduce){.cp21-arc-ko-root .flow{animation:none}}
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" lang="ko" role="img" aria-labelledby="cp58ako-title cp58ako-desc">
+<title id="cp58ako-title">런타임 아키텍처</title>
+<desc id="cp58ako-desc">nginx와 Express는 한 이미지에 있으며 영구 데이터는 별도로 마운트합니다.</desc>
+<style>
+  svg{
+    --bg:#0d1117; --surface-a:#1b222c; --surface-b:#151b23;
+    --lead-a:#222b38; --lead-b:#19202a;
+    --inner:#1e2530; --inner-lead:#232c39;
+    --line:#252d38; --line-lead:#33404f;
+    --text:#f0f6fc; --body:#c3ccd6; --dim:#a2abb5; --faint:#8d959f;
+    --accent:#7c9fff; --accent-bg:rgba(124,159,255,.16);
+    --ok:#4ac97e; --warn:#e0a740; --bad:#f2705e; --off:#8b939d;
+    --quiet:#78818c;
+    --sh:#000; --sh-op:.50; --shl-op:.58; --shs-op:.40;
+    --glow-op:.40; --glow-cast:.45; --hl:rgba(255,255,255,.05);
+  }
+  @media (prefers-color-scheme: light){
+    svg{
+      --bg:#f6f8fa; --surface-a:#ffffff; --surface-b:#fafbfc;
+      --lead-a:#ffffff; --lead-b:#f5f8ff;
+      --inner:#eef1f4; --inner-lead:#e9f0fe;
+      --line:#d8dee4; --line-lead:#b8c9ee;
+      --text:#1f2328; --body:#3d444d; --dim:#59636e; --faint:#656d7a;
+      --accent:#2f62d4; --accent-bg:rgba(47,98,212,.10);
+      --ok:#187734; --warn:#8e5f00; --bad:#cf222e; --off:#5f6773;
+      --quiet:#6e7781;
+      --sh:#1f2328; --sh-op:.13; --shl-op:.18; --shs-op:.12;
+      --glow-op:.35; --glow-cast:.14; --hl:transparent;
+    }
+  }
+  .cp58ako-flow{fill:none;stroke:var(--accent);stroke-width:1.6;
+          stroke-linecap:round;stroke-linejoin:round;
+          stroke-dasharray:5 6;animation:cp58ako-move 2s linear infinite}
+  .cp58ako-quiet{fill:none;stroke:var(--quiet);stroke-width:1.4;
+           stroke-linecap:round;stroke-linejoin:round}
+  @keyframes cp58ako-move{to{stroke-dashoffset:-22}}
+  @media (prefers-reduced-motion:reduce){.cp58ako-flow{animation:none}}
+</style>
+<defs>
+  <filter id="cp58ako-sh" x="-30%" y="-30%" width="160%" height="170%">
+    <feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="var(--sh)" flood-opacity="var(--sh-op)"/>
+  </filter>
+  <filter id="cp58ako-shl" x="-30%" y="-30%" width="160%" height="180%">
+    <feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="var(--sh)" flood-opacity="var(--shl-op)"/>
+  </filter>
+  <filter id="cp58ako-shs" x="-30%" y="-30%" width="160%" height="170%">
+    <feDropShadow dx="-2" dy="4" stdDeviation="4" flood-color="var(--sh)" flood-opacity="var(--shs-op)"/>
+  </filter>
+  <filter id="cp58ako-gl" x="-60%" y="-90%" width="220%" height="280%">
+    <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="var(--accent)" flood-opacity="var(--glow-op)"/>
+    <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="var(--sh)" flood-opacity="var(--glow-cast)"/>
+  </filter>
+  <linearGradient id="cp58ako-s" x1="0" y1="0" x2=".3" y2="1">
+    <stop offset="0" stop-color="var(--surface-a)"/><stop offset="1" stop-color="var(--surface-b)"/>
+  </linearGradient>
+  <linearGradient id="cp58ako-sl" x1="0" y1="0" x2=".3" y2="1">
+    <stop offset="0" stop-color="var(--lead-a)"/><stop offset="1" stop-color="var(--lead-b)"/>
+  </linearGradient>
+  <marker id="cp58ako-t" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/>
+  </marker>
+  <marker id="cp58ako-tq" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--quiet)"/>
+  </marker>
+</defs>
+<style>
+  .cp58ako-root{font-family:"Pretendard",system-ui,-apple-system,sans-serif}
+  .cp58ako-root{fill:var(--body)}
+  .cp58ako-title{font-size:20px;font-weight:600;fill:var(--text)}
+  .cp58ako-sub{font-size:13.5px;fill:var(--dim)}
+  .cp58ako-name{font-size:15px;font-weight:500}
+  .cp58ako-label{font-size:13px}
+  .cp58ako-mono{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+  .cp58ako-foot{font-size:13px;fill:var(--faint)}
+  .cp58ako-surface{fill:url(#cp58ako-s);stroke:var(--line);stroke-width:1}
+  .cp58ako-lead{fill:url(#cp58ako-sl);stroke:var(--line-lead);stroke-width:1}
+  .cp58ako-region{fill:var(--inner);stroke:var(--line);stroke-width:1}
+  .cp58ako-cell{fill:var(--inner);stroke:var(--line);stroke-width:1}
+  .cp58ako-highlight{stroke:var(--hl);stroke-width:1}
+  .cp58ako-support{fill:var(--accent)}
+  .cp58ako-off{fill:var(--faint)}
   </style>
-  <defs>
-    <filter id="cp21-arc-ko-sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="-3" dy="10" stdDeviation="9" flood-color="#000" flood-opacity=".5"/></filter>
-    <filter id="cp21-arc-ko-shl" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="-4" dy="13" stdDeviation="11" flood-color="#000" flood-opacity=".58"/></filter>
-    <filter id="cp21-arc-ko-gl" x="-60%" y="-90%" width="220%" height="280%"><feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#7c9fff" flood-opacity=".4"/><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>
-    <linearGradient id="cp21-arc-ko-surface" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#1b222c"/><stop offset="1" stop-color="#151b23"/></linearGradient>
-    <linearGradient id="cp21-arc-ko-lead" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#222b38"/><stop offset="1" stop-color="#19202a"/></linearGradient>
-    <marker id="cp21-arc-ko-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#7c9fff"/></marker>
-    <marker id="cp21-arc-ko-quiet" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#5b636d"/></marker>
-  </defs>
-  <g class="cp21-arc-ko-root">
-    <rect width="960" height="540" fill="#0d1117"/>
-    <text class="heading" x="26" y="38">런타임 아키텍처</text>
-    <text class="subtitle" x="26" y="58">클러스터 경계 안에서 하나의 이미지가 브라우저와 API를 제공합니다</text>
-  <path class="flow" d="M304 265 H351" marker-end="url(#cp21-arc-ko-arrow)"/>
-  <path class="flow" d="M608 265 H655" marker-end="url(#cp21-arc-ko-arrow)"/>
-  <g filter="url(#cp21-arc-ko-sh)">
-    <rect class="card" x="52" y="152" width="248" height="226" rx="12"/>
-    <line class="topline" x1="66" y1="153" x2="286" y2="153"/>
-    <text class="card-title" x="70" y="186">브라우저</text>
-    <rect class="inner" x="70" y="210" width="212" height="48" rx="8"/>
-    <text class="label" x="82" y="230">PRIMARY</text>
-    <text class="value" x="82" y="248">React 대시보드</text>
-    <rect class="inner" x="70" y="268" width="212" height="48" rx="8"/>
-    <text class="label" x="82" y="288">BOUNDARY</text>
-    <text class="value" x="82" y="306">HTTPS :443</text>
-    <rect class="badge" x="70" y="336" width="92" height="18" rx="9"/>
-    <text class="badge-text" x="116" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-  <g filter="url(#cp21-arc-ko-shl)">
-    <rect class="lead" x="356" y="152" width="248" height="226" rx="12"/>
-    <line class="topline" x1="370" y1="153" x2="590" y2="153"/>
-    <text class="card-title" x="374" y="186">애플리케이션</text>
-    <rect class="inner" x="374" y="210" width="212" height="48" rx="8"/>
-    <text class="label" x="386" y="230">PRIMARY</text>
-    <text class="value" x="386" y="248">nginx :8080</text>
-    <rect class="inner" x="374" y="268" width="212" height="48" rx="8"/>
-    <text class="label" x="386" y="288">BOUNDARY</text>
-    <text class="value" x="386" y="306">Express :3001</text>
-    <rect class="badge" x="374" y="336" width="92" height="18" rx="9" filter="url(#cp21-arc-ko-gl)"/>
-    <text class="badge-text" x="420" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-  <g filter="url(#cp21-arc-ko-sh)">
-    <rect class="card" x="660" y="152" width="248" height="226" rx="12"/>
-    <line class="topline" x1="674" y1="153" x2="894" y2="153"/>
-    <text class="card-title" x="678" y="186">클러스터 서비스</text>
-    <rect class="inner" x="678" y="210" width="212" height="48" rx="8"/>
-    <text class="label" x="690" y="230">PRIMARY</text>
-    <text class="value" x="690" y="248">Secret + PVC</text>
-    <rect class="inner" x="678" y="268" width="212" height="48" rx="8"/>
-    <text class="label" x="690" y="288">BOUNDARY</text>
-    <text class="value" x="690" y="306">외부 API</text>
-    <rect class="badge" x="678" y="336" width="92" height="18" rx="9"/>
-    <text class="badge-text" x="724" y="349" text-anchor="middle">VERIFIED</text>
-  </g>
-    <text class="foot" x="26" y="504">Seonology Clock Page · GTM-LIVE-21 · Relief</text>
-  </g>
+<g class="cp58ako-root">
+<rect x="0" y="0" width="960" height="540" fill="var(--bg)"/>
+<text x="32" y="40" class="cp58ako-title">런타임 아키텍처</text>
+<text x="32" y="66" class="cp58ako-sub">nginx와 Express는 한 이미지에 있으며 영구 데이터는 별도로 마운트합니다.</text>
+<rect id="cp58ako-image" data-kind="region" x="256" y="112" width="672" height="304" rx="12" class="cp58ako-region"/>
+<text x="280" y="144" class="cp58ako-name" data-box="cp58ako-image">컨테이너 이미지</text>
+<text x="280" y="384" class="cp58ako-mono" data-box="cp58ako-image">Dockerfile · tini</text>
+<rect id="cp58ako-browser" data-kind="card" x="32" y="192" width="176" height="120" rx="12" class="cp58ako-surface" filter="url(#cp58ako-sh)"/>
+<path d="M48,193 H192" class="cp58ako-highlight"/>
+<text x="52" y="224" class="cp58ako-name" data-box="cp58ako-browser">브라우저</text>
+<text x="52" y="256" class="cp58ako-label" data-box="cp58ako-browser">React 대시보드</text>
+<text x="52" y="284" class="cp58ako-mono" data-box="cp58ako-browser">HTTPS</text>
+<rect id="cp58ako-nginx" data-kind="card" x="288" y="192" width="208" height="120" rx="12" class="cp58ako-surface" filter="url(#cp58ako-sh)"/>
+<path d="M304,193 H480" class="cp58ako-highlight"/>
+<text x="308" y="224" class="cp58ako-name" data-box="cp58ako-nginx">nginx :8080</text>
+<text x="308" y="256" class="cp58ako-label" data-box="cp58ako-nginx">Vite 정적 파일</text>
+<text x="308" y="284" class="cp58ako-mono" data-box="cp58ako-nginx">/usr/share/nginx/html</text>
+<rect id="cp58ako-express" data-kind="card" x="624" y="192" width="256" height="120" rx="12" class="cp58ako-lead" filter="url(#cp58ako-shl)"/>
+<path d="M640,193 H864" class="cp58ako-highlight"/>
+<text x="644" y="224" class="cp58ako-name" data-box="cp58ako-express">Express :3001</text>
+<text x="644" y="256" class="cp58ako-label" data-box="cp58ako-express">API 프로세스</text>
+<text x="644" y="284" class="cp58ako-mono" data-box="cp58ako-express">api/server.js</text>
+<path class="cp58ako-flow" d="M208,248 L288,248" marker-end="url(#cp58ako-t)" data-from="cp58ako-browser" data-to="cp58ako-nginx" data-pts="208,248;288,248"/>
+<path class="cp58ako-quiet" d="M496,248 L624,248" marker-end="url(#cp58ako-tq)" data-from="cp58ako-nginx" data-to="cp58ako-express" data-pts="496,248;624,248"/>
+<text x="248" y="237" class="cp58ako-label" text-anchor="middle">요청</text>
+<text x="560" y="237" class="cp58ako-label" text-anchor="middle">로컬 프록시</text>
+<rect id="cp58ako-data" data-kind="card" x="576" y="448" width="304" height="72" rx="12" class="cp58ako-surface" filter="url(#cp58ako-sh)"/>
+<path d="M592,449 H864" class="cp58ako-highlight"/>
+<text x="596" y="480" class="cp58ako-name" data-box="cp58ako-data">영구 저장소 마운트</text>
+<text x="596" y="500" class="cp58ako-mono" data-box="cp58ako-data">/data · JSON / 이미지</text>
+<path class="cp58ako-quiet" d="M728,312 L728,448" marker-end="url(#cp58ako-tq)" data-from="cp58ako-express" data-to="cp58ako-data" data-pts="728,312;728,448"/>
+<text x="32" y="472" class="cp58ako-foot">nginx.conf · /api/ · /health</text>
+<text x="32" y="500" class="cp58ako-foot">deployment.yaml · bookmarks-data</text>
+</g>
 </svg>
