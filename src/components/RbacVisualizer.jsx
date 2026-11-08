@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
 import './RbacVisualizer.css';
@@ -382,6 +383,7 @@ const VERB_COLORS = {
 
 export default function RbacVisualizer({ isOpen, onClose }) {
   const [yaml, setYaml] = useState(SAMPLE_YAML);
+  useUnsavedChanges(yaml !== SAMPLE_YAML);
   const [error, setError] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
   const [hoveredNode, setHoveredNode] = useState(null);

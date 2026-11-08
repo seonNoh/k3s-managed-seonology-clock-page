@@ -1,4 +1,5 @@
 import { apiFetch } from '../api/client.js';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useEffect } from 'react';
 import LoadingProgress from './LoadingProgress.jsx';
 import './TodoList.css';
@@ -8,6 +9,7 @@ const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:30
 function TodoList() {
   const [todos, setTodos] = useState([]);
   const [inputValue, setInputValue] = useState('');
+  useUnsavedChanges(inputValue.length > 0);
   const [loading, setLoading] = useState(true);
 
   const fetchTodos = async () => {

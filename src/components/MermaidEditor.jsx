@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { sanitizeMermaidSvg } from '../utils/markdown';
 import './MermaidEditor.css';
@@ -104,6 +105,7 @@ function loadMermaid() {
 
 function MermaidEditor({ isOpen, onClose }) {
   const [code, setCode] = useState(TEMPLATES.flowchart);
+  useUnsavedChanges(code !== TEMPLATES.flowchart);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState('');
   const previewRef = useRef(null);

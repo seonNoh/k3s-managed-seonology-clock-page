@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useMemo } from 'react';
 import './RegexTester.css';
 
@@ -6,6 +7,7 @@ function RegexTester({ isOpen, onClose }) {
   const [flags, setFlags] = useState('g');
   const [testStr, setTestStr] = useState('');
   const [replace, setReplace] = useState('');
+  useUnsavedChanges(Boolean(pattern || testStr || replace));
   const [showReplace, setShowReplace] = useState(false);
   const [copied, setCopied] = useState('');
 

@@ -1,4 +1,5 @@
 import { apiFetch } from '../api/client.js';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './NotesPanel.css';
 
@@ -13,6 +14,8 @@ function NotesPanel({ isOpen, onClose }) {
   const [saving, setSaving] = useState(false);
   const textareaRef = useRef(null);
   const saveTimerRef = useRef(null);
+  const unsavedNotes = useRef(new Map());
+  useUnsavedChanges(unsavedNotes.current.size > 0);
   const swipeAccumRef = useRef(0);
   const swipeResetRef = useRef(null);
   const navigatingRef = useRef(false);
@@ -23,7 +26,8 @@ function NotesPanel({ isOpen, onClose }) {
     try {
       const res = await apiFetch(`${API_BASE}/api/notes`);
       const data = await res.json();
-      setNotes(data.notes || []);
+      setNotes((data.notes || []).map(note => unsavedNotes.current.has(note.id)
+        ? { ...note, content: unsavedNotes.current.get(note.id) } : note));
       if (!activeNoteId && data.notes?.length > 0) {
         setActiveNoteId(data.notes[0].id);
       }
@@ -75,11 +79,13 @@ function NotesPanel({ isOpen, onClose }) {
   const updateNote = useCallback(async (id, content) => {
     setSaving(true);
     try {
-      await apiFetch(`${API_BASE}/api/notes/${id}`, {
+      const response = await apiFetch(`${API_BASE}/api/notes/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
       });
+      if (!response.ok) throw new Error('Failed to save note');
+      if (unsavedNotes.current.get(id) === content) unsavedNotes.current.delete(id);
     } catch (err) {
       console.error('Failed to save note:', err);
     } finally {
@@ -89,6 +95,7 @@ function NotesPanel({ isOpen, onClose }) {
 
   const handleContentChange = (e) => {
     const content = e.target.value;
+    unsavedNotes.current.set(activeNoteId, content);
     setNotes(prev => prev.map(n => n.id === activeNoteId ? { ...n, content } : n));
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -99,7 +106,9 @@ function NotesPanel({ isOpen, onClose }) {
 
   const deleteNote = async (id) => {
     try {
-      await apiFetch(`${API_BASE}/api/notes/${id}`, { method: 'DELETE' });
+      const response = await apiFetch(`${API_BASE}/api/notes/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete note');
+      unsavedNotes.current.delete(id);
       setNotes(prev => {
         const remaining = prev.filter(n => n.id !== id);
         if (activeNoteId === id) {
@@ -306,6 +315,7 @@ function NotesPanel({ isOpen, onClose }) {
                 style={swipeOffset ? { transform: `translateX(${swipeOffset}px)`, opacity: 1 - Math.abs(swipeOffset) / 120 } : undefined}
               />
               {saving && <span className="notes-saving">saving...</span>}
+              {unsavedNotes.current.has(activeNoteId) && <button type="button" onClick={() => updateNote(activeNoteId, activeNote.content)} disabled={saving}>저장</button>}
             </div>
           ) : view === 'list' || !activeNote ? (
             <div className="notes-list">

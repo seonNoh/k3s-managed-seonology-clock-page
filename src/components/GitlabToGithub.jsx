@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useCallback, useMemo } from 'react';
 import { AlertTriangle, Info, Check, X } from 'lucide-react';
 import './GitlabToGithub.css';
@@ -557,6 +558,7 @@ const CONCEPT_MAPPING = [
 
 export default function GitlabToGithub({ isOpen, onClose }) {
   const [input, setInput] = useState(SAMPLE_GITLAB);
+  useUnsavedChanges(input !== SAMPLE_GITLAB);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState('output'); // output | varmap | conceptmap
 

@@ -1,3 +1,5 @@
+import { useLayoutEffect } from 'react';
+import { setUnsavedChangesProbe } from '../api/client.js';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { renderSafeMarkdown } from '../utils/markdown';
 import './MarkdownPreview.css';
@@ -28,6 +30,9 @@ function MarkdownPreview({ isOpen, onClose }) {
   const previewRef = useRef(null);
   const fileRef = useRef(null);
   const saveTimerRef = useRef(null);
+  useLayoutEffect(() => setUnsavedChangesProbe(() =>
+    markdown !== (localStorage.getItem('md-preview-content') || '# Hello World\n\nStart typing markdown here...')
+  ), [markdown]);
 
   const handleChange = useCallback((e) => {
     const val = e.target.value;

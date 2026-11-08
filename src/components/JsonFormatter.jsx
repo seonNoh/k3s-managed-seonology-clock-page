@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import './JsonFormatter.css';
 
@@ -39,6 +40,7 @@ function highlightJson(json) {
 // ===== COMPONENT =====
 function JsonFormatter({ isOpen, onClose }) {
   const [input, setInput] = useState('');
+  useUnsavedChanges(input.length > 0);
   const [formatted, setFormatted] = useState('');
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);

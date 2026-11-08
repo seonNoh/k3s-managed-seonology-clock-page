@@ -1,14 +1,26 @@
 export const API_BASE = globalThis.location?.hostname === 'localhost' ? 'http://localhost:3001' : '';
 
-let authenticationRecoveryStarted = false;
-const authenticationAbortController = new AbortController();
+import { AuthenticationRequiredError, createForwardAuthFetch, hasUnsavedChanges } from './forwardAuth.js';
+export { setUnsavedChangesProbe, hasUnsavedChanges, onForwardAuthRecovered } from './forwardAuth.js';
 
-class AuthenticationRequiredError extends Error {
-  constructor() {
-    super('Authentication is required');
-    this.name = 'AuthenticationRequiredError';
-  }
+let authenticationAbortController = new AbortController();
+let authenticationFetch;
+function getAuthenticationFetch() {
+  return authenticationFetch ??= createForwardAuthFetch((input, options) => fetch(input, options), globalThis, {
+    onRequired: () => authenticationAbortController.abort(new AuthenticationRequiredError()),
+    onRecovered: () => { authenticationAbortController = new AbortController(); },
+  });
 }
+export function requestForwardAuthRecovery() {
+  if (globalThis.location?.href) getAuthenticationFetch().requestRecovery();
+}
+
+export function requiresInPlaceRecovery() {
+  return authenticationFetch?.requiresInPlaceRecovery() ?? hasUnsavedChanges();
+}
+
+// Register the frame-state responder even before the first internal API request.
+if (typeof window !== 'undefined' && globalThis.location?.href) getAuthenticationFetch();
 
 function isInternalApi(input) {
   const location = globalThis.location;
@@ -19,23 +31,11 @@ function isInternalApi(input) {
 
 export async function apiFetch(input, options = {}) {
   if (!isInternalApi(input)) return fetch(input, options);
-  if (authenticationRecoveryStarted) throw new AuthenticationRequiredError();
-
   const callerSignal = options.signal || (input instanceof Request ? input.signal : undefined);
   const signal = callerSignal
     ? AbortSignal.any([callerSignal, authenticationAbortController.signal])
     : authenticationAbortController.signal;
-  const response = await fetch(input, { ...options, signal });
-  if (response.status === 401 && response.headers.get('X-Forward-Auth-Required') === '1') {
-    const error = new AuthenticationRequiredError();
-    if (!authenticationRecoveryStarted) {
-      authenticationRecoveryStarted = true;
-      authenticationAbortController.abort(error);
-      globalThis.location.reload();
-    }
-    throw error;
-  }
-  return response;
+  return getAuthenticationFetch()(input, { ...options, signal });
 }
 
 export async function requestJson(path, options = {}) {

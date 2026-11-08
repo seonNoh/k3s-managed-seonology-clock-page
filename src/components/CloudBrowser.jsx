@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { apiFetch } from '../api/client.js';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { parseCloudStatusResponse } from '../features/tool-launcher/cloudStatus.js';
@@ -42,6 +43,7 @@ function CloudBrowser({ isOpen, onClose, provider }) {
   const [newName, setNewName] = useState('');
   const [renaming, setRenaming] = useState(null);
   const [renameVal, setRenameVal] = useState('');
+  useUnsavedChanges(Boolean(newName || renameVal));
   const [confirmDelete, setConfirmDelete] = useState(null);
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);

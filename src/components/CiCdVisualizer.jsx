@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 import './CiCdVisualizer.css';
@@ -428,6 +429,7 @@ function buildDAG(jobsMap) {
 export default function CiCdVisualizer({ isOpen, onClose }) {
   const [platform, setPlatform] = useState('github');
   const [yaml, setYaml] = useState(GITHUB_SAMPLE);
+  useUnsavedChanges(yaml !== (platform === 'github' ? GITHUB_SAMPLE : GITLAB_SAMPLE));
   const [parsed, setParsed] = useState(null);
   const [error, setError] = useState('');
   const [hoveredJob, setHoveredJob] = useState(null);

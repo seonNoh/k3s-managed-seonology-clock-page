@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
 import './ExcelToMarkdown.css';
@@ -157,6 +158,7 @@ notification-svc,100m,128Mi,1,Down`;
 
 export default function ExcelToMarkdown({ isOpen, onClose }) {
   const [input, setInput] = useState('');
+  useUnsavedChanges(input.length > 0);
   const [format, setFormat] = useState('auto');
   const [outputFormat, setOutputFormat] = useState('markdown');
   const [align, setAlign] = useState('left');

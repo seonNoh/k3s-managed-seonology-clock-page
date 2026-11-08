@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useCallback, useMemo } from 'react';
 import { X } from 'lucide-react';
 import './TerraformParser.css';
@@ -259,6 +260,7 @@ function getCategory(resource) {
 
 export default function TerraformParser({ isOpen, onClose }) {
   const [input, setInput] = useState(SAMPLE_STATE);
+  useUnsavedChanges(input !== SAMPLE_STATE);
   const [error, setError] = useState('');
   const [selectedResource, setSelectedResource] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');

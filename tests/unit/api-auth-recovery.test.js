@@ -2,10 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let apiFetch;
 let requestJson;
+let setUnsavedChangesProbe;
 let navigate;
+let messageListeners;
 
 beforeEach(async () => {
   vi.resetModules();
+  messageListeners = [];
+  const addEventListener = globalThis.addEventListener.bind(globalThis);
+  vi.spyOn(globalThis, 'addEventListener').mockImplementation((type, listener, options) => {
+    if (type === 'message') messageListeners.push(listener);
+    addEventListener(type, listener, options);
+  });
   navigate = vi.fn();
   vi.stubGlobal('location', {
     hostname: 'clock.seonology.com',
@@ -13,10 +21,14 @@ beforeEach(async () => {
     href: 'https://clock.seonology.com/?layout=classic#today',
     reload: navigate,
   });
-  ({ apiFetch, requestJson } = await import('../../src/api/client.js'));
+  ({ apiFetch, requestJson, setUnsavedChangesProbe } = await import('../../src/api/client.js'));
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  for (const listener of messageListeners) globalThis.removeEventListener('message', listener);
+  document.querySelectorAll('[data-seonology-auth-banner]').forEach(element => element.remove());
+  vi.unstubAllGlobals();
+});
 
 const authResponse = () => new Response('', { status: 401, headers: { 'X-Forward-Auth-Required': '1' } });
 
@@ -111,4 +123,88 @@ describe('API authentication recovery', () => {
     await expect(requestJson('/api/todos')).rejects.toMatchObject({ name: 'AuthenticationRequiredError' });
     expect(navigate).toHaveBeenCalledTimes(1);
   });
+});
+
+// Console must own the top-level navigation when Clock is embedded.
+describe('embedded authentication recovery', () => {
+  it('asks Console to navigate once instead of reloading the iframe', async () => {
+    const postMessage = vi.fn();
+    vi.stubGlobal('top', { postMessage });
+    globalThis.location.ancestorOrigins = ['https://www.seonology.com'];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(authResponse()));
+    await Promise.allSettled([apiFetch('/api/todos'), apiFetch('/api/browser-stats')]);
+    expect(postMessage).toHaveBeenCalledExactlyOnceWith(
+      { type: 'seonology:forward-auth-required', href: globalThis.location.href },
+      'https://www.seonology.com',
+    );
+    expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('preserving input during authentication expiry', () => {
+  it('keeps a failed write and later reads on the document without replaying', async () => {
+    const fetch = vi.fn().mockResolvedValue(authResponse());
+    vi.stubGlobal('fetch', fetch);
+    await expect(apiFetch('/api/todos', { method: 'POST', body: 'draft' })).rejects.toMatchObject({ name: 'AuthenticationRequiredError' });
+    await expect(apiFetch('/api/todos')).rejects.toMatchObject({ name: 'AuthenticationRequiredError' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-seonology-auth-banner]').textContent).toContain('다시 로그인');
+  });
+  it('keeps dirty reads in the iframe without messaging the Console', async () => {
+    const postMessage = vi.fn();
+    vi.stubGlobal('top', { postMessage });
+    globalThis.location.ancestorOrigins = ['https://www.seonology.com'];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(authResponse()));
+    const remove = setUnsavedChangesProbe(() => true);
+    await expect(apiFetch('/api/todos')).rejects.toMatchObject({ name: 'AuthenticationRequiredError' });
+    remove();
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-seonology-auth-banner]')).not.toBeNull();
+  });
+  it('reloads its own frame when the top ancestor cannot be verified', async () => {
+    const postMessage = vi.fn();
+    vi.stubGlobal('top', { postMessage });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(authResponse()));
+    await expect(apiFetch('/api/todos')).rejects.toMatchObject({ name: 'AuthenticationRequiredError' });
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+it('resets the Clock abort controller after the verified Console recovery signal', async () => {
+  const parent = { postMessage: vi.fn() };
+  vi.stubGlobal('top', parent);
+  globalThis.location.ancestorOrigins = ['https://www.seonology.com'];
+  const fetch = vi.fn().mockResolvedValueOnce(authResponse()).mockImplementationOnce((input, options) => {
+    expect(options.signal.aborted).toBe(false);
+    return Promise.resolve(new Response('recovered'));
+  });
+  vi.stubGlobal('fetch', fetch);
+  await expect(apiFetch('/api/todos')).rejects.toMatchObject({ name: 'AuthenticationRequiredError' });
+  const event = new MessageEvent('message', {
+    origin: 'https://www.seonology.com', data: { type: 'seonology:forward-auth-restored' },
+  });
+  Object.defineProperty(event, 'source', { value: parent });
+  globalThis.dispatchEvent(event);
+  expect(navigate).toHaveBeenCalledTimes(1);
+  expect(await (await apiFetch('/api/todos')).text()).toBe('recovered');
+});
+
+
+describe('sibling frame state discovery', () => {
+ it('responds once before its first internal API call and observes the same pending-write controller', async () => {
+  const postMessage=vi.fn();const top={postMessage};vi.stubGlobal('top',top);
+  const query=requestId=>messageListeners.forEach(listener=>listener({data:{type:'seonology:forward-auth-state-request',requestId},origin:'https://www.seonology.com',source:top}));
+  query(1);expect(postMessage).toHaveBeenCalledExactlyOnceWith({type:'seonology:forward-auth-state',requestId:1,requiresInPlaceRecovery:false},'https://www.seonology.com');
+  postMessage.mockClear();let finish;const fetch=vi.fn(()=>new Promise(resolve=>{finish=resolve;}));vi.stubGlobal('fetch',fetch);
+  const pending=apiFetch('/api/todos',{method:'POST',body:'input'});
+  query(2);expect(postMessage).toHaveBeenCalledExactlyOnceWith({type:'seonology:forward-auth-state',requestId:2,requiresInPlaceRecovery:true},'https://www.seonology.com');
+  finish(new Response('ok'));await pending;postMessage.mockClear();query(3);
+  expect(postMessage).toHaveBeenCalledExactlyOnceWith({type:'seonology:forward-auth-state',requestId:3,requiresInPlaceRecovery:false},'https://www.seonology.com');
+  expect(fetch).toHaveBeenCalledTimes(1);expect(navigate).not.toHaveBeenCalled();
+ });
 });

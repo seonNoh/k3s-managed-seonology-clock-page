@@ -1,8 +1,10 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useMemo } from 'react';
 import './TextCounter.css';
 
 function TextCounter({ isOpen, onClose }) {
   const [text, setText] = useState('');
+  useUnsavedChanges(text.length > 0);
   const [copied, setCopied] = useState('');
 
   const stats = useMemo(() => {

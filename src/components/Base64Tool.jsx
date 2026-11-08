@@ -1,8 +1,10 @@
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useCallback, useRef } from 'react';
 import './Base64Tool.css';
 
 function Base64Tool({ isOpen, onClose }) {
   const [input, setInput] = useState('');
+  useUnsavedChanges(input.length > 0);
   const [output, setOutput] = useState('');
   const [mode, setMode] = useState('encode'); // 'encode' | 'decode'
   const [error, setError] = useState('');

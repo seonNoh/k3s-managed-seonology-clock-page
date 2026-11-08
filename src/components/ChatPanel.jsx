@@ -1,4 +1,5 @@
 import { apiFetch } from '../api/client.js';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges.js';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { renderSafeMarkdown } from '../utils/markdown';
 import {
@@ -39,6 +40,7 @@ const PRESETS = [
 function ChatPanel({ isOpen, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  useUnsavedChanges(input.length > 0);
   const [loading, setLoading] = useState(false);
   const [selectedModelKey, setSelectedModelKey] = useState('');
   const [availableModels, setAvailableModels] = useState([]);
@@ -128,7 +130,6 @@ function ChatPanel({ isOpen, onClose }) {
     const userMessage = { role: 'user', content: input.trim() };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    setInput('');
     setLoading(true);
 
     const apiMessages = [
@@ -144,6 +145,7 @@ function ChatPanel({ isOpen, onClose }) {
       });
       const data = await res.json();
       if (data.error) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
+      setInput(current => current === input ? '' : current);
 
       const assistantMessage = { role: 'assistant', content: data.content };
       const updatedMessages = [...newMessages, assistantMessage];

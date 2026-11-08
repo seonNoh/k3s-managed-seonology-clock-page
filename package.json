@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "test": "playwright test",
-    "test:unit": "vitest run --config vitest.config.js && node --test tests/unit/release-gate.test.js tests/unit/container-smoke.test.js",
+    "test:unit": "vitest run --config vitest.config.js && node --test tests/unit/release-gate.test.js tests/unit/container-smoke.test.js tests/unit/forward-auth.node.mjs",
     "test:api": "npm test --prefix api",
     "pretest:e2e": "npm run build --prefix toolkit-extension",
     "test:e2e": "playwright test",
