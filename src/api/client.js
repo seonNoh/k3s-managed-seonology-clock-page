@@ -1,12 +1,12 @@
 export const API_BASE = globalThis.location?.hostname === 'localhost' ? 'http://localhost:3001' : '';
 
-import { AuthenticationRequiredError, createForwardAuthFetch, hasUnsavedChanges } from './forwardAuth.js';
+import { AuthenticationRequiredError, createSharedForwardAuthFetch, hasUnsavedChanges } from './forwardAuth.js';
 export { setUnsavedChangesProbe, hasUnsavedChanges, onForwardAuthRecovered } from './forwardAuth.js';
 
 let authenticationAbortController = new AbortController();
 let authenticationFetch;
 function getAuthenticationFetch() {
-  return authenticationFetch ??= createForwardAuthFetch((input, options) => fetch(input, options), globalThis, {
+  return authenticationFetch ??= createSharedForwardAuthFetch((input, options) => fetch(input, options), globalThis, {
     onRequired: () => authenticationAbortController.abort(new AuthenticationRequiredError()),
     onRecovered: () => { authenticationAbortController = new AbortController(); },
   });

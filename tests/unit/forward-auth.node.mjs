@@ -236,7 +236,11 @@ test('popup uses the confirmed protected GET path for public-root hosts', async 
     const login=new URL(f.opened[0][0]);
     assert.equal(login.host,host);
     assert.equal(login.pathname,path);
-    if(host==='www.seonology.com') assert.equal(login.searchParams.get('return_to'),'/favicon.ico');
+    if(host==='www.seonology.com') {
+      const landing = new URL(login.searchParams.get('return_to'), login);
+      assert.equal(landing.pathname, '/favicon.ico');
+      assert.ok(landing.searchParams.get('seonology-reauth'));
+    }
   }
 });
 
@@ -462,4 +466,141 @@ test('a clean child awaiting Console recovery responds without resetting its lat
  assert.equal(f.messages.at(-1)[0].requiresInPlaceRecovery,false);
  await reject(f.request('/api/still-paused'));
  assert.equal(f.calls.length,1);assert.equal(f.navigations.length,0);assert.equal(f.messages.length,2);
+});
+
+
+test('cached login landings are bypassed on three consecutive authentication attempts', async () => {
+  for (const host of ['cost.seonology.com', 'pedia.seonology.com', 'mcp.seonology.com', 'www.seonology.com']) {
+    const f = fixture();
+    f.location.href = 'https://' + host + '/edit?draft=kept#input';
+    const cached = new Set(['/favicon.ico', '/favicon.ico?seonology-reauth=1',
+      '/editor.html?seonology-reauth=1', '/hub/forward-auth.js?seonology-reauth=1']);
+    const bridges = new Set();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await reject(f.request('/api/data', { method: 'POST', body: 'unsaved input' }));
+      f.popup().closed = false;
+      f.popup().location = { href: 'about:blank', origin: 'null' };
+      f.find('다시 로그인').click();
+      const login = new URL(f.opened[attempt][0]);
+      const landing = host === 'www.seonology.com'
+        ? new URL(login.searchParams.get('return_to'), login) : login;
+      assert.equal(landing.host, host);
+      assert.ok(landing.searchParams.get('seonology-reauth'));
+      assert.equal(cached.has(landing.pathname + landing.search), false,
+        'a cached landing would skip the authentication boundary');
+      assert.equal(bridges.has(login.href), false);
+      cached.add(landing.pathname + landing.search);
+      bridges.add(login.href);
+      f.popup().location = { href: landing.href, origin: landing.origin };
+      f.tick();
+      assert.equal(f.body.children.length, 0);
+      assert.equal(f.navigations.length, 0);
+      assert.equal(f.calls.length, attempt + 1, 'failed writes must never be replayed');
+    }
+  }
+});
+
+
+test('protected asset loader waits for popup recovery without rejecting a lazy promise', async () => {
+  const module = await import('../../src/api/forwardAuth.js');
+  assert.equal(typeof module.createProtectedAssetLoader, 'function');
+  let recovered, attempts=0, requested=[], dirty=true;
+  const browser={location:{href:'https://presenter.seonology.com/edit/draft?tab=code#input'},
+    sessionStorage:{getItem:()=>null,setItem:()=>{}}};
+  const auth={requiresInPlaceRecovery:()=>dirty,requestRecovery:safe=>requested.push(safe)};
+  const load=module.createProtectedAssetLoader(auth,browser,async()=>new Response('',{status:401,headers:{'X-Forward-Auth-Required':'1'}}),fn=>{recovered=fn;return()=>{}});
+  const pending=load(async()=>{if(++attempts===1)throw new TypeError('Failed to fetch dynamically imported module');return 'module-ready';});
+  await new Promise(r=>setTimeout(r,0));
+  assert.deepEqual(requested,[false]);assert.equal(attempts,1);
+  recovered();assert.equal(await pending,'module-ready');assert.equal(attempts,2);
+});
+
+test('protected asset loader reloads clean reads once and stops a reload loop', async () => {
+  const module = await import('../../src/api/forwardAuth.js');
+  assert.equal(typeof module.createProtectedAssetLoader, 'function');
+  let stored=null, recovered;const requested=[],seen=[];
+  const browser={location:{href:'https://presenter.seonology.com/p/read?foo=bar#slide'},
+    sessionStorage:{getItem:()=>stored,setItem:(_key,value)=>{stored=value}}};
+  const auth={requiresInPlaceRecovery:()=>false,requestRecovery:safe=>requested.push(safe)};
+  const fetcher=async(url,init)=>{seen.push({url,init});return new Response('',{status:401,headers:{'X-Forward-Auth-Required':'1'}})};
+  const make=()=>module.createProtectedAssetLoader(auth,browser,fetcher,fn=>{recovered=fn;return()=>{}});
+  void make()(async()=>{throw new TypeError('Failed to fetch dynamically imported module')});
+  await new Promise(r=>setTimeout(r,0));assert.deepEqual(requested,[true]);assert.ok(stored);
+  let attempts=0;const second=make()(async()=>{if(++attempts===1)throw new Error('Unable to preload CSS for /assets/a.css');return 'css-ready'});
+  await new Promise(r=>setTimeout(r,0));assert.deepEqual(requested,[true,false]);
+  assert.equal(seen[0].init.cache,'no-store');assert.equal(new URL(seen[0].url).searchParams.has('seonology-asset-probe'),true);
+  recovered();assert.equal(await second,'css-ready');
+});
+
+test('protected asset loader preserves non-auth errors and never retries a write', async () => {
+  const module = await import('../../src/api/forwardAuth.js');
+  assert.equal(typeof module.createProtectedAssetLoader, 'function');
+  const error=new TypeError('Failed to fetch dynamically imported module');let recoveries=0,calls=0;
+  const loader=module.createProtectedAssetLoader({requiresInPlaceRecovery:()=>true,requestRecovery:()=>recoveries++},
+    {location:{href:'https://clock.seonology.com/'}},async()=>{calls++;return new Response('',{status:404})},()=>()=>{});
+  await assert.rejects(loader(async()=>{throw error}),e=>e===error);assert.equal(recoveries,0);assert.equal(calls,1);
+  const runtime=new Error('application render failed');
+  await assert.rejects(loader(async()=>{throw runtime}),e=>e===runtime);assert.equal(calls,1);
+});
+
+const { rewritePreloadHelper } = await import('../../build/protected-assets.mjs');
+test('unsupported Vite helpers fail closed',()=>assert.throws(()=>rewritePreloadHelper('export const changed = 1','/guard.ts'),/Unsupported/));
+test('CSS failure deletes seen entry and failed link before rejection; wrapper covers baseModule and CSS',()=>{
+ const code=`const seen={};export const __vitePreload = function preload(baseModule,deps){const dep=deps[0]; const link=document.createElement('link');link.addEventListener('error',()=>reject(new Error('Unable to preload CSS')));return baseModule();}`;
+ const result=rewritePreloadHelper(code,'/src/forwardAuth.ts');
+ assert.ok(result.indexOf('delete seen[dep]')<result.indexOf("reject(new Error"));
+ assert.match(result,/link.remove\(\)/);assert.match(result,/protectedAssetImport\(\s*\(\) => __seonologyRawPreload\(baseModule, deps, importerUrl\)/);
+ assert.match(result,/import \{ protectedAssetImport \}/);
+});
+
+
+test('a protected import resumes if a clean child becomes dirty during parent reauthentication', async () => {
+  const module = await import('../../src/api/forwardAuth.js');
+  let recovered, attempts=0;const requested=[];
+  const load=module.createProtectedAssetLoader({requiresInPlaceRecovery:()=>false,requestRecovery:safe=>requested.push(safe)},
+    {location:{href:'https://clock.seonology.com/?embed=1'},sessionStorage:{getItem:()=>null,setItem:()=>{}}},
+    async()=>new Response('',{status:401,headers:{'X-Forward-Auth-Required':'1'}}),listener=>{recovered=listener;return()=>{}});
+  const pending=load(async()=>{if(++attempts===1)throw new TypeError('Failed to fetch dynamically imported module');return 'restored-child';});
+  await new Promise(r=>setTimeout(r,0));assert.deepEqual(requested,[true]);assert.equal(typeof recovered,'function');
+  recovered();assert.equal(await pending,'restored-child');assert.equal(attempts,2);
+});
+
+test('verified Console recovery notifies a newly dirty child without navigation', async () => {
+  const f=fixture(expired(),['https://www.seonology.com']);
+  let notifications=0;const unsubscribe=f.subscribe(()=>notifications++);
+  try {
+    await reject(f.request('/api/read'));
+    const remove=f.register(()=>true);
+    try{f.receive({type:'seonology:forward-auth-restored'},'https://www.seonology.com',f.browser.top);assert.equal(f.navigations.length,0);assert.equal(notifications,1);}
+    finally{remove();}
+  }finally{unsubscribe();}
+});
+
+
+test('an asset ignores a delayed probe 401 after another authentication recovery', async () => {
+  const module=await import('../../src/api/forwardAuth.js');let resolveProbe,generation=0,recoveries=0,attempts=0;
+  const load=module.createProtectedAssetLoader({getRecoveryState:()=>({generation,pending:false}),requiresInPlaceRecovery:()=>true,requestRecovery:()=>recoveries++},
+    {location:{href:'https://clock.seonology.com/'}},()=>new Promise(resolve=>{resolveProbe=resolve}),()=>()=>{});
+  const result=load(async()=>{if(++attempts===1)throw new TypeError('Failed to fetch dynamically imported module');return 'authenticated-module'});
+  await new Promise(resolve=>setTimeout(resolve,0));generation++;
+  resolveProbe(new Response('',{status:401,headers:{'X-Forward-Auth-Required':'1'}}));
+  await new Promise(resolve=>setTimeout(resolve,0));assert.equal(recoveries,0);assert.equal(await result,'authenticated-module');assert.equal(attempts,2);
+});
+
+test('an asset loading failure arriving after recovery retries before probing again', async () => {
+  const module=await import('../../src/api/forwardAuth.js');let rejectLoad,generation=0,probes=0,attempts=0;
+  const load=module.createProtectedAssetLoader({getRecoveryState:()=>({generation,pending:false}),requiresInPlaceRecovery:()=>false,requestRecovery:()=>{throw Error('unexpected recovery')}},
+    {location:{href:'https://clock.seonology.com/'}},async()=>{probes++;return new Response('ok')},()=>()=>{});
+  const result=load(()=>++attempts===1?new Promise((_resolve,reject)=>{rejectLoad=reject}):Promise.resolve('fresh-module'));
+  generation++;rejectLoad(new TypeError('Failed to fetch dynamically imported module'));
+  assert.equal(await result,'fresh-module');assert.equal(probes,0);assert.equal(attempts,2);
+});
+
+test('an asset joins an existing popup before its recovery generation is published', async () => {
+  const module=await import('../../src/api/forwardAuth.js');let recovered,pending=true,generation=0,probes=0,attempts=0,recoveries=0;
+  const load=module.createProtectedAssetLoader({getRecoveryState:()=>({generation,pending}),requiresInPlaceRecovery:()=>true,requestRecovery:()=>recoveries++},
+    {location:{href:'https://clock.seonology.com/'}},async()=>{probes++;return new Response('ok')},listener=>{recovered=listener;return()=>{}});
+  const result=load(async()=>{if(++attempts===1)throw new TypeError('Failed to fetch dynamically imported module');return 'popup-module'});
+  await new Promise(resolve=>setTimeout(resolve,0));assert.equal(probes,0);assert.equal(recoveries,0);assert.equal(typeof recovered,'function');
+  pending=false;generation++;recovered();assert.equal(await result,'popup-module');
 });

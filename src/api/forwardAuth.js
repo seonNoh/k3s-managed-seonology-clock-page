@@ -38,11 +38,17 @@ export class AuthenticationRequiredError extends Error {
                                                                            
 
 function protectedLoginUrl(page     )         {
-  // These GET paths are protected by the live ingress rules; public health checks are unsuitable.
-  if (page.hostname === 'pedia.seonology.com') return new URL('/editor.html?seonology-reauth=1', page).href;
-  if (page.hostname === 'mcp.seonology.com') return new URL('/hub/forward-auth.js?seonology-reauth=1', page).href;
-  if (page.hostname === 'www.seonology.com') return new URL('/api/v1/auth/forward?return_to=%2Ffavicon.ico', page).href;
-  return new URL('/favicon.ico?seonology-reauth=1', page).href;
+  // Each authentication attempt must reach ingress instead of a cached landing.
+  const path = page.hostname === 'pedia.seonology.com' ? '/editor.html' :
+    page.hostname === 'mcp.seonology.com' ? '/hub/forward-auth.js' : '/favicon.ico';
+  const landing = new URL(path, page);
+  landing.searchParams.set('seonology-reauth', crypto.randomUUID());
+  if (page.hostname === 'www.seonology.com') {
+    const bridge = new URL('/api/v1/auth/forward', page);
+    bridge.searchParams.set('return_to', landing.pathname + landing.search);
+    return bridge.href;
+  }
+  return landing.href;
 }
 
 export function createForwardAuthFetch(
@@ -80,6 +86,7 @@ export function createForwardAuthFetch(
     hooks.onRecovered?.();
     // Input may have changed while the Console popup was open.
     if (!hasUnsavedChanges()) browser.location.reload();
+    else publishRecovery();
   });
 
   function stopWatching() {
@@ -210,13 +217,18 @@ export function createForwardAuthFetch(
       }
       return response;
     } finally { if (writing) pendingWrites -= 1; }
-  }, { requestRecovery: () => recover(true), requiresInPlaceRecovery: () => (started && preservingDocument) || pendingWrites > 0 || hasUnsavedChanges() });
+  }, { requestRecovery: (safeRead = true) => recover(safeRead), requiresInPlaceRecovery: () => (started && preservingDocument) || pendingWrites > 0 || hasUnsavedChanges(), getRecoveryState: () => ({ generation, pending: started }) });
   return request;
 }
 
 let shared                       ;
+// The API adapter installs its abort hooks before any lazy tool is opened.
+// Both paths must share pending writes and the one recovery latch.
+export function createSharedForwardAuthFetch(fetcher, browser, hooks = {}) {
+  return shared ??= createForwardAuthFetch(fetcher, browser, hooks);
+}
 function sharedFetch()            {
-  return shared ??= createForwardAuthFetch((...args) => globalThis.fetch(...args), window);
+  return createSharedForwardAuthFetch((...args) => globalThis.fetch(...args), window);
 }
 export const authFetch               = (...args) => {
   if (typeof window === 'undefined') return globalThis.fetch(...args);
@@ -232,3 +244,79 @@ export function requiresInPlaceRecovery()          {
 
 // A sibling can ask for state before this frame makes its first guarded request.
 
+// Keep React.lazy's promise pending while authentication is restored. Only reads are retried.
+export function createProtectedAssetLoader(auth, browser, fetcher, subscribe) {
+    const state = () => auth.getRecoveryState?.() ?? { generation: 0, pending: false };
+    const waitForRecovery = (safeRead) => new Promise(resolve => {
+        const unsubscribe = subscribe(() => { unsubscribe(); resolve(); });
+        if (safeRead !== undefined)
+            auth.requestRecovery(safeRead);
+    });
+    return async function load(operation, asset) {
+        for (;;) {
+            const generation = state().generation;
+            try {
+                return await operation();
+            }
+            catch (error) {
+                const message = error instanceof Error ? error.message : '';
+                if (!/Unable to preload CSS|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(message))
+                    throw error;
+                if (state().generation !== generation)
+                    continue;
+                if (state().pending) {
+                    await waitForRecovery();
+                    continue;
+                }
+                const page = new URL(browser.location.href);
+                const probe = asset ? new URL(asset, page) : new URL(protectedLoginUrl(page));
+                if (probe.origin !== page.origin)
+                    throw error;
+                probe.searchParams.set('seonology-asset-probe', crypto.randomUUID());
+                let response;
+                try {
+                    response = await fetcher(probe.href, { method: 'GET', credentials: 'same-origin', cache: 'no-store', redirect: 'error' });
+                }
+                catch {
+                    if (state().generation !== generation)
+                        continue;
+                    if (state().pending) {
+                        await waitForRecovery();
+                        continue;
+                    }
+                    throw error;
+                }
+                if (state().generation !== generation)
+                    continue;
+                if (state().pending) {
+                    await waitForRecovery();
+                    continue;
+                }
+                if (response.status !== 401 || response.headers.get('X-Forward-Auth-Required') !== '1' ||
+                    (response.url && new URL(response.url).origin !== page.origin))
+                    throw error;
+                let reload = false;
+                if (!auth.requiresInPlaceRecovery()) {
+                    // Failure to access storage must not allow an unbounded navigation loop.
+                    try {
+                        const key = 'seonology:asset-reauth:' + page.pathname + page.search;
+                        const previous = Number(browser.sessionStorage?.getItem(key));
+                        if (browser.sessionStorage && (!previous || Date.now() - previous > 60000)) {
+                            browser.sessionStorage.setItem(key, String(Date.now()));
+                            reload = true;
+                        }
+                    }
+                    catch { /* Preserve this document when storage is unavailable. */ }
+                }
+                // A Console parent may restore authentication without navigating this child
+                // if the user starts editing while its popup is open.
+                await waitForRecovery(reload);
+                // Loading errors are retryable in the current HTML module map algorithm.
+                // Vite's failed CSS link/seen entry is removed by the build plugin.
+            }
+        }
+    };
+}
+export function protectedAssetImport(operation, asset) {
+    return createProtectedAssetLoader(sharedFetch(), window, (...args) => globalThis.fetch(...args), onForwardAuthRecovered)(operation, asset);
+}

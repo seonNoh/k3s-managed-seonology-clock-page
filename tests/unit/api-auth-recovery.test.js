@@ -208,3 +208,25 @@ describe('sibling frame state discovery', () => {
   expect(fetch).toHaveBeenCalledTimes(1);expect(navigate).not.toHaveBeenCalled();
  });
 });
+
+it('coordinates a failed lazy asset with an in-flight API 401 through one recovery latch', async () => {
+  sessionStorage.clear();let release;
+  const fetch=vi.fn(input=>String(input).includes('/api/browser-stats')?new Promise(resolve=>{release=resolve}):Promise.resolve(authResponse()));
+  vi.stubGlobal('fetch',fetch);
+  const api=apiFetch('/api/browser-stats');
+  const {protectedAssetImport}=await import('../../src/api/forwardAuth.js');
+  void protectedAssetImport(async()=>{throw new TypeError('Failed to fetch dynamically imported module')},'/assets/late.js');
+  await vi.waitFor(()=>expect(navigate).toHaveBeenCalledTimes(1));
+  release(authResponse());await expect(api).rejects.toMatchObject({name:'AuthenticationRequiredError'});
+  expect(navigate).toHaveBeenCalledTimes(1);
+});
+
+it('preserves the document when a lazy asset expires while an API write is pending', async () => {
+  sessionStorage.clear();let release;
+  const fetch=vi.fn(input=>String(input).includes('/api/notes/pending')?new Promise(resolve=>{release=resolve}):Promise.resolve(authResponse()));
+  vi.stubGlobal('fetch',fetch);const writing=apiFetch('/api/notes/pending',{method:'PUT',body:'preserved'});
+  const {protectedAssetImport}=await import('../../src/api/forwardAuth.js');
+  void protectedAssetImport(async()=>{throw new TypeError('Failed to fetch dynamically imported module')},'/assets/late.js');
+  await vi.waitFor(()=>expect(document.querySelector('[data-seonology-auth-banner]')).not.toBeNull());
+  expect(navigate).not.toHaveBeenCalled();release(new Response('ok'));await writing;
+});
