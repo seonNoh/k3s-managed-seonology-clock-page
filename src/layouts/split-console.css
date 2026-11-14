@@ -101,6 +101,9 @@
 }
 
 .split-zone-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   min-height: 44px;
   padding: 8px 10px;
   border: 1px solid var(--split-line-strong);

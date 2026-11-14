@@ -1,3 +1,9 @@
+## [1.62.0] - 2026-11-15
+
+### Features
+
+- feat: apply seonology clock brand assets
+
 ## [1.61.1] - 2026-10-21
 
 ### Fixes
