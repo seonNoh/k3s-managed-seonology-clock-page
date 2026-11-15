@@ -176,7 +176,7 @@ function SplitConsoleDashboard({
       <section className="split-clock-zone" aria-label="현재 시간">
         <header className="split-zone-head">
           <button type="button" onClick={() => openModal('services')}>
-            <img src="/favicon.svg" alt="" width="18" height="18" aria-hidden="true" />
+            <img src="/favicon.svg?v=20261115v2" alt="" width="18" height="18" aria-hidden="true" />
             SEONOLOGY
           </button>
           <span>LOCAL CLOCK / {template.name.toUpperCase()}</span>

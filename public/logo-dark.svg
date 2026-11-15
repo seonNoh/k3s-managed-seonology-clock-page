@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 308 64">
   <path d="M 12,4 H 42 L 60,22 V 52 A 8,8 0 0 1 52,60 H 12 A 8,8 0 0 1 4,52 V 12 A 8,8 0 0 1 12,4 Z" fill="#151b23" stroke="#33404f" stroke-width="2"/>
   <path d="M 42,4 L 60,22 H 48 A 6,6 0 0 1 42,16 Z" fill="#79c0ff"/>
-  <path d="M 40,16 H 22 A 6,6 0 0 0 16,22 V 30 A 6,6 0 0 0 22,36 H 36 V 40 H 16 V 48 H 38 A 6,6 0 0 0 44,42 V 34 A 6,6 0 0 0 38,28 H 24 V 24 H 40 V 16 Z" fill="#f0f6fc"/>
-  <text x="76" y="41" font-family="-apple-system, BlinkMacSystemFont, 'Pretendard', 'Segoe UI', sans-serif" font-size="24" font-weight="700" fill="#f0f6fc">seonology</text>
-  <text x="202" y="41" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="500" fill="#6e7681">/</text>
-  <text x="222" y="41" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="21" font-weight="700" fill="#79c0ff">clock</text>
+  <path d="M 25.5,15.5 H 32.5 M 29,15.5 V 19.5" fill="none" stroke="#f0f6fc" stroke-width="3.0" stroke-linecap="round"/>
+  <circle cx="29" cy="34.8" r="13.2" fill="none" stroke="#f0f6fc" stroke-width="3.3"/>
+  <path d="M 24,31 L 29,34.8 L 35.2,28.8" fill="none" stroke="#79c0ff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="78" y="42" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Pretendard', 'Segoe UI', sans-serif"><tspan font-size="25" font-weight="800" fill="#f0f6fc">Clock</tspan><tspan dx="4" font-size="21" font-weight="400" fill="#6e7681"> / </tspan><tspan dx="4" font-size="20" font-weight="600" fill="#79c0ff">seonology</tspan></text>
 </svg>
